@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tabela base da Guilda
+model Guild {
+  id              String   @id
+  autoVoiceConfig AutoVoiceConfig?
+  ticketConfig    TicketConfig?
+}
+
+// 📦 MÓDULO: AUTO-VOICE (Configurações do Painel /hype)
+model AutoVoiceConfig {
+  guildId         String   @id
+  guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  
+  triggerChannel  String?  // ID do Canal gatilho
+  tempCategory    String?  // ID da Categoria para as salas
+  bypassRoles     String[] // Array com IDs dos cargos que têm Passe Livre nas salas trancadas
+}
+
+// 📦 MÓDULO: AUTO-VOICE (Salvar Salas Ativas para não perder no restart da Discloud)
+model AutoVoiceRoom {
+  channelId       String   @id // ID do canal de voz temporário criado
+  ownerId         String       // ID do dono da sala
+  guildId         String       // ID do servidor
+}
+
+// 📦 MÓDULO: TICKETS (Já deixamos pronto pra quando você for fazer)
+model TicketConfig {
+  guildId         String   @id
+  guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  
+  ticketCategory  String?
+  staffRoles      String[]
+}
