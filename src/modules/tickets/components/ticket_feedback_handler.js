@@ -1,36 +1,36 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } = require('discord.js');
-const { prisma } = require('../../../core/database');
 
 module.exports = {
-    // Captura 'rate_1', 'rate_2', ... 'rate_skip'
+    // Captura 'rate_1_...', 'rate_5_...'
     customIdPrefix: 'rate_', 
 
     async execute(interaction, client) {
-        const rating = interaction.customId.replace('rate_', '');
-        const ticket = await prisma.activeTicket.findUnique({ where: { channelId: interaction.channel.id } });
+        // Formato: rate_NOTA_GUILDID_STAFFID
+        const parts = interaction.customId.split('_');
+        const rating = parts[1];
+        const guildId = parts[2];
+        const staffId = parts[3];
 
-        // Se for Skip ou se não tiver ticket no DB (bug), deleta logo
-        if (rating === 'skip' || !ticket) {
-            await interaction.reply({ content: '👋 Fechando ticket...', flags: [MessageFlags.Ephemeral] });
-            if (ticket) await prisma.activeTicket.delete({ where: { channelId: interaction.channel.id } });
-            setTimeout(() => interaction.channel.delete().catch(() => {}), 2000);
-            return;
+        // Se ninguém atendeu (staffId = none), apenas agradece
+        if (staffId === 'none') {
+            return interaction.reply({ content: '✅ Obrigado pelo feedback! (Atendimento sem staff específico)', flags: [MessageFlags.Ephemeral] });
         }
 
-        // Se for nota (1-5), mostra Modal de Comentário
+        // Abre Modal para comentário
         const modal = new ModalBuilder()
-            .setCustomId(`submit_feedback_${rating}`) // Passamos a nota no ID
+            .setCustomId(`submit_feedback_${rating}_${guildId}_${staffId}`) // Passa os dados para o próximo passo
             .setTitle(`Avaliação: ${rating} Estrelas`);
 
         const commentInput = new TextInputBuilder()
             .setCustomId('feedback_comment')
-            .setLabel('Deixe um comentário (Opcional)')
+            .setLabel('Comentário (Opcional)')
             .setStyle(TextInputStyle.Paragraph)
-            .setPlaceholder('O atendimento foi rápido? O problema foi resolvido?')
+            .setPlaceholder('Elogios, críticas ou sugestões...')
             .setRequired(false)
             .setMaxLength(200);
 
         modal.addComponents(new ActionRowBuilder().addComponents(commentInput));
+        
         await interaction.showModal(modal);
     }
 };

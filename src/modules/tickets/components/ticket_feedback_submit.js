@@ -2,68 +2,67 @@ const { ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.
 const { prisma } = require('../../../core/database');
 
 module.exports = {
+    // Captura submit_feedback_...
     customIdPrefix: 'submit_feedback_',
 
     async execute(interaction, client) {
-        await interaction.deferUpdate(); // Não queremos responder visualmente, vamos deletar o canal
-
-        const rating = parseInt(interaction.customId.replace('submit_feedback_', ''));
+        // Formato: submit_feedback_NOTA_GUILDID_STAFFID
+        const parts = interaction.customId.split('_');
+        const rating = parseInt(parts[2]);
+        const guildId = parts[3];
+        const staffId = parts[4];
+        
         const comment = interaction.fields.getTextInputValue('feedback_comment') || 'Sem comentário.';
-        const channelId = interaction.channel.id;
-        const guildId = interaction.guild.id;
 
-        // 1. Busca info do Ticket para saber quem avaliar
-        const ticket = await prisma.activeTicket.findUnique({ where: { channelId: channelId } });
+        // 1. Atualiza DB (Ranking)
+        // Usa upsert para criar se não existir ou atualizar se existir
+        const currentStats = await prisma.staffStats.findUnique({
+            where: { guildId_staffId: { guildId, staffId } }
+        }) || { ticketsClosed: 0, totalStars: 0 };
 
-        if (ticket && ticket.claimerId) {
-            const staffId = ticket.claimerId;
+        const newTotal = currentStats.ticketsClosed + 1;
+        const newStars = currentStats.totalStars + rating;
+        const newAverage = parseFloat((newStars / newTotal).toFixed(2));
 
-            // 2. Atualiza Estatísticas do Staff (Ranking)
-            // Lógica de média ponderada simples
-            const currentStats = await prisma.staffStats.findUnique({
-                where: { guildId_staffId: { guildId, staffId } }
-            }) || { ticketsClosed: 0, totalStars: 0 };
+        await prisma.staffStats.upsert({
+            where: { guildId_staffId: { guildId, staffId } },
+            create: {
+                guildId,
+                staffId,
+                ticketsClosed: 1,
+                totalStars: rating,
+                averageRating: parseFloat(rating.toFixed(2))
+            },
+            update: {
+                ticketsClosed: newTotal,
+                totalStars: newStars,
+                averageRating: newAverage
+            }
+        });
 
-            const newTotal = currentStats.ticketsClosed + 1;
-            const newStars = currentStats.totalStars + rating;
-            const newAverage = parseFloat((newStars / newTotal).toFixed(2));
+        // 2. Feedback ao Usuário
+        await interaction.reply({ content: '✅ **Feedback enviado com sucesso!** Obrigado por avaliar a nossa equipa.', flags: [MessageFlags.Ephemeral] });
 
-            await prisma.staffStats.upsert({
-                where: { guildId_staffId: { guildId, staffId } },
-                create: {
-                    guildId,
-                    staffId,
-                    ticketsClosed: 1,
-                    totalStars: rating,
-                    averageRating: parseFloat(rating.toFixed(2))
-                },
-                update: {
-                    ticketsClosed: newTotal,
-                    totalStars: newStars,
-                    averageRating: newAverage
-                }
-            });
-
-            // 3. Envia Log do Feedback (Opcional, mas profissional)
+        // 3. Log no Servidor (Opcional: Avisa no canal de logs que chegou uma avaliação)
+        try {
             const config = await prisma.ticketConfig.findUnique({ where: { guildId } });
             if (config?.logChannel) {
-                const logChannel = interaction.guild.channels.cache.get(config.logChannel);
+                const guild = await client.guilds.fetch(guildId);
+                const logChannel = guild.channels.cache.get(config.logChannel);
+                
                 if (logChannel) {
                     const starsEmoji = '⭐'.repeat(rating);
                     const logContainer = new ContainerBuilder()
-                        .setAccentColor(0xFEE75C)
+                        .setAccentColor(0xFEE75C) // Dourado
                         .addTextDisplayComponents(
-                            new TextDisplayBuilder().setContent(`# 💬 Novo Feedback Recebido\n**Staff:** <@${staffId}>\n**Nota:** ${rating}/5 ${starsEmoji}\n**Comentário:** "${comment}"\n**Cliente:** <@${interaction.user.id}>`)
+                            new TextDisplayBuilder().setContent(`# 💬 Nova Avaliação Recebida\n**Staff:** <@${staffId}>\n**Nota:** ${rating}/5 ${starsEmoji}\n**Comentário:** "${comment}"\n**Cliente:** <@${interaction.user.id}>`)
                         );
-                    await logChannel.send({ components: [logContainer], flags: [MessageFlags.IsComponentsV2] }).catch(() => {});
+                    
+                    await logChannel.send({ components: [logContainer], flags: [MessageFlags.IsComponentsV2] });
                 }
             }
+        } catch (err) {
+            console.error('Erro ao enviar log de feedback:', err);
         }
-
-        // 4. Limpeza Final
-        if (ticket) await prisma.activeTicket.delete({ where: { channelId } });
-        
-        await interaction.followUp({ content: '✅ Obrigado! Fechando ticket...', flags: [MessageFlags.Ephemeral] });
-        setTimeout(() => interaction.channel.delete().catch(() => {}), 3000);
     }
 };
