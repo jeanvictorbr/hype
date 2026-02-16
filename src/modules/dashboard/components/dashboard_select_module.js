@@ -32,9 +32,12 @@ module.exports = {
                 new ButtonBuilder().setCustomId('dashboard_btn_back').setLabel('◀ Voltar').setStyle(ButtonStyle.Danger)
             );
 
+            // 🛠️ CORREÇÃO DA V2: Usando os métodos corretos para separar cada tipo de item
             const autovoiceContainer = new ContainerBuilder()
                 .setAccentColor(0x5865F2)
-                .addComponents(headerText, divider, actionRow);
+                .addTextDisplayComponents(headerText)
+                .addSeparatorComponents(divider)
+                .addActionRowComponents(actionRow);
 
             if (interaction.isStringSelectMenu()) {
                 await interaction.update({ components: [autovoiceContainer] });
@@ -64,9 +67,10 @@ module.exports = {
                 const lockedText = new TextDisplayBuilder()
                     .setContent('# 🔒 Módulo Premium\nO sistema avançado de **Tickets** é uma funcionalidade exclusiva. Para liberar este módulo para o seu servidor, entre em contato com o desenvolvedor.');
                 
+                // 🛠️ CORREÇÃO DA V2
                 const lockedContainer = new ContainerBuilder()
-                    .setAccentColor(0xFEE75C) // Amarelo de Atenção
-                    .addComponents(lockedText);
+                    .setAccentColor(0xFEE75C) 
+                    .addTextDisplayComponents(lockedText);
 
                 return interaction.update({ components: [lockedContainer] });
             }
@@ -90,13 +94,16 @@ module.exports = {
                     .setStyle(ButtonStyle.Primary),
                 new ButtonBuilder()
                     .setCustomId('ticket_btn_panel')
-                    .setLabel('📩 Enviar Painel no Chat') // Botão que manda a msg pro pessoal clicar e abrir o ticket
+                    .setLabel('📩 Enviar Painel no Chat') 
                     .setStyle(ButtonStyle.Secondary)
             );
 
+            // 🛠️ CORREÇÃO DA V2
             const ticketContainer = new ContainerBuilder()
-                .setAccentColor(0x57F287) // Verde Liberado
-                .addComponents(ticketText, divider, ticketControls);
+                .setAccentColor(0x57F287) 
+                .addTextDisplayComponents(ticketText)
+                .addSeparatorComponents(divider)
+                .addActionRowComponents(ticketControls);
 
             await interaction.update({ components: [ticketContainer] });
         }
