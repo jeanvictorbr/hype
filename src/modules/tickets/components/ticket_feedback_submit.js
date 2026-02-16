@@ -2,6 +2,7 @@ const { ContainerBuilder, TextDisplayBuilder, MessageFlags } = require('discord.
 const { prisma } = require('../../../core/database');
 
 module.exports = {
+    // ID Fictício para o loader carregar o arquivo
     customId: 'ticket_submit_loader',
     customIdPrefix: 'submit_feedback_',
 
@@ -16,42 +17,34 @@ module.exports = {
         const comment = interaction.fields.getTextInputValue('feedback_comment') || 'Sem comentário.';
 
         // ==========================================
-        // 1. ATUALIZA A INTERFACE NA DM (COM AS INFOS)
+        // 1. ATUALIZA A INTERFACE NA DM (MANTENDO O PROTOCOLO)
         // ==========================================
         
-        // Tenta recuperar os anexos da mensagem original para não os perder
-        const originalAttachments = interaction.message.attachments.map(a => a);
+        // Reconstrói o texto original + Agradecimento
+        const finalHeader = new TextDisplayBuilder()
+            .setContent(`# ✅ Atendimento Finalizado\nOlá! O seu ticket foi encerrado com sucesso.\n\n**🔖 Protocolo:** \`${protocol}\`\n\n*Guarde este protocolo caso precise rever este atendimento no futuro.*\n\n✅ **Feedback Recebido:** ${rating}/5 ⭐\nObrigado!`);
 
-        const thankYouHeader = new TextDisplayBuilder()
-            .setContent(`# ✅ Avaliação Registada\n**🔖 Protocolo:** \`${protocol}\`\n**Nota:** ${rating}/5 ⭐\n\nObrigado! A sua opinião ajuda-nos a melhorar.`);
-
-        const thankYouContainer = new ContainerBuilder()
+        const container = new ContainerBuilder()
             .setAccentColor(0x57F287) // Verde
-            .addTextDisplayComponents(thankYouHeader);
+            .addTextDisplayComponents(finalHeader);
 
-        // Atualiza a mensagem mantendo o protocolo visível e removendo os botões
+        // Update substitui a mensagem anterior (remove botões) e mantém o texto
         await interaction.update({ 
-            components: [thankYouContainer], 
-            files: originalAttachments, // Tenta manter o transcript na mensagem
+            components: [container], 
             flags: [MessageFlags.IsComponentsV2] 
-        }).catch(err => {
-            // Fallback se não der para manter o anexo, manda sem ele mas com o protocolo
-            console.error('Erro ao manter anexo:', err);
-            interaction.editReply({ 
-                components: [thankYouContainer], 
-                flags: [MessageFlags.IsComponentsV2] 
-            });
         });
 
         // ==========================================
-        // 2. PROCESSAMENTO NO BANCO
+        // 2. PROCESSAMENTO NO BANCO (Background)
         // ==========================================
         try {
+            // Atualiza Histórico
             await prisma.ticketHistory.update({
                 where: { protocol: protocol },
                 data: { rating: rating, comment: comment }
             }).catch(() => {}); 
 
+            // Atualiza Ranking
             const currentStats = await prisma.staffStats.findUnique({
                 where: { guildId_staffId: { guildId, staffId } }
             }) || { ticketsClosed: 0, totalStars: 0 };
@@ -79,12 +72,13 @@ module.exports = {
                             .addTextDisplayComponents(
                                 new TextDisplayBuilder().setContent(`# 💬 Nova Avaliação\n**Protocolo:** \`${protocol}\`\n**Staff:** <@${staffId}>\n**Nota:** ${rating}/5 ${starsEmoji}\n**Comentário:** "${comment}"\n**Cliente:** <@${interaction.user.id}>`)
                             );
+                        
                         await logChannel.send({ components: [logContainer], flags: [MessageFlags.IsComponentsV2] }).catch(() => {});
                     }
                 }
             }
         } catch (err) {
-            console.error('Erro DB Feedback:', err);
+            console.error('Erro Feedback:', err);
         }
     }
 };

@@ -1,6 +1,7 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 
 module.exports = {
+    // ID Fictício para o loader
     customId: 'ticket_rate_loader',
     customIdPrefix: 'rate_', 
 
@@ -13,23 +14,21 @@ module.exports = {
 
         // Se ninguém atendeu, finaliza direto mantendo as infos
         if (staffId === 'none') {
-            const originalAttachments = interaction.message.attachments.map(a => a);
-
-            const thankYouHeader = new TextDisplayBuilder()
-                .setContent(`# ✅ Feedback Recebido\n**🔖 Protocolo:** \`${protocol}\`\n**Nota:** ${rating}/5 ⭐\n\nObrigado pela sua avaliação!`);
+            const finalHeader = new TextDisplayBuilder()
+                .setContent(`# ✅ Atendimento Finalizado\nOlá! O seu ticket foi encerrado com sucesso.\n\n**🔖 Protocolo:** \`${protocol}\`\n\n*Guarde este protocolo caso precise rever este atendimento no futuro.*\n\n✅ **Feedback Recebido:** ${rating}/5 ⭐\nObrigado!`);
 
             const container = new ContainerBuilder()
                 .setAccentColor(0x57F287)
-                .addTextDisplayComponents(thankYouHeader);
+                .addTextDisplayComponents(finalHeader);
 
+            // Remove botões e atualiza texto
             return interaction.update({ 
                 components: [container], 
-                files: originalAttachments, // Mantém anexo
                 flags: [MessageFlags.IsComponentsV2] 
             });
         }
 
-        // Abre Modal
+        // Se tem staff, abre Modal para comentário
         const modal = new ModalBuilder()
             .setCustomId(`submit_feedback_${rating}_${guildId}_${staffId}_${protocol}`) 
             .setTitle(`Avaliação: ${rating} Estrelas`);
