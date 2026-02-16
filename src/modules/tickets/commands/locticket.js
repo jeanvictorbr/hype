@@ -1,9 +1,10 @@
-const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('locticket')
-        .setDescription('🔍 Localizar um ticket antigo pelo protocolo'),
+        .setDescription('🔍 Localizar um ticket antigo pelo protocolo (Admin)')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator), // 🔒 TRANCADO PARA ADMIN
 
     async execute(interaction, client) {
         const modal = new ModalBuilder()

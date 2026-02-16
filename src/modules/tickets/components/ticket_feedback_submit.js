@@ -14,20 +14,23 @@ module.exports = {
         
         const comment = interaction.fields.getTextInputValue('feedback_comment') || 'Sem comentário.';
 
-        // Responder ao usuário na DM (Update na msg original ou nova msg)
-        await interaction.reply({ content: '✅ **Feedback recebido!** Agradecemos a sua colaboração.', flags: [MessageFlags.Ephemeral] });
+        // 1. RESPOSTA IMEDIATA (Evita "A interação falhou" na DM)
+        // Se já tiver respondido, edita. Se não, responde.
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({ content: '✅ **Feedback recebido!** Agradecemos a sua colaboração.', flags: [MessageFlags.Ephemeral] });
+        } else {
+            await interaction.reply({ content: '✅ **Feedback recebido!** Agradecemos a sua colaboração.', flags: [MessageFlags.Ephemeral] });
+        }
 
+        // 2. Processamento em Background (Logs e Banco)
         try {
-            // 1. Atualiza Histórico do Ticket (Adiciona a nota ao registro permanente)
+            // Atualiza Histórico
             await prisma.ticketHistory.update({
                 where: { protocol: protocol },
-                data: {
-                    rating: rating,
-                    comment: comment
-                }
-            }).catch(() => {}); // Ignora se não achar por algum motivo
+                data: { rating: rating, comment: comment }
+            }).catch(() => {}); 
 
-            // 2. Atualiza Ranking do Staff
+            // Atualiza Ranking Staff
             const currentStats = await prisma.staffStats.findUnique({
                 where: { guildId_staffId: { guildId, staffId } }
             }) || { ticketsClosed: 0, totalStars: 0 };
@@ -42,25 +45,27 @@ module.exports = {
                 update: { ticketsClosed: newTotal, totalStars: newStars, averageRating: newAverage }
             });
 
-            // 3. Log no Servidor (Avisa a staff sobre o feedback)
+            // Log no Servidor (Protegido contra falhas de DM)
             const config = await prisma.ticketConfig.findUnique({ where: { guildId } });
             if (config?.logChannel) {
                 const guild = await client.guilds.fetch(guildId).catch(() => null);
                 if (guild) {
                     const logChannel = guild.channels.cache.get(config.logChannel);
                     if (logChannel) {
+                        const starsEmoji = '⭐'.repeat(rating);
                         const logContainer = new ContainerBuilder()
                             .setAccentColor(0xFEE75C)
                             .addTextDisplayComponents(
-                                new TextDisplayBuilder().setContent(`# ⭐ Nova Avaliação\n**Protocolo:** \`${protocol}\`\n**Staff:** <@${staffId}>\n**Nota:** ${rating}/5\n**Comentário:** "${comment}"\n**Cliente:** <@${interaction.user.id}>`)
+                                new TextDisplayBuilder().setContent(`# 💬 Nova Avaliação\n**Protocolo:** \`${protocol}\`\n**Staff:** <@${staffId}>\n**Nota:** ${rating}/5 ${starsEmoji}\n**Comentário:** "${comment}"\n**Cliente:** <@${interaction.user.id}>`)
                             );
                         
-                        await logChannel.send({ components: [logContainer], flags: [MessageFlags.IsComponentsV2] });
+                        await logChannel.send({ components: [logContainer], flags: [MessageFlags.IsComponentsV2] }).catch(() => {});
                     }
                 }
             }
         } catch (err) {
-            console.error('Erro Feedback Submit:', err);
+            console.error('Erro ao processar feedback em background:', err);
+            // Não precisamos avisar o usuário aqui, pois ele já recebeu o "OK".
         }
     }
 };
