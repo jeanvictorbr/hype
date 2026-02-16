@@ -107,35 +107,61 @@ module.exports = {
                 });
 
 // ==========================================
-// 🎛️ PAINEL V2 - DESIGN PREMIUM (NÍVEL APP)
+// 🎛️ PAINEL V2 - ESTILO LISTA (Settings Layout)
 // ==========================================
-const title = new TextDisplayBuilder()
-    .setContent('# 🎧 Controle de Voz'); // Título principal
 
-const subtitle = new TextDisplayBuilder()
-    .setContent(`Gerencie sua sala dinâmica de forma intuitiva.\n**Dono:** <@${member.id}>`);
+// Cabeçalho Principal
+const header = new TextDisplayBuilder()
+    .setContent('# 🎧 Controle de Voz')
+    .setWeight('Bold');
 
-const divider = new SeparatorBuilder(); // Divisor para separar o cabeçalho dos botões
+const subHeader = new TextDisplayBuilder()
+    .setContent(`Gerencie a sala de <@${member.id}>`)
+    .setColor('Subtext');
 
-// Linha 1: Configurações de Estado
-const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('room_lock').setLabel('Trancar').setEmoji('🔒').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('room_unlock').setLabel('Abrir').setEmoji('🔓').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('room_rename').setLabel('Nome').setEmoji('✏️').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Primary)
+const divider = new SeparatorBuilder();
+
+// --- SEÇÃO 1: PERSONALIZAÇÃO (Nome e Limite) ---
+const labelPersonal = new TextDisplayBuilder().setContent('**🎨 Personalização**');
+const rowPersonal = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('room_rename').setLabel('Renomear').setEmoji('✏️').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Secondary)
 );
 
-// Linha 2: Gestão de Pessoas
-const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder().setCustomId('room_allow').setLabel('Permitir').setEmoji('✅').setStyle(ButtonStyle.Success),
+// --- SEÇÃO 2: PRIVACIDADE (Trancar/Abrir) ---
+const labelPrivacy = new TextDisplayBuilder().setContent('**🛡️ Segurança e Acesso**');
+const rowPrivacy = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('room_lock').setLabel('Trancar').setEmoji('🔒').setStyle(ButtonStyle.Danger),
+    new ButtonBuilder().setCustomId('room_unlock').setLabel('Destrancar').setEmoji('🔓').setStyle(ButtonStyle.Success)
+);
+
+// --- SEÇÃO 3: MODERAÇÃO (Kick/Allow) ---
+const labelMod = new TextDisplayBuilder().setContent('**👥 Gestão de Membros**');
+const rowMod = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('room_allow').setLabel('Permitir User').setEmoji('✅').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('room_kick').setLabel('Desconectar').setEmoji('👢').setStyle(ButtonStyle.Danger)
 );
 
+// Montagem do Container em Camadas (Sanduíche)
 const panelContainer = new ContainerBuilder()
-    .setAccentColor(0x2b2d31) // Cor Dark liso (Onyx)
-    .addTextDisplayComponents(title, subtitle) // Título e Subtítulo juntos no topo
-    .addSeparatorComponents(divider) // O divisor que você pediu
-    .addActionRowComponents(row1, row2); // Grid de botões
+    .setAccentColor(0x2b2d31) // Dark Mode Limpo
+    // Topo
+    .addTextDisplayComponents(header, subHeader)
+    .addSeparatorComponents(divider)
+    
+    // Item 1
+    .addTextDisplayComponents(labelPersonal)
+    .addActionRowComponents(rowPersonal)
+    .addSeparatorComponents(new SeparatorBuilder()) // Linha divisória igual ao exemplo
+    
+    // Item 2
+    .addTextDisplayComponents(labelPrivacy)
+    .addActionRowComponents(rowPrivacy)
+    .addSeparatorComponents(new SeparatorBuilder()) // Linha divisória igual ao exemplo
+    
+    // Item 3
+    .addTextDisplayComponents(labelMod)
+    .addActionRowComponents(rowMod);
 
 await tempChannel.send({
     flags: [MessageFlags.IsComponentsV2],
