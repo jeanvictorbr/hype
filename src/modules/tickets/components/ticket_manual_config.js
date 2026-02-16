@@ -4,9 +4,13 @@ module.exports = {
     customIdPrefix: 'ticket_manual_', 
 
     async execute(interaction, client) {
+        // 🛡️ BLINDAGEM: Trava a UI para evitar cliques duplos e ganha tempo
+        await interaction.deferUpdate();
+
         const value = interaction.values[0];
         const isCat = interaction.customId === 'ticket_manual_cat';
 
+        // Atualiza DB
         await prisma.ticketConfig.upsert({
             where: { guildId: interaction.guild.id },
             create: { 
@@ -21,6 +25,7 @@ module.exports = {
             }
         });
 
+        // Recarrega Hub
         const ticketHub = require('./ticket_config_hub');
         await ticketHub.execute(interaction, client);
     }
