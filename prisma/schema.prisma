@@ -38,11 +38,32 @@ model AutoVoiceRoom {
   guildId         String       // ID do servidor
 }
 
-// 📦 MÓDULO: TICKETS (Já deixamos pronto pra quando você for fazer)
 model TicketConfig {
   guildId         String   @id
   guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  logChannel      String?  // 📂 A NOVA COLUNA PARA GUARDAR OS LOGS
+  
+  logChannel      String?
   ticketCategory  String?
   staffRoles      String[]
+  
+  // Relacionamento com Departamentos
+  departments     TicketDepartment[]
+  
+  // Personalização da Vitrine (Painel Público)
+  panelTitle      String   @default("📩 Central de Atendimento")
+  panelDescription String  @default("Precisa de suporte? Selecione uma opção abaixo para falar com a nossa equipa.")
+  panelFooter     String?  
+  panelImage      String?
+}
+
+model TicketDepartment {
+  id              String       @id @default(uuid())
+  guildId         String
+  config          TicketConfig @relation(fields: [guildId], references: [guildId], onDelete: Cascade)
+  
+  label           String       // Ex: Financeiro, Suporte
+  description     String?      // Ex: Problemas com pagamentos
+  emoji           String?      // Ex: 💰
+  
+  createdAt       DateTime     @default(now())
 }
