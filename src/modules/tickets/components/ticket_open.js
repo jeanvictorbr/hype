@@ -5,22 +5,22 @@ const {
 const { prisma } = require('../../../core/database');
 
 module.exports = {
-    // IMPORTANTE: Este ID garante que o loader carregue o ficheiro
+    // Este ID garante que o loader carregue o ficheiro
     customId: 'ticket_create_handler', 
-    // IMPORTANTE: Este prefixo captura 'ticket_create_btn' E 'ticket_create_select'
+    // Este prefixo captura 'ticket_create_btn' E 'ticket_create_select'
     customIdPrefix: 'ticket_create_',
 
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
         const memberId = interaction.user.id;
         
-        // 1. Feedback inicial imediato (para não dar erro de interação falhou)
+        // 1. Feedback imediato (Efémero)
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
         try {
             let deptName = 'Geral';
             
-            // 2. Verifica se veio de um Menu de Departamentos
+            // 2. Verifica Departamento
             if (interaction.isStringSelectMenu()) {
                 const deptId = interaction.values[0].replace('dept_', '');
                 
@@ -35,7 +35,7 @@ module.exports = {
                 }
             }
 
-            // 3. Verifica se já tem ticket aberto (Anti-Spam)
+            // 3. Validação Anti-Spam
             const existing = await prisma.activeTicket.findFirst({ 
                 where: { ownerId: memberId, guildId: guildId } 
             });
@@ -43,8 +43,6 @@ module.exports = {
             if (existing) {
                 const channelExists = interaction.guild.channels.cache.get(existing.channelId);
                 const link = channelExists ? `<#${existing.channelId}>` : 'um canal fechado';
-                
-                // Usa editReply pois já deferimos
                 return interaction.editReply({ 
                     content: `⚠️ Você já possui um atendimento em andamento em ${link}.` 
                 });
@@ -93,7 +91,19 @@ module.exports = {
                 data: { channelId: channel.id, ownerId: memberId, guildId: guildId }
             });
 
-            // 8. Envia Painel Interno (App V2 Estrito)
+            // ====================================================
+            // 8. ENVIO DO CONTEÚDO (CORREÇÃO DO ERRO 50035)
+            // ====================================================
+
+            // Passo A: Envia os Pings (Mensagem Normal)
+            // Como é uma mensagem normal, o Discord permite o campo 'content' e faz a notificação.
+            const staffTags = config.staffRoles.map(r => `<@&${r}>`).join(' ');
+            await channel.send({ 
+                content: `${staffTags} | Novo chamado de <@${memberId}>` 
+            });
+
+            // Passo B: Envia o Painel V2 (Container Estrito)
+            // Aqui NÃO usamos 'content', apenas components, respeitando a regra da V2.
             const internalPanel = new ContainerBuilder()
                 .setAccentColor(0x5865F2)
                 .addTextDisplayComponents(
@@ -107,15 +117,12 @@ module.exports = {
                     )
                 );
 
-            const staffTags = config.staffRoles.map(r => `<@&${r}>`).join(' ');
             await channel.send({ 
-                content: `${staffTags} | Novo chamado de <@${memberId}>`, 
                 components: [internalPanel], 
                 flags: [MessageFlags.IsComponentsV2] 
             });
 
             // 9. Resposta de Sucesso ao Usuário (Link)
-            // Truque: Deletamos o "Aguarde..." e mandamos um novo limpo para evitar conflito de Form Body
             await interaction.deleteReply().catch(() => {});
 
             const successContainer = new ContainerBuilder()
