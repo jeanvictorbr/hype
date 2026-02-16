@@ -1,41 +1,60 @@
 const { 
     ContainerBuilder, 
     TextDisplayBuilder, 
+    SeparatorBuilder, 
     ActionRowBuilder, 
     ButtonBuilder, 
-    ButtonStyle,
-    MessageFlags
+    ButtonStyle, 
+    MessageFlags 
 } = require('discord.js');
 const { prisma } = require('../../../core/database');
 
 module.exports = {
     customId: 'room_unlock',
     async execute(interaction, client) {
-        const room = await prisma.autoVoiceRoom.findUnique({ where: { channelId: interaction.channel.id } });
-        
-        if (!room) return interaction.reply({ content: '❌ Sala não encontrada.', flags: [MessageFlags.Ephemeral] });
-        if (interaction.user.id !== room.ownerId) return interaction.reply({ content: '🚫 Ação não autorizada.', flags: [MessageFlags.Ephemeral] });
+        // 1. Validação de Dono
+        const room = await prisma.autoVoiceRoom.findUnique({ 
+            where: { channelId: interaction.channel.id } 
+        });
 
-        // Libera a sala
+        if (!room || interaction.user.id !== room.ownerId) {
+            return interaction.reply({ 
+                content: '🚫 Ação não autorizada.', 
+                flags: [MessageFlags.Ephemeral] 
+            });
+        }
+
+        // 2. Executa a abertura da sala (Remove a restrição de Connect)
         await interaction.channel.permissionOverwrites.edit(interaction.guild.roles.everyone.id, { Connect: null });
 
-        const header = new TextDisplayBuilder().setContent(`# 🔓 Sala Aberta\nA sala está pública. Qualquer membro pode entrar.`);
+        // 3. Reconstrução do Painel Premium (Duas Linhas + Separador)
+        const title = new TextDisplayBuilder().setContent('# 🔓 Sala Aberta');
+        const subtitle = new TextDisplayBuilder().setContent('A sala agora está pública. Qualquer membro pode entrar livremente.');
+        const divider = new SeparatorBuilder();
 
-        const controlsRow = new ActionRowBuilder().addComponents(
+        // Linha 1: Configurações de Estado
+        const row1 = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('room_lock').setLabel('Trancar').setEmoji('🔒').setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('room_unlock').setLabel('Destrancar').setEmoji('🔓').setStyle(ButtonStyle.Secondary).setDisabled(true),
-            new ButtonBuilder().setCustomId('room_rename').setLabel('Renomear').setEmoji('✏️').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('room_kick').setLabel('Expulsar').setEmoji('👢').setStyle(ButtonStyle.Danger)
+            new ButtonBuilder().setCustomId('room_unlock').setLabel('Abrir').setEmoji('🔓').setStyle(ButtonStyle.Success).setDisabled(true), // Verde e desativado pois já está aberta
+            new ButtonBuilder().setCustomId('room_rename').setLabel('Nome').setEmoji('✏️').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Primary)
+        );
+
+        // Linha 2: Gestão de Membros
+        const row2 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('room_allow').setLabel('Permitir').setEmoji('✅').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('room_kick').setLabel('Desconectar').setEmoji('👢').setStyle(ButtonStyle.Danger)
         );
 
         const panelContainer = new ContainerBuilder()
-            .setAccentColor(0x57F287)
-            .addTextDisplayComponents(header)
-            .addActionRowComponents(controlsRow);
+            .setAccentColor(0x57F287) // Verde Sucesso
+            .addTextDisplayComponents(title, subtitle)
+            .addSeparatorComponents(divider)
+            .addActionRowComponents(row1, row2); // ✅ Enviando as duas linhas para manter o painel completo
 
-        // 🛠️ CORREÇÃO: Adicionando a flag de V2 no update para garantir que o Discord entenda o Container
+        // 4. Atualização Crítica
         await interaction.update({ 
-            flags: [MessageFlags.IsComponentsV2],
+            flags: [MessageFlags.IsComponentsV2], 
             components: [panelContainer] 
         });
     }
