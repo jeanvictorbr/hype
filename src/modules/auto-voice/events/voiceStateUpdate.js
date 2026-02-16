@@ -105,35 +105,41 @@ module.exports = {
                     data: { channelId: tempChannel.id, ownerId: member.id, guildId: guildId }
                 });
 
-                // ==========================================
-                // 🎛️ PAINEL V2 - ATUALIZADO COM NOVOS BOTÕES
-                // ==========================================
-                const header = new TextDisplayBuilder()
-                    .setContent(`# 🎛️ Central da Sala\nBem-vindo à sua sala temporária, <@${member.id}>. Use os controles abaixo para gerenciar sua call.`);
+// ==========================================
+// 🎛️ PAINEL V2 - DESIGN PREMIUM (NÍVEL APP)
+// ==========================================
+const title = new TextDisplayBuilder()
+    .setContent('# 🎧 Controle de Voz'); // Título principal
 
-                // Primeira Linha: Gestão de Acesso e Nome
-                const controlsRow1 = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('room_lock').setLabel('Trancar').setEmoji('🔒').setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('room_unlock').setLabel('Abrir').setEmoji('🔓').setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('room_rename').setLabel('Nome').setEmoji('✏️').setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Primary)
-                );
+const subtitle = new TextDisplayBuilder()
+    .setContent(`Gerencie sua sala dinâmica de forma intuitiva.\n**Dono:** <@${member.id}>`);
 
-                // Segunda Linha: Gestão de Membros
-                const controlsRow2 = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('room_allow').setLabel('Permitir').setEmoji('✅').setStyle(ButtonStyle.Success),
-                    new ButtonBuilder().setCustomId('room_kick').setLabel('Desconectar').setEmoji('👢').setStyle(ButtonStyle.Danger)
-                );
+const divider = new SeparatorBuilder(); // Divisor para separar o cabeçalho dos botões
 
-                const panelContainer = new ContainerBuilder()
-                    .setAccentColor(0x2b2d31)
-                    .addTextDisplayComponents(header)
-                    .addActionRowComponents(controlsRow1, controlsRow2);
+// Linha 1: Configurações de Estado
+const row1 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('room_lock').setLabel('Trancar').setEmoji('🔒').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('room_unlock').setLabel('Abrir').setEmoji('🔓').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('room_rename').setLabel('Nome').setEmoji('✏️').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Primary)
+);
 
-                await tempChannel.send({
-                    flags: [MessageFlags.IsComponentsV2],
-                    components: [panelContainer]
-                });
+// Linha 2: Gestão de Pessoas
+const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('room_allow').setLabel('Permitir').setEmoji('✅').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('room_kick').setLabel('Desconectar').setEmoji('👢').setStyle(ButtonStyle.Danger)
+);
+
+const panelContainer = new ContainerBuilder()
+    .setAccentColor(0x2b2d31) // Cor Dark liso (Onyx)
+    .addTextDisplayComponents(title, subtitle) // Título e Subtítulo juntos no topo
+    .addSeparatorComponents(divider) // O divisor que você pediu
+    .addActionRowComponents(row1, row2); // Grid de botões
+
+await tempChannel.send({
+    flags: [MessageFlags.IsComponentsV2],
+    components: [panelContainer]
+});
 
             } catch (error) {
                 console.error('❌ Erro ao criar sala temporária:', error);
