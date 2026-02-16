@@ -9,7 +9,7 @@ module.exports = {
     customId: 'select_room_kick',
 
     async execute(interaction, client) {
-        // Validação de segurança dupla
+        // 1. Validação de segurança no banco de dados
         const room = await prisma.autoVoiceRoom.findUnique({
             where: { channelId: interaction.channel.id }
         });
@@ -21,10 +21,11 @@ module.exports = {
             });
         }
 
-        // Pega o ID do usuário que foi selecionado no menu
+        // 2. Captura o alvo selecionado no menu
         const targetId = interaction.values[0];
         const targetMember = await interaction.guild.members.fetch(targetId).catch(() => null);
 
+        // Verifica se o alvo ainda está na call
         if (!targetMember || !targetMember.voice.channel || targetMember.voice.channel.id !== interaction.channel.id) {
             return interaction.update({ 
                 content: '❌ O usuário já saiu da sala ou não foi encontrado.', 
@@ -34,20 +35,21 @@ module.exports = {
 
         try {
             // ==========================================
-            // 💥 A EXECUÇÃO: Desconecta o usuário da call
+            // 💥 EXECUÇÃO: Desconecta o usuário da call
             // ==========================================
             await targetMember.voice.disconnect('Expulso pelo dono da sala temporária.');
 
-            // Atualiza o painel efêmero confirmando o sucesso
+            // 3. Interface de Sucesso V2
             const successText = new TextDisplayBuilder()
-                .setContent(`# ✅ Usuário Expulso\n**${targetMember.displayName}** foi desconectado da sua sala com sucesso.`);
+                .setContent(`# ✅ Usuário Desconectado\n**${targetMember.displayName}** foi removido da sua sala com sucesso.`);
             
             const successContainer = new ContainerBuilder()
                 .setAccentColor(0x57F287)
-                .addComponents(successText);
+                .addTextDisplayComponents(successText); // ✅ CORREÇÃO: Método específico V2
 
-            // Substitui o menu de seleção pela mensagem de sucesso
+            // Atualiza a interação enviando o container na flag correta
             await interaction.update({
+                flags: [MessageFlags.IsComponentsV2], // ✅ CORREÇÃO: Flag obrigatória
                 components: [successContainer]
             });
 
@@ -55,13 +57,16 @@ module.exports = {
             console.error('❌ Erro ao expulsar membro:', error);
             
             const errorText = new TextDisplayBuilder()
-                .setContent('❌ Ocorreu um erro ao tentar expulsar o usuário. Verifique se meu cargo está acima do dele na hierarquia do servidor.');
+                .setContent('❌ Erro ao expulsar o usuário. Verifique se meu cargo está acima do dele na hierarquia.');
             
             const errorContainer = new ContainerBuilder()
                 .setAccentColor(0xED4245)
-                .addComponents(errorText);
+                .addTextDisplayComponents(errorText); // ✅ CORREÇÃO: Método específico V2
 
-            await interaction.update({ components: [errorContainer] });
+            await interaction.update({ 
+                flags: [MessageFlags.IsComponentsV2],
+                components: [errorContainer] 
+            });
         }
     }
 };

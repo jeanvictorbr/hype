@@ -106,23 +106,29 @@ module.exports = {
                 });
 
                 // ==========================================
-                // 🎛️ PAINEL V2 (CORRIGIDO PARA V14.19+)
+                // 🎛️ PAINEL V2 - ATUALIZADO COM NOVOS BOTÕES
                 // ==========================================
                 const header = new TextDisplayBuilder()
-                    .setContent(`# 🎛️ Central da Sala\nBem-vindo à sua sala temporária, <@${member.id}>. Use os controles abaixo para gerenciar o acesso.`);
+                    .setContent(`# 🎛️ Central da Sala\nBem-vindo à sua sala temporária, <@${member.id}>. Use os controles abaixo para gerenciar sua call.`);
 
-                const controlsRow = new ActionRowBuilder().addComponents(
+                // Primeira Linha: Gestão de Acesso e Nome
+                const controlsRow1 = new ActionRowBuilder().addComponents(
                     new ButtonBuilder().setCustomId('room_lock').setLabel('Trancar').setEmoji('🔒').setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('room_unlock').setLabel('Destrancar').setEmoji('🔓').setStyle(ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('room_rename').setLabel('Renomear').setEmoji('✏️').setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId('room_kick').setLabel('Expulsar').setEmoji('👢').setStyle(ButtonStyle.Danger)
+                    new ButtonBuilder().setCustomId('room_unlock').setLabel('Abrir').setEmoji('🔓').setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('room_rename').setLabel('Nome').setEmoji('✏️').setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Primary)
                 );
 
-                // 🛠️ SINTAXE CORRETA DA V2: Separando métodos de texto e de botões
+                // Segunda Linha: Gestão de Membros
+                const controlsRow2 = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('room_allow').setLabel('Permitir').setEmoji('✅').setStyle(ButtonStyle.Success),
+                    new ButtonBuilder().setCustomId('room_kick').setLabel('Desconectar').setEmoji('👢').setStyle(ButtonStyle.Danger)
+                );
+
                 const panelContainer = new ContainerBuilder()
                     .setAccentColor(0x2b2d31)
                     .addTextDisplayComponents(header)
-                    .addActionRowComponents(controlsRow);
+                    .addActionRowComponents(controlsRow1, controlsRow2);
 
                 await tempChannel.send({
                     flags: [MessageFlags.IsComponentsV2],
