@@ -3,8 +3,8 @@ const { SlashCommandBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, Act
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('locticket')
-        .setDescription('🔍 Localizar um ticket antigo pelo protocolo (Admin)')
-        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator), // 🔒 TRANCADO PARA ADMIN
+        .setDescription('🔍 Localizar um ticket antigo pelo protocolo')
+        .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
     async execute(interaction, client) {
         const modal = new ModalBuilder()

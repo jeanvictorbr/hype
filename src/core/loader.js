@@ -5,7 +5,6 @@ const { REST, Routes } = require('discord.js');
 async function loadModules(client) {
     const modulesPath = path.join(__dirname, '../modules');
     
-    // Se a pasta modules não existir, não quebra o bot
     if (!fs.existsSync(modulesPath)) return;
     
     const modules = fs.readdirSync(modulesPath);
@@ -16,14 +15,26 @@ async function loadModules(client) {
     for (const moduleFolder of modules) {
         const modulePath = path.join(modulesPath, moduleFolder);
         
-        // 1️⃣ Carregar Comandos (/hype, etc)
+        // 1️⃣ Carregar Comandos (/hype, /ranking, etc)
         const commandsPath = path.join(modulePath, 'commands');
         if (fs.existsSync(commandsPath)) {
             const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+            
             for (const file of commandFiles) {
-                const command = require(path.join(commandsPath, file));
-                client.commands.set(command.data.name, command);
-                slashCommands.push(command.data.toJSON());
+                const filePath = path.join(commandsPath, file);
+                try {
+                    const command = require(filePath);
+
+                    // 🛡️ BLINDAGEM: Verifica se é um comando válido antes de carregar
+                    if (command && command.data && command.data.name) {
+                        client.commands.set(command.data.name, command);
+                        slashCommands.push(command.data.toJSON());
+                    } else {
+                        console.warn(`⚠️ [Loader] O arquivo '${file}' em '${moduleFolder}' foi ignorado pois não possui estrutura de comando (data.name). Verifique se não é um componente.`);
+                    }
+                } catch (error) {
+                    console.error(`❌ [Loader] Erro ao carregar o comando '${file}':`, error);
+                }
             }
         }
 
@@ -46,14 +57,19 @@ async function loadModules(client) {
         if (fs.existsSync(componentsPath)) {
             const componentFiles = fs.readdirSync(componentsPath).filter(file => file.endsWith('.js'));
             for (const file of componentFiles) {
-                const component = require(path.join(componentsPath, file));
-                // A chave de busca será o customId (ex: 'autovoice_lock')
-                client.components.set(component.customId, component);
+                try {
+                    const component = require(path.join(componentsPath, file));
+                    if (component.customId) {
+                        client.components.set(component.customId, component);
+                    }
+                } catch (error) {
+                    console.error(`❌ [Loader] Erro ao carregar componente '${file}':`, error);
+                }
             }
         }
     }
 
-    // 🔥 Registrar os comandos na API do Discord quando o bot ficar online
+    // 🔥 Registrar os comandos na API do Discord
     client.once('clientReady', async () => {
         console.log(`🤖 Nave online! Logado como ${client.user.tag}`);
         
