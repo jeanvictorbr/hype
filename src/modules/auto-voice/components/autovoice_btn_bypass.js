@@ -13,36 +13,33 @@ module.exports = {
 
     async execute(interaction, client) {
         
-        // ==========================================
-        // CONSTRUINDO A TELA DE PASSE LIVRE (App V2)
-        // ==========================================
         const headerText = new TextDisplayBuilder()
             .setContent('# 🎟️ Configurar Passe Livre\nSelecione no menu abaixo os cargos da sua Staff. Membros com estes cargos poderão entrar em **qualquer sala temporária**, mesmo se o dono tiver trancado a porta com o cadeado 🔒.\n\n*Dica: Você pode selecionar múltiplos cargos de uma vez.*');
 
         const divider = new SeparatorBuilder();
 
-        // 🎛️ O Menu Nativo de Cargos do Discord
         const roleMenuRow = new ActionRowBuilder().addComponents(
             new RoleSelectMenuBuilder()
-                .setCustomId('select_bypass_role') // O ID que vai salvar no banco
+                .setCustomId('select_bypass_role')
                 .setPlaceholder('Selecione os cargos da Staff...')
                 .setMinValues(1)
-                .setMaxValues(10) // Permite selecionar até 10 cargos numa tacada só
+                .setMaxValues(10)
         );
 
-        // Botão de voltar para não deixar o usuário preso nesta tela
         const backButtonRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setCustomId('dashboard_select_module') // Reutilizamos o ID para forçar a volta, ou criamos um específico de "voltar para auto-voice"
+                .setCustomId('dashboard_select_module')
                 .setLabel('◀ Voltar')
                 .setStyle(ButtonStyle.Secondary)
         );
 
+        // 🛠️ CORREÇÃO V2 APLICADA: Separando TextDisplay, Separator e ActionRows
         const bypassContainer = new ContainerBuilder()
-            .setAccentColor(0x5865F2) // Blurple
-            .addComponents(headerText, divider, roleMenuRow, backButtonRow);
+            .setAccentColor(0x5865F2)
+            .addTextDisplayComponents(headerText)
+            .addSeparatorComponents(divider)
+            .addActionRowComponents(roleMenuRow, backButtonRow);
 
-        // Transição de tela instantânea
         await interaction.update({ components: [bypassContainer] });
     }
 };
