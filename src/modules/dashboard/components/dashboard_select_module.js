@@ -11,15 +11,19 @@ const {
 const { prisma } = require('../../../core/database');
 
 module.exports = {
+    // ID Principal (para o Menu)
     customId: 'dashboard_select_module',
+    
+    // 🚨 CORREÇÃO CRÍTICA: Prefixo para capturar os botões 'dashboard_btn_back', 'dashboard_reload_main', etc.
+    customIdPrefix: 'dashboard_',
 
     async execute(interaction, client) {
-        // Captura o valor (se for menu) ou o customId (se for botão de voltar)
+        // Captura o destino: ou pelo valor do menu, ou pelo ID do botão clicado
         const selectedModule = interaction.values ? interaction.values[0] : interaction.customId;
         const guildId = interaction.guild.id;
 
         // ==========================================
-        // 🔊 TELA: CONFIGURAÇÃO DO AUTO-VOICE
+        // 🔊 ROTA: MENU AUTO-VOICE
         // ==========================================
         if (selectedModule === 'autovoice_setup' || selectedModule === 'dashboard_btn_back') {
             
@@ -32,7 +36,7 @@ module.exports = {
                 new ButtonBuilder().setCustomId('autovoice_btn_setup').setLabel('✨ Setup Rápido').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId('autovoice_btn_trigger').setLabel('📍 Definir Gatilho').setStyle(ButtonStyle.Primary),
                 new ButtonBuilder().setCustomId('autovoice_btn_bypass').setLabel('🎟️ Add Passe Livre').setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId('dashboard_reload_main').setLabel('◀ Voltar').setStyle(ButtonStyle.Danger)
+                new ButtonBuilder().setCustomId('dashboard_reload_main').setLabel('◀ Menu Principal').setStyle(ButtonStyle.Danger)
             );
 
             const container = new ContainerBuilder()
@@ -47,13 +51,11 @@ module.exports = {
                 } else {
                     await interaction.reply({ components: [container], flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] });
                 }
-            } catch (e) {
-                await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] }).catch(() => {});
-            }
+            } catch (e) { await interaction.editReply({ components: [container] }); }
         }
 
         // ==========================================
-        // 🎫 TELA: CONFIGURAÇÃO DE TICKETS
+        // 🎫 ROTA: MENU TICKETS
         // ==========================================
         else if (selectedModule === 'tickets_setup') {
             try {
@@ -65,9 +67,9 @@ module.exports = {
         }
         
         // ==========================================
-        // 🔄 TELA: MENU PRINCIPAL (ROOT)
+        // 🚀 ROTA: MENU PRINCIPAL (ROOT)
         // ==========================================
-        // AQUI ESTAVA O ERRO: Adicionamos 'dashboard_select_module' para capturar o clique do botão "Voltar"
+        // Captura 'dashboard_reload_main' (Botão) E 'dashboard_select_module' (Botão genérico)
         else if (selectedModule === 'dashboard_reload_main' || selectedModule === 'dashboard_select_module') {
             
             const headerText = new TextDisplayBuilder()
