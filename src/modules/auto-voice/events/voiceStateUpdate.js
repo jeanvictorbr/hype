@@ -4,6 +4,7 @@ const {
     ContainerBuilder, 
     TextDisplayBuilder, 
     ActionRowBuilder, 
+    SeparatorBuilder,
     ButtonBuilder, 
     ButtonStyle,
     MessageFlags
