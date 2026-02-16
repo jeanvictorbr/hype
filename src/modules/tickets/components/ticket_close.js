@@ -23,9 +23,9 @@ module.exports = {
 
         if (!isStaff && !isOwner && !isAdmin) return interaction.reply({ content: '🚫 Sem permissão.', flags: [MessageFlags.Ephemeral] });
 
-        // 2. Feedback Visual
+        // 2. Feedback Visual no Ticket
         const closingHeader = new TextDisplayBuilder()
-            .setContent(`# 🔒 A Fechar Ticket...\nEncerrado por <@${interaction.user.id}>.\n*Gerando logs e salvando transcrição...*`);
+            .setContent(`# 🔒 A Fechar Ticket...\nEncerrado por <@${interaction.user.id}>.\n*A processar logs e estatísticas...*`);
 
         const closingContainer = new ContainerBuilder()
             .setAccentColor(0xED4245)
@@ -52,11 +52,18 @@ module.exports = {
                         .setAccentColor(0x2C2F33)
                         .addTextDisplayComponents(logHeader);
 
-                    // 🚨 CORREÇÃO: Forçando a flag 4096 (IsComponentsV2) manualmente para garantir
+                    // 🚨 CORREÇÃO CRÍTICA: Enviar em DUAS etapas para evitar erro 50035
+                    
+                    // Etapa 1: O Container V2 (Interface)
                     await logChannel.send({
                         components: [logContainer],
-                        files: [attachment],
-                        flags: [4096] 
+                        flags: [MessageFlags.IsComponentsV2] 
+                    });
+
+                    // Etapa 2: O Arquivo (Transcript)
+                    await logChannel.send({
+                        content: `📄 **Transcrição:** \`${interaction.channel.name}\``,
+                        files: [attachment]
                     });
                 }
             }
