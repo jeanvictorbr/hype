@@ -12,8 +12,14 @@ model Guild {
   id              String   @id
   autoVoiceConfig AutoVoiceConfig?
   ticketConfig    TicketConfig?
+  features        String[] @default([])
 }
-
+// 📦 MÓDULO: TICKETS (Tickets Ativos)
+model ActiveTicket {
+  channelId       String   @id // ID do canal de texto do ticket
+  ownerId         String       // ID do membro que abriu
+  guildId         String       // ID do servidor
+}
 // 📦 MÓDULO: AUTO-VOICE (Configurações do Painel /hype)
 model AutoVoiceConfig {
   guildId         String   @id
@@ -35,7 +41,7 @@ model AutoVoiceRoom {
 model TicketConfig {
   guildId         String   @id
   guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  
+  logChannel      String?  // 📂 A NOVA COLUNA PARA GUARDAR OS LOGS
   ticketCategory  String?
   staffRoles      String[]
 }
