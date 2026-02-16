@@ -11,8 +11,14 @@ module.exports = {
             const panel = require('../components/ticket_ranking_panel');
             await panel.execute(interaction, client);
         } catch (error) {
-            console.error(error);
-            await interaction.reply({ content: '❌ Erro ao carregar ranking.', ephemeral: true });
+            console.error("Erro no comando ranking:", error);
+            
+            // Evita crash se o painel falhar no meio
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: '❌ Erro ao carregar ranking.', ephemeral: true });
+            } else {
+                await interaction.followUp({ content: '❌ Erro ao processar ranking.', ephemeral: true });
+            }
         }
     }
 };

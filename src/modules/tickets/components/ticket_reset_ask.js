@@ -4,7 +4,7 @@ module.exports = {
     customId: 'ticket_reset_ask',
 
     async execute(interaction, client) {
-        // Validação Extra de Admin
+        // Validação de Admin
         if (!interaction.member.permissions.has('Administrator')) {
             return interaction.reply({ content: '🚫 Apenas Administradores podem resetar o ranking.', flags: [MessageFlags.Ephemeral] });
         }
@@ -22,7 +22,7 @@ module.exports = {
             .addTextDisplayComponents(header)
             .addActionRowComponents(row);
 
-        // Atualiza o painel atual para o aviso
+        // Sempre usa update aqui pois veio de um botão
         await interaction.update({ components: [container], flags: [MessageFlags.IsComponentsV2] });
     }
 };
