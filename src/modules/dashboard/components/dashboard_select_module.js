@@ -5,7 +5,8 @@ const {
     ActionRowBuilder, 
     ButtonBuilder, 
     ButtonStyle, 
-    MessageFlags 
+    MessageFlags,
+    StringSelectMenuBuilder 
 } = require('discord.js');
 const { prisma } = require('../../../core/database');
 
@@ -20,7 +21,7 @@ module.exports = {
         // ==========================================
         // 🔊 TELA: CONFIGURAÇÃO DO AUTO-VOICE (Livre)
         // ==========================================
-        // Nota: 'dashboard_btn_back' redireciona para cá também
+        // Nota: 'dashboard_btn_back' redireciona para cá também se viermos de sub-menus
         if (selectedModule === 'autovoice_setup' || selectedModule === 'dashboard_btn_back') {
             
             const headerText = new TextDisplayBuilder()
@@ -42,19 +43,27 @@ module.exports = {
                 .addSeparatorComponents(divider)
                 .addActionRowComponents(actionRow);
 
-            // CORREÇÃO: Sempre usamos update aqui para substituir o painel anterior
-            // O try/catch evita erro se a interação já tiver sido respondida por algum motivo estranho
+            // CORREÇÃO: Tenta update primeiro, se falhar (ex: slash command original), usa editReply
             try {
-                await interaction.update({ 
-                    components: [autovoiceContainer], 
-                    flags: [MessageFlags.IsComponentsV2] 
-                });
+                if (interaction.isMessageComponent()) {
+                    await interaction.update({ 
+                        components: [autovoiceContainer], 
+                        flags: [MessageFlags.IsComponentsV2] 
+                    });
+                } else {
+                    // Caso raro onde o comando / chama direto este módulo (se implementado assim)
+                    await interaction.reply({ 
+                        components: [autovoiceContainer], 
+                        flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] 
+                    });
+                }
             } catch (error) {
-                // Fallback caso o update falhe (ex: tempo expirado)
-                await interaction.editReply({ 
-                    components: [autovoiceContainer], 
-                    flags: [MessageFlags.IsComponentsV2] 
-                });
+                // Fallback de segurança
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ components: [autovoiceContainer], flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] });
+                } else {
+                    await interaction.editReply({ components: [autovoiceContainer], flags: [MessageFlags.IsComponentsV2] });
+                }
             }
         }
 
@@ -64,70 +73,47 @@ module.exports = {
         else if (selectedModule === 'tickets_setup') {
             
             // 1. Redirecionamento para o NOVO HUB DE TICKETS
-            // Isso evita código duplicado e usa o painel novo e completo que criamos
             try {
                 const ticketHub = require('../../tickets/components/ticket_config_hub');
                 return await ticketHub.execute(interaction, client);
             } catch (error) {
                 console.error("Erro ao carregar o Hub de Tickets:", error);
-                // Fallback caso o arquivo ainda não exista ou dê erro no require
             }
 
-            // --- LÓGICA ANTIGA (FALLBACK) ---
-            const guildData = await prisma.guild.findUnique({
-                where: { id: guildId }
-            });
-
-            const features = guildData?.features || [];
-            const hasAccess = features.includes('tickets') || features.includes('all');
-
-            if (!hasAccess) {
-                const lockedText = new TextDisplayBuilder()
-                    .setContent('# 🔒 Módulo Premium\nO sistema avançado de **Tickets** é uma funcionalidade exclusiva.');
-                
-                const lockedContainer = new ContainerBuilder()
-                    .setAccentColor(0xFEE75C) 
-                    .addTextDisplayComponents(lockedText);
-
-                return await interaction.update({ components: [lockedContainer] });
-            }
-
-            // Tela simples caso o Hub falhe
-            const ticketText = new TextDisplayBuilder().setContent('# 🎫 Módulo: Tickets\nCarregando painel...');
-            const ticketContainer = new ContainerBuilder()
-                .setAccentColor(0x57F287) 
-                .addTextDisplayComponents(ticketText);
-
-            await interaction.update({ components: [ticketContainer] });
+            // Fallback se o Hub falhar
+            const errorText = new TextDisplayBuilder().setContent('# ❌ Erro no Módulo\nNão foi possível carregar o painel de tickets.');
+            const errorContainer = new ContainerBuilder().setAccentColor(0xED4245).addTextDisplayComponents(errorText);
+            
+            await interaction.update({ components: [errorContainer], flags: [MessageFlags.IsComponentsV2] });
         }
         
         // ==========================================
         // 🔄 RELOAD: VOLTAR AO MENU PRINCIPAL (/hype)
         // ==========================================
         else if (selectedModule === 'dashboard_reload_main') {
-            // Recria o menu inicial do comando /hype
-            const { StringSelectMenuBuilder } = require('discord.js'); // Import local
-
+            
             const headerText = new TextDisplayBuilder()
-                .setContent('# 🚀 Central de Comando\nBem-vindo ao dashboard da nave.');
+                .setContent('# 🚀 Central de Comando\nBem-vindo ao dashboard da nave. Gerencie todos os sistemas do servidor por aqui com fluidez máxima.');
+
+            const divider = new SeparatorBuilder();
 
             const moduleSelect = new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
                     .setCustomId('dashboard_select_module')
                     .setPlaceholder('Escolha um módulo para configurar...')
                     .addOptions([
-                        { label: 'Módulo: Auto-Voice', description: 'Canais dinâmicos.', value: 'autovoice_setup', emoji: '🔊' },
-                        { label: 'Módulo: Tickets', description: 'Atendimento.', value: 'tickets_setup', emoji: '🎫' }
+                        { label: 'Módulo: Auto-Voice', description: 'Canais dinâmicos e salas privadas.', value: 'autovoice_setup', emoji: '🔊' },
+                        { label: 'Módulo: Tickets', description: 'Sistema de atendimento e suporte.', value: 'tickets_setup', emoji: '🎫' }
                     ])
             );
 
             const mainContainer = new ContainerBuilder()
                 .setAccentColor(0x2b2d31)
                 .addTextDisplayComponents(headerText)
-                .addSeparatorComponents(new SeparatorBuilder())
+                .addSeparatorComponents(divider)
                 .addActionRowComponents(moduleSelect);
 
-            await interaction.update({ components: [mainContainer] });
+            await interaction.update({ components: [mainContainer], flags: [MessageFlags.IsComponentsV2] });
         }
     }
 };
