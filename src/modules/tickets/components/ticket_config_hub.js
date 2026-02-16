@@ -20,6 +20,15 @@ module.exports = {
 
         // Cria configuração padrão se não existir
         if (!config) {
+            // 🛡️ CORREÇÃO CRÍTICA (Erro P2003): 
+            // Antes de criar a config do ticket, garantimos que o servidor existe na tabela 'Guild'.
+            await prisma.guild.upsert({
+                where: { id: guildId },
+                create: { id: guildId }, // Cria se não existir
+                update: {} // Não faz nada se já existir
+            });
+
+            // Agora sim, criamos a config do ticket com segurança
             config = await prisma.ticketConfig.create({
                 data: { guildId: guildId, staffRoles: [] }
             });
@@ -43,11 +52,11 @@ module.exports = {
         const vitrine = new TextDisplayBuilder()
             .setContent(`**🎨 Preview da Vitrine:**\n> **Título:** ${config.panelTitle}\n> **Rodapé:** ${config.panelFooter || 'Padrão'}`);
 
-        // LINHA 1: Ações Críticas (Setup, Painel, Ranking, Gerir Abertos)
+        // LINHA 1: Ações Críticas (Setup, Enviar Painel, Ranking, Gerir Abertos)
         const rowMain = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('ticket_btn_setup').setLabel('Setup Auto').setStyle(ButtonStyle.Success).setEmoji('🪄'),
             new ButtonBuilder().setCustomId('ticket_btn_panel').setLabel('Enviar Painel').setStyle(ButtonStyle.Primary).setEmoji('📨'),
-            new ButtonBuilder().setCustomId('ticket_ranking_panel').setLabel('Ranking').setStyle(ButtonStyle.Primary).setEmoji('🏆'), // 👈 BOTÃO ADICIONADO
+            new ButtonBuilder().setCustomId('ticket_ranking_panel').setLabel('Ranking').setStyle(ButtonStyle.Primary).setEmoji('🏆'),
             new ButtonBuilder().setCustomId('ticket_active_manager').setLabel('Gerir Abertos').setStyle(ButtonStyle.Danger).setEmoji('🚨')
         );
 
@@ -97,7 +106,7 @@ module.exports = {
             .addActionRowComponents(rowLogs)
             .addActionRowComponents(rowStaff);
 
-        // ✅ CORREÇÃO ANTI-CRASH: Verifica estado da interação
+        // ✅ Lógica de Envio Segura (Evita InteractionAlreadyReplied)
         if (interaction.replied || interaction.deferred) {
             await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
         } else if (interaction.isMessageComponent()) {
