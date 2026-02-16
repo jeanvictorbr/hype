@@ -106,40 +106,40 @@ module.exports = {
                     data: { channelId: tempChannel.id, ownerId: member.id, guildId: guildId }
                 });
 
-// ==========================================
-// 🎛️ PAINEL V2 - DESIGN PREMIUM (NÍVEL APP)
-// ==========================================
+// --- DESIGN PREMIUM NÍVEL APP V2 ---
 const title = new TextDisplayBuilder()
-    .setContent('# 🎧 Controle de Voz'); // Título principal
+    .setContent('# 🎧 Controle de Voz');
 
 const subtitle = new TextDisplayBuilder()
-    .setContent(`Gerencie sua sala dinâmica de forma intuitiva.\n**Dono:** <@${member.id}>`);
+    .setContent(`Gerencie sua sala com precisão.\n**Dono:** <@${member.id}>`);
 
-const divider = new SeparatorBuilder(); // Divisor para separar o cabeçalho dos botões
+const divider = new SeparatorBuilder();
 
-// Linha 1: Configurações de Estado
+// Linha 1: Estado da Sala
 const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('room_lock').setLabel('Trancar').setEmoji('🔒').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('room_unlock').setLabel('Abrir').setEmoji('🔓').setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder().setCustomId('room_rename').setLabel('Nome').setEmoji('✏️').setStyle(ButtonStyle.Primary),
-    new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Primary)
+    new ButtonBuilder().setCustomId('room_rename').setLabel('Nome').setEmoji('✏️').setStyle(ButtonStyle.Primary)
 );
 
-// Linha 2: Gestão de Pessoas
+// Linha 2: Membros e Limite
 const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('room_allow').setLabel('Permitir').setEmoji('✅').setStyle(ButtonStyle.Success),
     new ButtonBuilder().setCustomId('room_kick').setLabel('Desconectar').setEmoji('👢').setStyle(ButtonStyle.Danger)
 );
 
+// Criando o Container com Media (Thumbnail)
 const panelContainer = new ContainerBuilder()
-    .setAccentColor(0x2b2d31) // Cor Dark liso (Onyx)
-    .addTextDisplayComponents(title, subtitle) // Título e Subtítulo juntos no topo
-    .addSeparatorComponents(divider) // O divisor que você pediu
-    .addActionRowComponents(row1, row2); // Grid de botões
+    .setAccentColor(0x2b2d31)
+    .setThumbnail('https://media.discordapp.net/attachments/1449063580728299570/1472328878117621862/3513613561351351346.jpg?ex=69937e1f&is=69922c9f&hm=ee4127e73ecd2db6a83f1ea62c09cf99ac5b2c66b5d0dea99d61801e5be0fae3&=&format=webp') // 🖼️ ADICIONE O LINK DA SUA LOGO AQUI
+    .addTextDisplayComponents(title, subtitle)
+    .addSeparatorComponents(divider)
+    .addActionRowComponents(row1, row2);
 
-await tempChannel.send({
-    flags: [MessageFlags.IsComponentsV2],
-    components: [panelContainer]
+await tempChannel.send({ 
+    flags: [MessageFlags.IsComponentsV2], 
+    components: [panelContainer] 
 });
 
             } catch (error) {
