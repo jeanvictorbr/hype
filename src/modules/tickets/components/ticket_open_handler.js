@@ -11,13 +11,13 @@ module.exports = {
         const guildId = interaction.guild.id;
         const memberId = interaction.user.id;
         
-        // 1. Trava a UI imediatamente para evitar timeout
+        // 1. Trava a UI imediatamente
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
         try {
             let deptName = 'Geral';
             
-            // 2. Lógica de Departamento (Blindada contra config nula)
+            // 2. Lógica de Departamento
             if (interaction.isStringSelectMenu()) {
                 const deptId = interaction.values[0].replace('dept_', '');
                 
@@ -26,36 +26,32 @@ module.exports = {
                     include: { departments: true }
                 });
 
-                // Se não achar a config ou departamento, mantém 'Geral'
                 if (config && config.departments) {
                     const dept = config.departments.find(d => d.id === deptId);
                     if (dept) deptName = dept.label;
                 }
             }
 
-            // 3. Validação Anti-Spam (Ticket já aberto)
+            // 3. Validação Anti-Spam
             const existing = await prisma.activeTicket.findFirst({ 
                 where: { ownerId: memberId, guildId: guildId } 
             });
             
             if (existing) {
-                // Tenta pegar o canal para linkar
                 const channelExists = interaction.guild.channels.cache.get(existing.channelId);
                 const link = channelExists ? `<#${existing.channelId}>` : 'um canal fechado (contate a staff)';
-                
                 return interaction.editReply({ 
                     content: `⚠️ Você já possui um atendimento em andamento em ${link}.` 
                 });
             }
 
-            // 4. Busca Configuração Principal
             const config = await prisma.ticketConfig.findUnique({ where: { guildId: guildId } });
             
             if (!config || !config.ticketCategory) {
                 return interaction.editReply({ content: '❌ O sistema de tickets não está configurado corretamente (Categoria ausente).' });
             }
 
-            // 5. Criação do Canal
+            // 4. Criação do Canal
             const channel = await interaction.guild.channels.create({
                 name: `🎫・${deptName}-${interaction.user.username}`.substring(0, 32),
                 type: ChannelType.GuildText,
@@ -76,10 +72,9 @@ module.exports = {
                 ]
             });
 
-            // 6. Sincroniza Permissões da Staff
+            // 5. Sincroniza Staff
             if (config.staffRoles && config.staffRoles.length > 0) {
                 for (const roleId of config.staffRoles) {
-                    // Ignora erro se o cargo tiver sido deletado
                     await channel.permissionOverwrites.edit(roleId, { 
                         ViewChannel: true, 
                         SendMessages: true 
@@ -87,12 +82,12 @@ module.exports = {
                 }
             }
 
-            // 7. Registra no Banco
+            // 6. Registra no Banco
             await prisma.activeTicket.create({
                 data: { channelId: channel.id, ownerId: memberId, guildId: guildId }
             });
 
-            // 8. Envia Painel Interno (Dentro do novo canal)
+            // 7. Envia Painel Interno
             const internalPanel = new ContainerBuilder()
                 .setAccentColor(0x5865F2)
                 .addTextDisplayComponents(
@@ -113,7 +108,7 @@ module.exports = {
                 flags: [MessageFlags.IsComponentsV2] 
             });
 
-            // 9. Resposta Final ao Usuário (Link para o ticket)
+            // 8. Resposta Final (Link para o ticket)
             const successContainer = new ContainerBuilder()
                 .setAccentColor(0x57F287) // Verde
                 .addTextDisplayComponents(
@@ -128,7 +123,7 @@ module.exports = {
                     )
                 );
 
-            // ⚠️ CORREÇÃO CRÍTICA: Adicionada a flag V2 obrigatória
+            // ⚠️ AQUI ESTAVA O ERRO: Faltava a flag V2
             await interaction.editReply({ 
                 components: [successContainer], 
                 flags: [MessageFlags.IsComponentsV2] 
@@ -136,7 +131,6 @@ module.exports = {
 
         } catch (err) {
             console.error('❌ Erro crítico ao abrir ticket:', err);
-            // Tenta avisar o usuário se der erro
             await interaction.editReply({ 
                 content: '❌ Ocorreu um erro ao criar seu ticket. Por favor, contate um administrador.' 
             }).catch(() => {});

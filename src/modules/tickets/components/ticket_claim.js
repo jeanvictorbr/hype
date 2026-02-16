@@ -8,18 +8,17 @@ module.exports = {
     customId: 'ticket_claim',
 
     async execute(interaction, client) {
-        // Validação Banco
         const ticket = await prisma.activeTicket.findUnique({ where: { channelId: interaction.channel.id } });
-        if (!ticket) return interaction.reply({ content: '❌ Ticket não registado.', flags: [MessageFlags.Ephemeral] });
+        if (!ticket) return interaction.reply({ content: '❌ Ticket não encontrado.', flags: [MessageFlags.Ephemeral] });
 
-        // Validação Staff
         const config = await prisma.ticketConfig.findUnique({ where: { guildId: interaction.guild.id } });
+        
         const isStaff = interaction.member.roles.cache.some(r => config?.staffRoles.includes(r.id));
         const isAdmin = interaction.member.permissions.has('Administrator');
 
         if (!isStaff && !isAdmin) return interaction.reply({ content: '🚫 Apenas Staff.', flags: [MessageFlags.Ephemeral] });
 
-        // UI Atualizada
+        // UI V2 CORRIGIDA
         const claimedHeader = new TextDisplayBuilder()
             .setContent(`# 🎫 Atendimento em Curso\nEste ticket foi assumido por <@${interaction.user.id}>.`);
 
@@ -30,9 +29,12 @@ module.exports = {
 
         const claimedContainer = new ContainerBuilder()
             .setAccentColor(0xFEE75C)
-            .addTextDisplayComponents(claimedHeader) // ✅ NOVO MÉTODO
-            .addActionRowComponents(controlRow);     // ✅ NOVO MÉTODO
+            .addTextDisplayComponents(claimedHeader) // ✅
+            .addActionRowComponents(controlRow);     // ✅
 
-        await interaction.update({ components: [claimedContainer], flags: [MessageFlags.IsComponentsV2] });
+        await interaction.update({ 
+            components: [claimedContainer],
+            flags: [MessageFlags.IsComponentsV2]
+        });
     }
 };
