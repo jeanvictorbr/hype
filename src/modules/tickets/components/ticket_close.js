@@ -1,4 +1,7 @@
-const { ContainerBuilder, TextDisplayBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags, AttachmentBuilder } = require('discord.js');
+const { 
+    ContainerBuilder, TextDisplayBuilder, ActionRowBuilder, 
+    ButtonBuilder, ButtonStyle, MessageFlags, AttachmentBuilder 
+} = require('discord.js');
 const { prisma } = require('../../../core/database');
 const { generateTranscriptHTML } = require('../../../utils/htmlGenerator');
 
@@ -8,56 +11,66 @@ module.exports = {
     async execute(interaction, client) {
         if (interaction.replied || interaction.deferred) return;
 
-        // 1. Busca dados
+        // 1. Validações
         const ticket = await prisma.activeTicket.findUnique({ where: { channelId: interaction.channel.id } });
-        if (!ticket) return interaction.reply({ content: '❌ Ticket inválido/já fechado.', flags: [MessageFlags.Ephemeral] });
+        if (!ticket) return interaction.reply({ content: '❌ Ticket inválido ou já fechado.', flags: [MessageFlags.Ephemeral] });
 
         const config = await prisma.ticketConfig.findUnique({ where: { guildId: interaction.guild.id } });
         
-        // 2. Feedback inicial
-        await interaction.reply({ content: '🔄 **A gerar logs e a preparar encerramento...**', flags: [MessageFlags.Ephemeral] });
+        const isStaff = interaction.member.roles.cache.some(r => config?.staffRoles.includes(r.id));
+        const isOwner = interaction.user.id === ticket.ownerId;
+        const isAdmin = interaction.member.permissions.has('Administrator');
 
-        // ==========================================
-        // 3. GERAÇÃO E ENVIO DE LOGS (TRANSCRIPT)
-        // ==========================================
+        if (!isStaff && !isOwner && !isAdmin) return interaction.reply({ content: '🚫 Sem permissão.', flags: [MessageFlags.Ephemeral] });
+
+        // 2. Feedback Visual
+        const closingHeader = new TextDisplayBuilder()
+            .setContent(`# 🔒 A Fechar Ticket...\nEncerrado por <@${interaction.user.id}>.\n*Gerando logs e salvando transcrição...*`);
+
+        const closingContainer = new ContainerBuilder()
+            .setAccentColor(0xED4245)
+            .addTextDisplayComponents(closingHeader);
+
+        await interaction.update({ components: [closingContainer], flags: [MessageFlags.IsComponentsV2] });
+
+        // 3. Geração e Envio de Transcript
         try {
             const messages = await interaction.channel.messages.fetch({ limit: 100 });
             const htmlContent = generateTranscriptHTML(interaction.guild, interaction.channel, messages, interaction.user.tag);
-            const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `transcript-${interaction.channel.name}.html` });
+            const transcriptBuffer = Buffer.from(htmlContent, 'utf-8');
+            const attachment = new AttachmentBuilder(transcriptBuffer, { name: `transcript-${interaction.channel.name}.html` });
 
             if (config.logChannel) {
                 const logChannel = interaction.guild.channels.cache.get(config.logChannel);
                 if (logChannel) {
-                    // Busca quem atendeu (se houve claim)
-                    const claimer = ticket.claimerId ? `<@${ticket.claimerId}>` : 'Ninguém (Não assumido)';
+                    const claimer = ticket.claimerId ? `<@${ticket.claimerId}>` : 'Ninguém';
 
                     const logHeader = new TextDisplayBuilder()
-                        .setContent(`# 🗄️ Ticket Finalizado\n**Ticket:** \`${interaction.channel.name}\`\n**Dono:** <@${ticket.ownerId}>\n**Fechado por:** <@${interaction.user.id}>\n**Atendido por:** ${claimer}\n\n*Arquivo de transcrição anexado abaixo.*`);
+                        .setContent(`# 🗄️ Ticket Finalizado\n**Ticket:** \`${interaction.channel.name}\`\n**Dono:** <@${ticket.ownerId}>\n**Fechado por:** <@${interaction.user.id}>\n**Atendido por:** ${claimer}`);
                     
                     const logContainer = new ContainerBuilder()
-                        .setAccentColor(0x2b2d31)
+                        .setAccentColor(0x2C2F33)
                         .addTextDisplayComponents(logHeader);
 
-                    // 🔥 CORREÇÃO DO TRANSCRIPT: 'files' fica fora do body do container/components
+                    // 🚨 CORREÇÃO: Forçando a flag 4096 (IsComponentsV2) manualmente para garantir
                     await logChannel.send({
-                        components: [logContainer], // Usando a API normal de components para compatibilidade com files
-                        files: [attachment]
+                        components: [logContainer],
+                        files: [attachment],
+                        flags: [4096] 
                     });
                 }
             }
         } catch (err) {
-            console.error('Erro Log:', err);
+            console.error('Erro Logs:', err);
         }
 
         // ==========================================
-        // 4. PAINEL DE FEEDBACK (AVALIAÇÃO)
+        // 4. PAINEL DE FEEDBACK
         // ==========================================
-        // Não deletamos o canal ainda. Perguntamos a nota primeiro.
         
         const feedbackHeader = new TextDisplayBuilder()
-            .setContent(`# ⭐ Avaliação de Atendimento\nOlá <@${ticket.ownerId}>! O seu ticket foi finalizado.\n\nPor favor, avalie o atendimento da nossa equipa para nos ajudar a melhorar.`);
+            .setContent(`# ⭐ Avaliação\nOlá <@${ticket.ownerId}>! O suporte foi encerrado.\nPor favor, avalie o atendimento para nos ajudar a melhorar.`);
 
-        // Botões de 1 a 5 estrelas
         const rowStars = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('rate_1').setLabel('1').setEmoji('⭐').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId('rate_2').setLabel('2').setEmoji('⭐').setStyle(ButtonStyle.Secondary),
@@ -66,9 +79,8 @@ module.exports = {
             new ButtonBuilder().setCustomId('rate_5').setLabel('5').setEmoji('⭐').setStyle(ButtonStyle.Success)
         );
 
-        // Botão para pular (Staff fecha forçado)
         const rowSkip = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('rate_skip').setLabel('Pular / Fechar Agora').setStyle(ButtonStyle.Danger)
+            new ButtonBuilder().setCustomId('rate_skip').setLabel('Fechar Agora').setStyle(ButtonStyle.Danger)
         );
 
         const feedbackContainer = new ContainerBuilder()
@@ -77,9 +89,8 @@ module.exports = {
             .addActionRowComponents(rowStars)
             .addActionRowComponents(rowSkip);
 
-        // Envia no canal e apaga a UI antiga
         await interaction.channel.send({
-            content: `<@${ticket.ownerId}>`, // Pinga o dono para ele ver
+            content: `<@${ticket.ownerId}>`,
             components: [feedbackContainer],
             flags: [MessageFlags.IsComponentsV2]
         });
