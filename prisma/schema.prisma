@@ -19,7 +19,22 @@ model Guild {
 model ActiveTicket {
   channelId       String   @id // ID do canal de texto do ticket
   ownerId         String       // ID do membro que abriu
+  claimerId       String?
   guildId         String       // ID do servidor
+}
+// 👇 NOVA TABELA: Estatísticas da Equipe
+model StaffStats {
+  id              String   @id @default(uuid())
+  guildId         String
+  staffId         String
+  
+  ticketsClosed   Int      @default(0) // Total atendimentos
+  totalStars      Int      @default(0) // Soma das notas (1-5)
+  averageRating   Float    @default(0.0) // Média calculada
+  
+  lastUpdated     DateTime @updatedAt
+
+  @@unique([guildId, staffId]) // Um registro por staff por servidor
 }
 // 📦 MÓDULO: AUTO-VOICE (Configurações do Painel /hype)
 model AutoVoiceConfig {
