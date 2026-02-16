@@ -12,6 +12,43 @@ module.exports = {
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
 
+        // ==========================================
+        // 🔒 VERIFICAÇÃO DE PREMIUM (SAAS)
+        // ==========================================
+        // Garantimos que a guilda existe para checar as features
+        let guildData = await prisma.guild.findUnique({ where: { id: guildId } });
+        if (!guildData) {
+            guildData = await prisma.guild.create({ data: { id: guildId } });
+        }
+
+        const features = guildData.features || [];
+        const hasAccess = features.includes('tickets') || features.includes('all');
+
+        // 🚫 BLOQUEIO: Se não tiver a feature, mostra o aviso e para.
+        if (!hasAccess) {
+            const lockHeader = new TextDisplayBuilder()
+                .setContent('# 🔒 Funcionalidade Premium\nO módulo de **Tickets Avançados** é exclusivo para servidores com plano ativo.');
+
+            const lockBody = new TextDisplayBuilder()
+                .setContent('Com este módulo, você pode:\n> ✨ Criar painéis ilimitados\n> 👮 Definir equipas de suporte\n> 📜 Guardar logs (Transcripts)\n> ⭐ Sistema de Avaliação e Ranking');
+
+            const lockContainer = new ContainerBuilder()
+                .setAccentColor(0xFEE75C) // Dourado Premium
+                .addTextDisplayComponents(lockHeader)
+                .addSeparatorComponents(new SeparatorBuilder())
+                .addTextDisplayComponents(lockBody);
+
+            if (interaction.replied || interaction.deferred) {
+                return await interaction.editReply({ components: [lockContainer], flags: [MessageFlags.IsComponentsV2] });
+            } else {
+                return await interaction.reply({ components: [lockContainer], flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] });
+            }
+        }
+
+        // ==========================================
+        // ⚙️ LÓGICA DO HUB (ACESSO PERMITIDO)
+        // ==========================================
+
         // 1. Busca Configuração e Departamentos
         let config = await prisma.ticketConfig.findUnique({
             where: { guildId: guildId },
@@ -20,15 +57,6 @@ module.exports = {
 
         // Cria configuração padrão se não existir
         if (!config) {
-            // 🛡️ CORREÇÃO CRÍTICA (Erro P2003): 
-            // Antes de criar a config do ticket, garantimos que o servidor existe na tabela 'Guild'.
-            await prisma.guild.upsert({
-                where: { id: guildId },
-                create: { id: guildId }, // Cria se não existir
-                update: {} // Não faz nada se já existir
-            });
-
-            // Agora sim, criamos a config do ticket com segurança
             config = await prisma.ticketConfig.create({
                 data: { guildId: guildId, staffRoles: [] }
             });
@@ -52,7 +80,7 @@ module.exports = {
         const vitrine = new TextDisplayBuilder()
             .setContent(`**🎨 Preview da Vitrine:**\n> **Título:** ${config.panelTitle}\n> **Rodapé:** ${config.panelFooter || 'Padrão'}`);
 
-        // LINHA 1: Ações Críticas (Setup, Enviar Painel, Ranking, Gerir Abertos)
+        // LINHA 1: Ações Críticas
         const rowMain = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('ticket_btn_setup').setLabel('Setup Auto').setStyle(ButtonStyle.Success).setEmoji('🪄'),
             new ButtonBuilder().setCustomId('ticket_btn_panel').setLabel('Enviar Painel').setStyle(ButtonStyle.Primary).setEmoji('📨'),
@@ -60,7 +88,7 @@ module.exports = {
             new ButtonBuilder().setCustomId('ticket_active_manager').setLabel('Gerir Abertos').setStyle(ButtonStyle.Danger).setEmoji('🚨')
         );
 
-        // LINHA 2: Personalização e Departamentos
+        // LINHA 2: Personalização
         const rowVisual = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('ticket_visual_editor').setLabel('🎨 Editar Design').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId('ticket_add_dept_modal').setLabel('Add Dept').setEmoji('➕').setStyle(ButtonStyle.Success),
@@ -106,7 +134,6 @@ module.exports = {
             .addActionRowComponents(rowLogs)
             .addActionRowComponents(rowStaff);
 
-        // ✅ Lógica de Envio Segura (Evita InteractionAlreadyReplied)
         if (interaction.replied || interaction.deferred) {
             await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
         } else if (interaction.isMessageComponent()) {
