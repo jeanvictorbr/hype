@@ -21,13 +21,13 @@ module.exports = {
 
         if (!isStaff && !isOwner && !isAdmin) return interaction.reply({ content: '🚫 Sem permissão.', flags: [MessageFlags.Ephemeral] });
 
-        // UI V2 CORRIGIDA
+        // UI V2
         const closingHeader = new TextDisplayBuilder()
-            .setContent(`# 🔒 A Fechar Ticket...\nEncerrado por <@${interaction.user.id}>.\n*Gerando logs...*`);
+            .setContent(`# 🔒 Fechando Ticket...\nEncerrado por <@${interaction.user.id}>.\n*A gerar transcrição e a guardar...*`);
 
         const closingContainer = new ContainerBuilder()
             .setAccentColor(0xED4245)
-            .addTextDisplayComponents(closingHeader); // ✅
+            .addTextDisplayComponents(closingHeader); // ✅ Sintaxe Nova
 
         await interaction.update({ components: [closingContainer], flags: [MessageFlags.IsComponentsV2] });
 
@@ -35,14 +35,13 @@ module.exports = {
         try {
             const messages = await interaction.channel.messages.fetch({ limit: 100 });
             const htmlContent = generateTranscriptHTML(interaction.guild, interaction.channel, messages, interaction.user.tag);
-            const transcriptBuffer = Buffer.from(htmlContent, 'utf-8');
-            const attachment = new AttachmentBuilder(transcriptBuffer, { name: `transcript-${interaction.channel.name}.html` });
+            const attachment = new AttachmentBuilder(Buffer.from(htmlContent, 'utf-8'), { name: `transcript-${interaction.channel.name}.html` });
 
             if (config.logChannel) {
                 const logChannel = interaction.guild.channels.cache.get(config.logChannel);
                 if (logChannel) {
-                    const logHeader = new TextDisplayBuilder().setContent(`# 🗄️ Log de Atendimento\n**Ticket:** \`${interaction.channel.name}\`\n**Fechado por:** <@${interaction.user.id}>`);
-                    const logContainer = new ContainerBuilder().setAccentColor(0x2C2F33).addTextDisplayComponents(logHeader); // ✅
+                    const logHeader = new TextDisplayBuilder().setContent(`# 🗄️ Log de Atendimento\n**Ticket:** \`${interaction.channel.name}\`\n**Fechado por:** <@${interaction.user.id}>\n**Dono:** <@${ticket.ownerId}>`);
+                    const logContainer = new ContainerBuilder().setAccentColor(0x2C2F33).addTextDisplayComponents(logHeader);
 
                     await logChannel.send({
                         flags: [MessageFlags.IsComponentsV2],
