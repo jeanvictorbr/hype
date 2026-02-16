@@ -5,83 +5,141 @@ const {
 const { prisma } = require('../../../core/database');
 
 module.exports = {
-    customIdPrefix: 'ticket_open', 
+    customIdPrefix: 'ticket_open', // Captura 'ticket_open_general' E 'ticket_open_select'
 
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
         const memberId = interaction.user.id;
         
+        // 1. Trava a UI imediatamente para evitar timeout
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-        let deptName = 'Geral';
-        
-        if (interaction.isStringSelectMenu()) {
-            const deptId = interaction.values[0].replace('dept_', '');
-            const config = await prisma.ticketConfig.findUnique({
-                where: { guildId: guildId },
-                include: { departments: true }
-            });
-            const dept = config?.departments.find(d => d.id === deptId);
-            if (dept) deptName = dept.label;
-        }
-
-        const existing = await prisma.activeTicket.findFirst({ where: { ownerId: memberId, guildId: guildId } });
-        if (existing) {
-            return interaction.editReply({ content: `⚠️ Você já tem um ticket aberto: <#${existing.channelId}>` });
-        }
-
-        const config = await prisma.ticketConfig.findUnique({ where: { guildId: guildId } });
-        if (!config?.ticketCategory) return interaction.editReply({ content: '❌ Sistema em manutenção.' });
-
         try {
+            let deptName = 'Geral';
+            
+            // 2. Lógica de Departamento (Blindada contra config nula)
+            if (interaction.isStringSelectMenu()) {
+                const deptId = interaction.values[0].replace('dept_', '');
+                
+                const config = await prisma.ticketConfig.findUnique({
+                    where: { guildId: guildId },
+                    include: { departments: true }
+                });
+
+                // Se não achar a config ou departamento, mantém 'Geral'
+                if (config && config.departments) {
+                    const dept = config.departments.find(d => d.id === deptId);
+                    if (dept) deptName = dept.label;
+                }
+            }
+
+            // 3. Validação Anti-Spam (Ticket já aberto)
+            const existing = await prisma.activeTicket.findFirst({ 
+                where: { ownerId: memberId, guildId: guildId } 
+            });
+            
+            if (existing) {
+                // Tenta pegar o canal para linkar
+                const channelExists = interaction.guild.channels.cache.get(existing.channelId);
+                const link = channelExists ? `<#${existing.channelId}>` : 'um canal fechado (contate a staff)';
+                
+                return interaction.editReply({ 
+                    content: `⚠️ Você já possui um atendimento em andamento em ${link}.` 
+                });
+            }
+
+            // 4. Busca Configuração Principal
+            const config = await prisma.ticketConfig.findUnique({ where: { guildId: guildId } });
+            
+            if (!config || !config.ticketCategory) {
+                return interaction.editReply({ content: '❌ O sistema de tickets não está configurado corretamente (Categoria ausente).' });
+            }
+
+            // 5. Criação do Canal
             const channel = await interaction.guild.channels.create({
                 name: `🎫・${deptName}-${interaction.user.username}`.substring(0, 32),
                 type: ChannelType.GuildText,
                 parent: config.ticketCategory,
                 permissionOverwrites: [
-                    { id: interaction.guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
-                    { id: memberId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles] },
-                    { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] }
+                    { 
+                        id: interaction.guild.roles.everyone.id, 
+                        deny: [PermissionFlagsBits.ViewChannel] 
+                    },
+                    { 
+                        id: memberId, 
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles] 
+                    },
+                    { 
+                        id: client.user.id, 
+                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages] 
+                    }
                 ]
             });
 
-            if (config.staffRoles) {
-                config.staffRoles.forEach(r => channel.permissionOverwrites.edit(r, { ViewChannel: true, SendMessages: true }).catch(() => {}));
+            // 6. Sincroniza Permissões da Staff
+            if (config.staffRoles && config.staffRoles.length > 0) {
+                for (const roleId of config.staffRoles) {
+                    // Ignora erro se o cargo tiver sido deletado
+                    await channel.permissionOverwrites.edit(roleId, { 
+                        ViewChannel: true, 
+                        SendMessages: true 
+                    }).catch(() => {});
+                }
             }
 
+            // 7. Registra no Banco
             await prisma.activeTicket.create({
                 data: { channelId: channel.id, ownerId: memberId, guildId: guildId }
             });
 
-            // --- PAINEL INTERNO ATUALIZADO ---
+            // 8. Envia Painel Interno (Dentro do novo canal)
             const internalPanel = new ContainerBuilder()
                 .setAccentColor(0x5865F2)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${deptName}\nOlá <@${memberId}>! Descreva seu problema abaixo.\n\n*Utilize os botões para gerir o atendimento.*`))
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(`# ${deptName}\nOlá <@${memberId}>! Descreva seu problema abaixo.\n\n*Aguarde um membro da equipe.*`)
+                )
                 .addActionRowComponents(
                     new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId('ticket_close').setLabel('Fechar').setStyle(ButtonStyle.Danger).setEmoji('🔒'),
                         new ButtonBuilder().setCustomId('ticket_claim').setLabel('Assumir').setStyle(ButtonStyle.Success).setEmoji('🙋‍♂️'),
-                        new ButtonBuilder().setCustomId('ticket_users_menu').setLabel('Membros').setStyle(ButtonStyle.Secondary).setEmoji('👥') // 👈 NOVO BOTAO
+                        new ButtonBuilder().setCustomId('ticket_users_menu').setLabel('Membros').setStyle(ButtonStyle.Secondary).setEmoji('👥')
                     )
                 );
 
             const staffTags = config.staffRoles.map(r => `<@&${r}>`).join(' ');
-            await channel.send({ content: `${staffTags}`, components: [internalPanel], flags: [MessageFlags.IsComponentsV2] });
+            await channel.send({ 
+                content: `${staffTags} | Novo chamado de <@${memberId}>`, 
+                components: [internalPanel], 
+                flags: [MessageFlags.IsComponentsV2] 
+            });
 
-            const success = new ContainerBuilder()
-                .setAccentColor(0x57F287)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ✅ Ticket Criado\nSeu canal de atendimento foi aberto: <#${channel.id}>`))
+            // 9. Resposta Final ao Usuário (Link para o ticket)
+            const successContainer = new ContainerBuilder()
+                .setAccentColor(0x57F287) // Verde
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder().setContent(`# ✅ Ticket Criado\nSeu canal de atendimento foi aberto: <#${channel.id}>`)
+                )
                 .addActionRowComponents(
                     new ActionRowBuilder().addComponents(
-                        new ButtonBuilder().setLabel('Ir para o Ticket').setStyle(ButtonStyle.Link).setURL(`https://discord.com/channels/${guildId}/${channel.id}`)
+                        new ButtonBuilder()
+                            .setLabel('Ir para o Ticket')
+                            .setStyle(ButtonStyle.Link)
+                            .setURL(`https://discord.com/channels/${guildId}/${channel.id}`)
                     )
                 );
 
-            await interaction.editReply({ components: [success], flags: [MessageFlags.IsComponentsV2] });
+            // ⚠️ CORREÇÃO CRÍTICA: Adicionada a flag V2 obrigatória
+            await interaction.editReply({ 
+                components: [successContainer], 
+                flags: [MessageFlags.IsComponentsV2] 
+            });
 
         } catch (err) {
-            console.error('Erro ao abrir ticket:', err);
-            await interaction.editReply({ content: '❌ Erro ao criar canal. Verifique permissões.' });
+            console.error('❌ Erro crítico ao abrir ticket:', err);
+            // Tenta avisar o usuário se der erro
+            await interaction.editReply({ 
+                content: '❌ Ocorreu um erro ao criar seu ticket. Por favor, contate um administrador.' 
+            }).catch(() => {});
         }
     }
 };
