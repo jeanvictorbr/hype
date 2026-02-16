@@ -22,6 +22,21 @@ model ActiveTicket {
   claimerId       String?
   guildId         String       // ID do servidor
 }
+
+// 👇 NOVA TABELA: Histórico Permanente para /locticket
+model TicketHistory {
+  protocol        String   @id // Ex: KODA-1A2B3C
+  guildId         String
+  ownerId         String
+  staffId         String?  // Quem atendeu
+  transcriptUrl   String?  // Link do arquivo no Discord (CDN)
+  
+  rating          Int?     // Nota dada (1-5)
+  comment         String?  // Comentário do usuário
+  
+  createdAt       DateTime @default(now())
+  closedAt        DateTime @default(now())
+}
 // 👇 NOVA TABELA: Estatísticas da Equipe
 model StaffStats {
   id              String   @id @default(uuid())
