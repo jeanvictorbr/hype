@@ -14,18 +14,17 @@ module.exports = {
     customId: 'dashboard_select_module',
 
     async execute(interaction, client) {
-        // Captura o valor se for menu, ou o customId se for botão (ex: botão de voltar)
+        // Captura o valor (se for menu) ou o customId (se for botão de voltar)
         const selectedModule = interaction.values ? interaction.values[0] : interaction.customId;
         const guildId = interaction.guild.id;
 
         // ==========================================
-        // 🔊 TELA: CONFIGURAÇÃO DO AUTO-VOICE (Livre)
+        // 🔊 TELA: CONFIGURAÇÃO DO AUTO-VOICE
         // ==========================================
-        // Nota: 'dashboard_btn_back' redireciona para cá também se viermos de sub-menus
         if (selectedModule === 'autovoice_setup' || selectedModule === 'dashboard_btn_back') {
             
             const headerText = new TextDisplayBuilder()
-                .setContent('# 🔊 Módulo: Auto-Voice\nGerencie as salas dinâmicas do servidor. Use o **Setup Rápido** para criar as categorias automaticamente ou configure passo a passo.');
+                .setContent('# 🔊 Módulo: Auto-Voice\nGerencie as salas dinâmicas. Use o **Setup Rápido** para criar tudo automaticamente ou configure manualmente.');
 
             const divider = new SeparatorBuilder();
 
@@ -33,87 +32,70 @@ module.exports = {
                 new ButtonBuilder().setCustomId('autovoice_btn_setup').setLabel('✨ Setup Rápido').setStyle(ButtonStyle.Success),
                 new ButtonBuilder().setCustomId('autovoice_btn_trigger').setLabel('📍 Definir Gatilho').setStyle(ButtonStyle.Primary),
                 new ButtonBuilder().setCustomId('autovoice_btn_bypass').setLabel('🎟️ Add Passe Livre').setStyle(ButtonStyle.Secondary),
-                // Botão para recarregar o menu principal
                 new ButtonBuilder().setCustomId('dashboard_reload_main').setLabel('◀ Voltar').setStyle(ButtonStyle.Danger)
             );
 
-            const autovoiceContainer = new ContainerBuilder()
+            const container = new ContainerBuilder()
                 .setAccentColor(0x5865F2)
                 .addTextDisplayComponents(headerText)
                 .addSeparatorComponents(divider)
                 .addActionRowComponents(actionRow);
 
-            // CORREÇÃO: Tenta update primeiro, se falhar (ex: slash command original), usa editReply
             try {
                 if (interaction.isMessageComponent()) {
-                    await interaction.update({ 
-                        components: [autovoiceContainer], 
-                        flags: [MessageFlags.IsComponentsV2] 
-                    });
+                    await interaction.update({ components: [container], flags: [MessageFlags.IsComponentsV2] });
                 } else {
-                    // Caso raro onde o comando / chama direto este módulo (se implementado assim)
-                    await interaction.reply({ 
-                        components: [autovoiceContainer], 
-                        flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] 
-                    });
+                    await interaction.reply({ components: [container], flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] });
                 }
-            } catch (error) {
-                // Fallback de segurança
-                if (!interaction.replied && !interaction.deferred) {
-                    await interaction.reply({ components: [autovoiceContainer], flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] });
-                } else {
-                    await interaction.editReply({ components: [autovoiceContainer], flags: [MessageFlags.IsComponentsV2] });
-                }
+            } catch (e) {
+                await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] }).catch(() => {});
             }
         }
 
         // ==========================================
-        // 🎫 TELA: CONFIGURAÇÃO DE TICKETS (💎 VIP)
+        // 🎫 TELA: CONFIGURAÇÃO DE TICKETS
         // ==========================================
         else if (selectedModule === 'tickets_setup') {
-            
-            // 1. Redirecionamento para o NOVO HUB DE TICKETS
             try {
                 const ticketHub = require('../../tickets/components/ticket_config_hub');
                 return await ticketHub.execute(interaction, client);
             } catch (error) {
-                console.error("Erro ao carregar o Hub de Tickets:", error);
+                console.error("Erro Hub Tickets:", error);
             }
-
-            // Fallback se o Hub falhar
-            const errorText = new TextDisplayBuilder().setContent('# ❌ Erro no Módulo\nNão foi possível carregar o painel de tickets.');
-            const errorContainer = new ContainerBuilder().setAccentColor(0xED4245).addTextDisplayComponents(errorText);
-            
-            await interaction.update({ components: [errorContainer], flags: [MessageFlags.IsComponentsV2] });
         }
         
         // ==========================================
-        // 🔄 RELOAD: VOLTAR AO MENU PRINCIPAL (/hype)
+        // 🔄 TELA: MENU PRINCIPAL (ROOT)
         // ==========================================
-        else if (selectedModule === 'dashboard_reload_main') {
+        // AQUI ESTAVA O ERRO: Adicionamos 'dashboard_select_module' para capturar o clique do botão "Voltar"
+        else if (selectedModule === 'dashboard_reload_main' || selectedModule === 'dashboard_select_module') {
             
             const headerText = new TextDisplayBuilder()
-                .setContent('# 🚀 Central de Comando\nBem-vindo ao dashboard da nave. Gerencie todos os sistemas do servidor por aqui com fluidez máxima.');
+                .setContent('# 🚀 Central de Comando\nBem-vindo ao dashboard da nave. Selecione um módulo abaixo.');
 
             const divider = new SeparatorBuilder();
 
             const moduleSelect = new ActionRowBuilder().addComponents(
                 new StringSelectMenuBuilder()
                     .setCustomId('dashboard_select_module')
-                    .setPlaceholder('Escolha um módulo para configurar...')
+                    .setPlaceholder('Escolha um módulo...')
                     .addOptions([
-                        { label: 'Módulo: Auto-Voice', description: 'Canais dinâmicos e salas privadas.', value: 'autovoice_setup', emoji: '🔊' },
-                        { label: 'Módulo: Tickets', description: 'Sistema de atendimento e suporte.', value: 'tickets_setup', emoji: '🎫' }
+                        { label: 'Módulo: Auto-Voice', description: 'Canais dinâmicos.', value: 'autovoice_setup', emoji: '🔊' },
+                        { label: 'Módulo: Tickets', description: 'Atendimento.', value: 'tickets_setup', emoji: '🎫' }
                     ])
             );
 
-            const mainContainer = new ContainerBuilder()
+            const container = new ContainerBuilder()
                 .setAccentColor(0x2b2d31)
                 .addTextDisplayComponents(headerText)
                 .addSeparatorComponents(divider)
                 .addActionRowComponents(moduleSelect);
 
-            await interaction.update({ components: [mainContainer], flags: [MessageFlags.IsComponentsV2] });
+            if (interaction.isMessageComponent()) {
+                await interaction.update({ components: [container], flags: [MessageFlags.IsComponentsV2] });
+            } else {
+                await interaction.reply({ components: [container], flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2] });
+            }
         }
     }
 };
