@@ -12,76 +12,55 @@ const { prisma } = require('../../../core/database');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('devpanel')
-        .setDescription('💻 [DEV] Painel de Administração SaaS')
-        .addStringOption(option => 
-            option.setName('servidor_id')
-                .setDescription('ID da Guilda (Servidor do Cliente) para gerenciar')
-                .setRequired(true)
-        ),
+        .setDescription('💻 [DEV] Central de Controle SaaS (Master)'),
 
     async execute(interaction, client) {
-        // 🛡️ TRAVA DE SEGURANÇA ABSOLUTA: Só você pode usar isso
+        // 🔒 Segurança Máxima
         if (interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({ 
-                content: '🚫 Acesso negado. Comando restrito à administração central.', 
+                content: '🚫 Acesso restrito ao CEO da Koda.', 
                 flags: [MessageFlags.Ephemeral] 
             });
         }
 
-        const targetGuildId = interaction.options.getString('servidor_id');
+        // ==========================================
+        // 1. LISTAGEM DE CLIENTES (GUILDS)
+        // ==========================================
+        // Pega as guildas onde o bot está (Cache do Discord)
+        const guilds = client.guilds.cache.map(g => ({
+            label: g.name,
+            description: `ID: ${g.id} | Membros: ${g.memberCount}`,
+            value: g.id,
+            emoji: 'BW_Server' // Se não tiver emoji custom, use 'wd_server' ou similar
+        })).slice(0, 25); // Limite de 25 do Discord Menu
 
-        // Busca o servidor no PostgreSQL
-        let guildData = await prisma.guild.findUnique({ where: { id: targetGuildId } });
-
-        // Se o servidor nunca usou o bot, a gente cadastra ele na hora
-        if (!guildData) {
-            guildData = await prisma.guild.create({ data: { id: targetGuildId } });
-        }
-
-        const currentFeatures = guildData.features.length > 0 ? guildData.features.join(', ') : 'Nenhuma (Plano Free)';
+        // Busca dados do banco para mostrar status (Opcional, mas legal)
+        const totalGuilds = client.guilds.cache.size;
 
         // ==========================================
-        // 💻 INTERFACE DO PAINEL DEV (App V2)
+        // 2. CONSTRUÇÃO DA UI V2
         // ==========================================
-        const headerText = new TextDisplayBuilder()
-            .setContent(`# 💻 Central de Operações\nGerenciando o servidor: \`${targetGuildId}\`\n\n**Módulos Liberados Atualmente:**\n💎 \`${currentFeatures}\``);
+        const header = new TextDisplayBuilder()
+            .setContent(`# 🛰️ Koda Control Center\nBem-vindo, Mestre. Atualmente estamos operando em **${totalGuilds} servidores**.\n\n*Selecione um cliente abaixo para gerenciar licenças e módulos.*`);
 
         const divider = new SeparatorBuilder();
 
-        // Menu para injetar ou remover features
-        const actionMenu = new ActionRowBuilder().addComponents(
+        const guildMenu = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
-                .setCustomId(`dev_inject_feature_${targetGuildId}`) // Passamos o ID do servidor embutido no customId!
-                .setPlaceholder('Alterar plano do cliente...')
-                .addOptions([
-                    {
-                        label: 'Liberar: VIP Total (All)',
-                        description: 'Libera todos os módulos presentes e futuros.',
-                        value: 'feature_add_all',
-                        emoji: '💎'
-                    },
-                    {
-                        label: 'Liberar: Módulo Tickets',
-                        description: 'Libera apenas o sistema avançado de tickets.',
-                        value: 'feature_add_tickets',
-                        emoji: '🎫'
-                    },
-                    {
-                        label: 'Revogar Acesso (Downgrade)',
-                        description: 'Remove todas as features VIP (Volta pro Free).',
-                        value: 'feature_remove_all',
-                        emoji: '🛑'
-                    }
-                ])
+                .setCustomId('dev_guild_manage') // Vai chamar o próximo arquivo
+                .setPlaceholder('Selecione um Servidor para Gerenciar...')
+                .addOptions(guilds.length > 0 ? guilds : [{ label: 'Nenhum servidor encontrado', value: 'none' }])
         );
 
-        const devContainer = new ContainerBuilder()
-            .setAccentColor(0x2C2F33) // Escuro/Hacker
-            .addComponents(headerText, divider, actionMenu);
+        const container = new ContainerBuilder()
+            .setAccentColor(0x2C2F33) // Dark Hacker Theme
+            .addTextDisplayComponents(header)
+            .addSeparatorComponents(divider)
+            .addActionRowComponents(guildMenu);
 
         await interaction.reply({
             flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
-            components: [devContainer]
+            components: [container]
         });
     }
 };

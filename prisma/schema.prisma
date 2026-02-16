@@ -12,6 +12,7 @@ model Guild {
   id              String   @id
   autoVoiceConfig AutoVoiceConfig?
   ticketConfig    TicketConfig?
+  vipExpiresAt    DateTime?
   features        String[] @default([])
 }
 // 📦 MÓDULO: TICKETS (Tickets Ativos)
