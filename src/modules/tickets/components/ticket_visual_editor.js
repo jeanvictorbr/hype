@@ -5,7 +5,6 @@ module.exports = {
     customId: 'ticket_visual_editor',
 
     async execute(interaction, client) {
-        // Busca config atual para pré-preencher
         const config = await prisma.ticketConfig.findUnique({
             where: { guildId: interaction.guild.id }
         });
@@ -24,10 +23,10 @@ module.exports = {
 
         const inputDesc = new TextInputBuilder()
             .setCustomId('input_desc')
-            .setLabel('Descrição (Corpo)')
+            .setLabel('Descrição (Mensagem Principal)')
             .setStyle(TextInputStyle.Paragraph)
-            .setValue(config?.panelDescription || 'Abra um ticket abaixo.')
-            .setMaxLength(200)
+            .setValue(config?.panelDescription || 'Clique abaixo para abrir um ticket.')
+            .setMaxLength(300)
             .setRequired(true);
 
         const inputFooter = new TextInputBuilder()

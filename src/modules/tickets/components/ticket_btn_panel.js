@@ -8,17 +8,15 @@ module.exports = {
     customId: 'ticket_btn_panel',
 
     async execute(interaction, client) {
-        // 1. Busca Config Completa
         const config = await prisma.ticketConfig.findUnique({
             where: { guildId: interaction.guild.id },
             include: { departments: true }
         });
 
         if (!config || !config.ticketCategory) {
-            return interaction.reply({ content: '❌ Configuração incompleta.', flags: [MessageFlags.Ephemeral] });
+            return interaction.reply({ content: '❌ Configure a categoria primeiro.', flags: [MessageFlags.Ephemeral] });
         }
 
-        // 2. Monta o Container (Vitrine Personalizada)
         const publicHeader = new TextDisplayBuilder()
             .setContent(`# ${config.panelTitle}\n${config.panelDescription}`);
 
@@ -32,29 +30,26 @@ module.exports = {
             );
         }
 
-        // 3. Decide: Botão Único ou Select Menu?
         const row = new ActionRowBuilder();
 
         if (config.departments.length > 0) {
-            // --- MODO DEPARTAMENTOS ---
             const options = config.departments.map(dept => ({
                 label: dept.label,
-                description: dept.description ? dept.description.substring(0, 50) : 'Clique para selecionar',
-                value: `dept_${dept.id}`, // ID Único para abrir o ticket certo
+                description: dept.description || 'Falar com este setor',
+                value: `dept_${dept.id}`,
                 emoji: dept.emoji || '🎫'
             }));
 
-            const selectMenu = new StringSelectMenuBuilder()
-                .setCustomId('ticket_open_select') // Novo ID para select menu
-                .setPlaceholder('Selecione um departamento...')
-                .addOptions(options);
-
-            row.addComponents(selectMenu);
+            row.addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId('ticket_open_select')
+                    .setPlaceholder('Selecione o departamento...')
+                    .addOptions(options)
+            );
         } else {
-            // --- MODO CLÁSSICO (BOTÃO) ---
             row.addComponents(
                 new ButtonBuilder()
-                    .setCustomId('ticket_open_general') // Novo ID genérico
+                    .setCustomId('ticket_open_general')
                     .setLabel('Abrir Ticket')
                     .setEmoji('📩')
                     .setStyle(ButtonStyle.Primary)
@@ -63,12 +58,11 @@ module.exports = {
 
         publicContainer.addActionRowComponents(row);
 
-        // 4. Envia
         await interaction.channel.send({
             flags: [MessageFlags.IsComponentsV2],
             components: [publicContainer]
         });
 
-        await interaction.reply({ content: '✅ Painel enviado com sucesso!', flags: [MessageFlags.Ephemeral] });
+        await interaction.reply({ content: '✅ Painel enviado!', flags: [MessageFlags.Ephemeral] });
     }
 };

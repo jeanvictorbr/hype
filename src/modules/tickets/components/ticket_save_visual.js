@@ -1,4 +1,3 @@
-const { MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
 
 module.exports = {
@@ -18,7 +17,8 @@ module.exports = {
             }
         });
 
-        // Recarrega o painel principal para mostrar a mudança
+        // Simula reload do Hub
+        interaction.deferUpdate(); // Evita erro de modal não respondido
         const ticketHub = require('./ticket_config_hub');
         await ticketHub.execute(interaction, client);
     }
