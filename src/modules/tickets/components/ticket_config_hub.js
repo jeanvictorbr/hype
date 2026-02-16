@@ -43,10 +43,11 @@ module.exports = {
         const vitrine = new TextDisplayBuilder()
             .setContent(`**🎨 Preview da Vitrine:**\n> **Título:** ${config.panelTitle}\n> **Rodapé:** ${config.panelFooter || 'Padrão'}`);
 
-        // LINHA 1: Ações Críticas (Setup, Enviar Painel, Gerir Abertos)
+        // LINHA 1: Ações Críticas (Setup, Painel, Ranking, Gerir Abertos)
         const rowMain = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('ticket_btn_setup').setLabel('Setup Auto').setStyle(ButtonStyle.Success).setEmoji('🪄'),
             new ButtonBuilder().setCustomId('ticket_btn_panel').setLabel('Enviar Painel').setStyle(ButtonStyle.Primary).setEmoji('📨'),
+            new ButtonBuilder().setCustomId('ticket_ranking_panel').setLabel('Ranking').setStyle(ButtonStyle.Primary).setEmoji('🏆'), // 👈 BOTÃO ADICIONADO
             new ButtonBuilder().setCustomId('ticket_active_manager').setLabel('Gerir Abertos').setStyle(ButtonStyle.Danger).setEmoji('🚨')
         );
 
