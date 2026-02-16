@@ -18,59 +18,37 @@ module.exports = {
             include: { departments: true }
         });
 
-        // Se não existir, cria o básico
         if (!config) {
             config = await prisma.ticketConfig.create({
                 data: { guildId: guildId, staffRoles: [] }
             });
         }
 
-        // 2. Status Visual
-        const statusCat = config.ticketCategory ? `<#${config.ticketCategory}>` : '❌ Não definido';
-        const statusLog = config.logChannel ? `<#${config.logChannel}>` : '❌ Não definido';
-        const statusStaff = config.staffRoles.length > 0 ? `${config.staffRoles.length} cargos` : '❌ Ninguém';
-        const deptCount = config.departments.length;
+        // 2. Estatísticas Rápidas
+        const activeCount = await prisma.activeTicket.count({ where: { guildId: guildId } });
 
-        // 3. UI V2 (App-Like Dashboard)
+        // 3. UI V2
         const header = new TextDisplayBuilder()
             .setContent('# 🎫 Central de Tickets\nGerencie o design, a infraestrutura e a equipe de atendimento.');
 
         const stats = new TextDisplayBuilder()
-            .setContent(`**📊 Infraestrutura Atual:**\n📂 **Categoria:** ${statusCat}\n📜 **Logs (Privado):** ${statusLog}\n👮 **Staff:** ${statusStaff}\n🏷️ **Departamentos:** ${deptCount}`);
+            .setContent(`**📊 Status Atual:**\n📂 **Categoria:** <#${config.ticketCategory || '0'}>\n📜 **Logs:** <#${config.logChannel || '0'}>\n🟢 **Tickets Abertos:** ${activeCount}`);
 
-        const vitrine = new TextDisplayBuilder()
-            .setContent(`**🎨 Preview da Vitrine:**\n> **Título:** ${config.panelTitle}\n> **Rodapé:** ${config.panelFooter || 'Padrão'}`);
-
-        // LINHA 1: Ações Principais
+        // LINHA 1: Ações Principais (Adicionado botão de Gerir Ativos)
         const rowMain = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('ticket_btn_setup').setLabel('✨ Setup Automático').setStyle(ButtonStyle.Success).setEmoji('🪄'),
-            new ButtonBuilder().setCustomId('ticket_btn_panel').setLabel('🚀 Enviar Painel').setStyle(ButtonStyle.Primary).setEmoji('📨'),
-            new ButtonBuilder().setCustomId('ticket_visual_editor').setLabel('🎨 Editar Design').setStyle(ButtonStyle.Secondary)
+            new ButtonBuilder().setCustomId('ticket_btn_setup').setLabel('Setup Auto').setStyle(ButtonStyle.Success).setEmoji('🪄'),
+            new ButtonBuilder().setCustomId('ticket_btn_panel').setLabel('Enviar Painel').setStyle(ButtonStyle.Primary).setEmoji('📨'),
+            new ButtonBuilder().setCustomId('ticket_active_manager').setLabel('Gerir Abertos').setStyle(ButtonStyle.Danger).setEmoji('🚨') // 👈 NOVO BOTAO
         );
 
-        // LINHA 2: Config Manual - Categoria
+        // LINHA 2: Config Manual
         const rowCat = new ActionRowBuilder().addComponents(
-            new ChannelSelectMenuBuilder()
-                .setCustomId('ticket_manual_cat')
-                .setPlaceholder('🔧 Definir Categoria Manualmente...')
-                .addChannelTypes(ChannelType.GuildCategory)
+            new ChannelSelectMenuBuilder().setCustomId('ticket_manual_cat').setPlaceholder('🔧 Definir Categoria...').addChannelTypes(ChannelType.GuildCategory)
         );
 
-        // LINHA 3: Config Manual - Logs
-        const rowLogs = new ActionRowBuilder().addComponents(
-            new ChannelSelectMenuBuilder()
-                .setCustomId('ticket_manual_logs')
-                .setPlaceholder('🔧 Definir Canal de Logs Manualmente...')
-                .addChannelTypes(ChannelType.GuildText)
-        );
-
-        // LINHA 4: Staff
+        // LINHA 3: Staff
         const rowStaff = new ActionRowBuilder().addComponents(
-            new RoleSelectMenuBuilder()
-                .setCustomId('select_ticket_staff')
-                .setPlaceholder('👮 Definir/Atualizar Staff...')
-                .setMinValues(1)
-                .setMaxValues(10)
+            new RoleSelectMenuBuilder().setCustomId('select_ticket_staff').setPlaceholder('👮 Definir Staff...').setMinValues(1).setMaxValues(10)
         );
 
         const container = new ContainerBuilder()
@@ -79,14 +57,11 @@ module.exports = {
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(stats)
             .addSeparatorComponents(new SeparatorBuilder())
-            .addTextDisplayComponents(vitrine)
-            .addSeparatorComponents(new SeparatorBuilder())
             .addActionRowComponents(rowMain)
             .addActionRowComponents(rowCat)
-            .addActionRowComponents(rowLogs)
             .addActionRowComponents(rowStaff);
 
-        // ✅ CORREÇÃO ANTI-CRASH: Verifica se a interação já foi respondida
+        // Tratamento de Resposta
         if (interaction.replied || interaction.deferred) {
             await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
         } else if (interaction.isMessageComponent()) {
