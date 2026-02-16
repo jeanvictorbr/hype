@@ -86,7 +86,7 @@ module.exports = {
                 }
             }
 
-            // ==========================================
+            // =========s=================================
             // 4. LIMPEZA FINAL
             // ==========================================
             await prisma.activeTicket.delete({ where: { channelId: interaction.channel.id } });
