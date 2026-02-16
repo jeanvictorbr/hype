@@ -2,12 +2,11 @@ const {
     SlashCommandBuilder, 
     ContainerBuilder, 
     TextDisplayBuilder, 
-    SeparatorBuilder,
+    SeparatorBuilder, 
     ActionRowBuilder, 
     StringSelectMenuBuilder,
     MessageFlags
 } = require('discord.js');
-const { prisma } = require('../../../core/database');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -26,28 +25,24 @@ module.exports = {
         // ==========================================
         // 1. LISTAGEM DE CLIENTES (GUILDS)
         // ==========================================
-        // Pega as guildas onde o bot está (Cache do Discord)
         const guilds = client.guilds.cache.map(g => ({
             label: g.name,
             description: `ID: ${g.id} | Membros: ${g.memberCount}`,
             value: g.id,
-            emoji: 'BW_Server' // Se não tiver emoji custom, use 'wd_server' ou similar
-        })).slice(0, 25); // Limite de 25 do Discord Menu
-
-        // Busca dados do banco para mostrar status (Opcional, mas legal)
-        const totalGuilds = client.guilds.cache.size;
+            emoji: '🌐' // ✅ CORREÇÃO: Usando emoji universal para evitar crash
+        })).slice(0, 25);
 
         // ==========================================
         // 2. CONSTRUÇÃO DA UI V2
         // ==========================================
         const header = new TextDisplayBuilder()
-            .setContent(`# 🛰️ Koda Control Center\nBem-vindo, Mestre. Atualmente estamos operando em **${totalGuilds} servidores**.\n\n*Selecione um cliente abaixo para gerenciar licenças e módulos.*`);
+            .setContent(`# 🛰️ Koda Control Center\nBem-vindo, Mestre. Atualmente estamos operando em **${client.guilds.cache.size} servidores**.\n\n*Selecione um cliente abaixo para gerenciar licenças e módulos.*`);
 
         const divider = new SeparatorBuilder();
 
         const guildMenu = new ActionRowBuilder().addComponents(
             new StringSelectMenuBuilder()
-                .setCustomId('dev_guild_manage') // Vai chamar o próximo arquivo
+                .setCustomId('dev_guild_manage') 
                 .setPlaceholder('Selecione um Servidor para Gerenciar...')
                 .addOptions(guilds.length > 0 ? guilds : [{ label: 'Nenhum servidor encontrado', value: 'none' }])
         );
