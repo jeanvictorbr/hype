@@ -12,43 +12,74 @@ module.exports = {
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
 
-        // 1. Busca Configuração
+        // 1. Busca Configuração e Departamentos
         let config = await prisma.ticketConfig.findUnique({
             where: { guildId: guildId },
             include: { departments: true }
         });
 
+        // Cria configuração padrão se não existir
         if (!config) {
             config = await prisma.ticketConfig.create({
                 data: { guildId: guildId, staffRoles: [] }
             });
         }
 
-        // 2. Estatísticas Rápidas
+        // 2. Dados em Tempo Real
         const activeCount = await prisma.activeTicket.count({ where: { guildId: guildId } });
+        
+        const statusCat = config.ticketCategory ? `<#${config.ticketCategory}>` : '❌ Não definido';
+        const statusLog = config.logChannel ? `<#${config.logChannel}>` : '❌ Não definido';
+        const statusStaff = config.staffRoles.length > 0 ? `${config.staffRoles.length} cargos` : '❌ Ninguém';
+        const deptCount = config.departments.length;
 
-        // 3. UI V2
+        // 3. Interface V2 (Dashboard App-Like)
         const header = new TextDisplayBuilder()
-            .setContent('# 🎫 Central de Tickets\nGerencie o design, a infraestrutura e a equipe de atendimento.');
+            .setContent('# 🎫 Central de Tickets\nPainel de controle total do sistema de atendimento.');
 
         const stats = new TextDisplayBuilder()
-            .setContent(`**📊 Status Atual:**\n📂 **Categoria:** <#${config.ticketCategory || '0'}>\n📜 **Logs:** <#${config.logChannel || '0'}>\n🟢 **Tickets Abertos:** ${activeCount}`);
+            .setContent(`**📊 Diagnóstico:**\n📂 **Categoria:** ${statusCat}\n📜 **Logs (Privado):** ${statusLog}\n👮 **Staff:** ${statusStaff}\n🏷️ **Departamentos:** ${deptCount}\n🟢 **Tickets Abertos:** ${activeCount}`);
 
-        // LINHA 1: Ações Principais (Adicionado botão de Gerir Ativos)
+        const vitrine = new TextDisplayBuilder()
+            .setContent(`**🎨 Preview da Vitrine:**\n> **Título:** ${config.panelTitle}\n> **Rodapé:** ${config.panelFooter || 'Padrão'}`);
+
+        // LINHA 1: Ações Críticas (Setup, Enviar Painel, Gerir Abertos)
         const rowMain = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('ticket_btn_setup').setLabel('Setup Auto').setStyle(ButtonStyle.Success).setEmoji('🪄'),
             new ButtonBuilder().setCustomId('ticket_btn_panel').setLabel('Enviar Painel').setStyle(ButtonStyle.Primary).setEmoji('📨'),
-            new ButtonBuilder().setCustomId('ticket_active_manager').setLabel('Gerir Abertos').setStyle(ButtonStyle.Danger).setEmoji('🚨') // 👈 NOVO BOTAO
+            new ButtonBuilder().setCustomId('ticket_active_manager').setLabel('Gerir Abertos').setStyle(ButtonStyle.Danger).setEmoji('🚨')
         );
 
-        // LINHA 2: Config Manual
+        // LINHA 2: Personalização e Departamentos
+        const rowVisual = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('ticket_visual_editor').setLabel('🎨 Editar Design').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('ticket_add_dept_modal').setLabel('Add Dept').setEmoji('➕').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId('ticket_remove_dept_menu').setLabel('Remover Dept').setEmoji('🗑️').setStyle(ButtonStyle.Danger).setDisabled(deptCount === 0)
+        );
+
+        // LINHA 3: Config Manual - Categoria
         const rowCat = new ActionRowBuilder().addComponents(
-            new ChannelSelectMenuBuilder().setCustomId('ticket_manual_cat').setPlaceholder('🔧 Definir Categoria...').addChannelTypes(ChannelType.GuildCategory)
+            new ChannelSelectMenuBuilder()
+                .setCustomId('ticket_manual_cat')
+                .setPlaceholder('🔧 Definir Categoria Manualmente...')
+                .addChannelTypes(ChannelType.GuildCategory)
         );
 
-        // LINHA 3: Staff
+        // LINHA 4: Config Manual - Logs
+        const rowLogs = new ActionRowBuilder().addComponents(
+            new ChannelSelectMenuBuilder()
+                .setCustomId('ticket_manual_logs')
+                .setPlaceholder('🔧 Definir Canal de Logs Manualmente...')
+                .addChannelTypes(ChannelType.GuildText)
+        );
+
+        // LINHA 5: Staff
         const rowStaff = new ActionRowBuilder().addComponents(
-            new RoleSelectMenuBuilder().setCustomId('select_ticket_staff').setPlaceholder('👮 Definir Staff...').setMinValues(1).setMaxValues(10)
+            new RoleSelectMenuBuilder()
+                .setCustomId('select_ticket_staff')
+                .setPlaceholder('👮 Definir/Atualizar Staff...')
+                .setMinValues(1)
+                .setMaxValues(10)
         );
 
         const container = new ContainerBuilder()
@@ -57,11 +88,15 @@ module.exports = {
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(stats)
             .addSeparatorComponents(new SeparatorBuilder())
+            .addTextDisplayComponents(vitrine)
+            .addSeparatorComponents(new SeparatorBuilder())
             .addActionRowComponents(rowMain)
+            .addActionRowComponents(rowVisual)
             .addActionRowComponents(rowCat)
+            .addActionRowComponents(rowLogs)
             .addActionRowComponents(rowStaff);
 
-        // Tratamento de Resposta
+        // ✅ CORREÇÃO ANTI-CRASH: Verifica estado da interação
         if (interaction.replied || interaction.deferred) {
             await interaction.editReply({ components: [container], flags: [MessageFlags.IsComponentsV2] });
         } else if (interaction.isMessageComponent()) {
