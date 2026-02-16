@@ -110,54 +110,60 @@ module.exports = {
 // 🎛️ PAINEL V2 - ESTILO LISTA (Settings Layout)
 // ==========================================
 
-// Cabeçalho Principal
+// 1. Cabeçalho Principal (Usando Markdown para peso e cor)
 const header = new TextDisplayBuilder()
-    .setContent('# 🎧 Controle de Voz')
-    .setWeight('Bold');
+    .setContent('# 🎧 Controle de Voz');
 
 const subHeader = new TextDisplayBuilder()
-    .setContent(`Gerencie a sala de <@${member.id}>`)
-    .setColor('Subtext');
+    .setContent(`Gerencie a sala de <@${member.id}>\n*Use os botões abaixo para configurar.*`);
 
 const divider = new SeparatorBuilder();
 
-// --- SEÇÃO 1: PERSONALIZAÇÃO (Nome e Limite) ---
-const labelPersonal = new TextDisplayBuilder().setContent('**🎨 Personalização**');
+// 2. Seção 1: Personalização
+// Usamos Markdown (**Negrito**) para simular o título da seção
+const labelPersonal = new TextDisplayBuilder()
+    .setContent('**🎨 Personalização**');
+
 const rowPersonal = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('room_rename').setLabel('Renomear').setEmoji('✏️').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('room_limit').setLabel('Limite').setEmoji('👥').setStyle(ButtonStyle.Secondary)
 );
 
-// --- SEÇÃO 2: PRIVACIDADE (Trancar/Abrir) ---
-const labelPrivacy = new TextDisplayBuilder().setContent('**🛡️ Segurança e Acesso**');
+// 3. Seção 2: Segurança
+const labelPrivacy = new TextDisplayBuilder()
+    .setContent('**🛡️ Segurança e Acesso**');
+
 const rowPrivacy = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('room_lock').setLabel('Trancar').setEmoji('🔒').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('room_unlock').setLabel('Destrancar').setEmoji('🔓').setStyle(ButtonStyle.Success)
 );
 
-// --- SEÇÃO 3: MODERAÇÃO (Kick/Allow) ---
-const labelMod = new TextDisplayBuilder().setContent('**👥 Gestão de Membros**');
+// 4. Seção 3: Moderação
+const labelMod = new TextDisplayBuilder()
+    .setContent('**👥 Gestão de Membros**');
+
 const rowMod = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('room_allow').setLabel('Permitir User').setEmoji('✅').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('room_kick').setLabel('Desconectar').setEmoji('👢').setStyle(ButtonStyle.Danger)
 );
 
-// Montagem do Container em Camadas (Sanduíche)
+// 5. Montagem do Container (Sanduíche Visual)
 const panelContainer = new ContainerBuilder()
-    .setAccentColor(0x2b2d31) // Dark Mode Limpo
+    .setAccentColor(0x2b2d31) // Dark Mode
     // Topo
-    .addTextDisplayComponents(header, subHeader)
+    .addTextDisplayComponents(header) // Adiciona título
+    .addTextDisplayComponents(subHeader) // Adiciona subtítulo
     .addSeparatorComponents(divider)
     
     // Item 1
     .addTextDisplayComponents(labelPersonal)
     .addActionRowComponents(rowPersonal)
-    .addSeparatorComponents(new SeparatorBuilder()) // Linha divisória igual ao exemplo
+    .addSeparatorComponents(new SeparatorBuilder())
     
     // Item 2
     .addTextDisplayComponents(labelPrivacy)
     .addActionRowComponents(rowPrivacy)
-    .addSeparatorComponents(new SeparatorBuilder()) // Linha divisória igual ao exemplo
+    .addSeparatorComponents(new SeparatorBuilder())
     
     // Item 3
     .addTextDisplayComponents(labelMod)
