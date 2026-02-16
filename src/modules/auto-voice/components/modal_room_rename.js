@@ -5,7 +5,9 @@ module.exports = {
     customId: 'modal_room_rename',
     async execute(interaction, client) {
         const room = await prisma.autoVoiceRoom.findUnique({ where: { channelId: interaction.channel.id } });
-        if (!room || interaction.user.id !== room.ownerId) return interaction.reply({ content: '🚫 Ação não autorizada.', ephemeral: true });
+        if (!room || interaction.user.id !== room.ownerId) {
+            return interaction.reply({ content: '🚫 Ação não autorizada.', flags: [MessageFlags.Ephemeral] });
+        }
 
         const newName = interaction.fields.getTextInputValue('input_new_name');
 
@@ -16,12 +18,19 @@ module.exports = {
             
             const successContainer = new ContainerBuilder()
                 .setAccentColor(0x57F287)
-                .addTextDisplayComponents(successText); // ✅ CORREÇÃO V2
+                .addTextDisplayComponents(successText);
 
-            await interaction.reply({ components: [successContainer], flags: [MessageFlags.Ephemeral] });
+            // 🛠️ CORREÇÃO: Usando flags de App V2 explicitamente para evitar erro de UNION_TYPE
+            await interaction.reply({ 
+                flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2], 
+                components: [successContainer] 
+            });
         } catch (error) {
             console.error('❌ Erro ao renomear sala:', error);
-            await interaction.reply({ content: '❌ Erro ao renomear. Pode ser o limite de tempo do Discord (2 trocas a cada 10min).', flags: [MessageFlags.Ephemeral] });
+            await interaction.reply({ 
+                content: '❌ Erro ao renomear. Pode ser o limite de tempo do Discord (2 trocas a cada 10min).', 
+                flags: [MessageFlags.Ephemeral] 
+            });
         }
     }
 };
