@@ -5,13 +5,12 @@ const {
 const { prisma } = require('../../../core/database');
 
 module.exports = {
-    customIdPrefix: 'ticket_open', // Captura ticket_open_general E ticket_open_select
+    customIdPrefix: 'ticket_open', 
 
     async execute(interaction, client) {
         const guildId = interaction.guild.id;
         const memberId = interaction.user.id;
         
-        // Evita erro visual no select menu
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
         let deptName = 'Geral';
@@ -26,14 +25,13 @@ module.exports = {
             if (dept) deptName = dept.label;
         }
 
-        // Validação
         const existing = await prisma.activeTicket.findFirst({ where: { ownerId: memberId, guildId: guildId } });
         if (existing) {
             return interaction.editReply({ content: `⚠️ Você já tem um ticket aberto: <#${existing.channelId}>` });
         }
 
         const config = await prisma.ticketConfig.findUnique({ where: { guildId: guildId } });
-        if (!config?.ticketCategory) return interaction.editReply({ content: '❌ Sistema em manutenção (Categoria não definida).' });
+        if (!config?.ticketCategory) return interaction.editReply({ content: '❌ Sistema em manutenção.' });
 
         try {
             const channel = await interaction.guild.channels.create({
@@ -47,7 +45,6 @@ module.exports = {
                 ]
             });
 
-            // Adiciona Staff
             if (config.staffRoles) {
                 config.staffRoles.forEach(r => channel.permissionOverwrites.edit(r, { ViewChannel: true, SendMessages: true }).catch(() => {}));
             }
@@ -56,21 +53,21 @@ module.exports = {
                 data: { channelId: channel.id, ownerId: memberId, guildId: guildId }
             });
 
-            // Painel Interno
+            // --- PAINEL INTERNO ATUALIZADO ---
             const internalPanel = new ContainerBuilder()
                 .setAccentColor(0x5865F2)
-                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${deptName}\nOlá <@${memberId}>! Descreva seu problema abaixo.`))
+                .addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${deptName}\nOlá <@${memberId}>! Descreva seu problema abaixo.\n\n*Utilize os botões para gerir o atendimento.*`))
                 .addActionRowComponents(
                     new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId('ticket_close').setLabel('Fechar').setStyle(ButtonStyle.Danger).setEmoji('🔒'),
-                        new ButtonBuilder().setCustomId('ticket_claim').setLabel('Assumir').setStyle(ButtonStyle.Secondary).setEmoji('🙋‍♂️')
+                        new ButtonBuilder().setCustomId('ticket_claim').setLabel('Assumir').setStyle(ButtonStyle.Success).setEmoji('🙋‍♂️'),
+                        new ButtonBuilder().setCustomId('ticket_users_menu').setLabel('Membros').setStyle(ButtonStyle.Secondary).setEmoji('👥') // 👈 NOVO BOTAO
                     )
                 );
 
             const staffTags = config.staffRoles.map(r => `<@&${r}>`).join(' ');
             await channel.send({ content: `${staffTags}`, components: [internalPanel], flags: [MessageFlags.IsComponentsV2] });
 
-            // Mensagem de Sucesso (Com Botão de Link)
             const success = new ContainerBuilder()
                 .setAccentColor(0x57F287)
                 .addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ✅ Ticket Criado\nSeu canal de atendimento foi aberto: <#${channel.id}>`))
@@ -80,11 +77,7 @@ module.exports = {
                     )
                 );
 
-            // 🚨 CORREÇÃO CRÍTICA: Adicionada a flag V2 aqui para evitar o erro "Invalid Form Body"
-            await interaction.editReply({ 
-                components: [success], 
-                flags: [MessageFlags.IsComponentsV2] 
-            });
+            await interaction.editReply({ components: [success], flags: [MessageFlags.IsComponentsV2] });
 
         } catch (err) {
             console.error('Erro ao abrir ticket:', err);
