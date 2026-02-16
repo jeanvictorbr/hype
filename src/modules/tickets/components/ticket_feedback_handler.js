@@ -1,7 +1,6 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 
 module.exports = {
-    // ID Fictício para o loader
     customId: 'ticket_rate_loader',
     customIdPrefix: 'rate_', 
 
@@ -12,18 +11,20 @@ module.exports = {
         const staffId = parts[3];
         const protocol = parts[4];
 
-        // Se ninguém atendeu, não abre modal, apenas finaliza e remove botões
+        // Se ninguém atendeu, finaliza direto mantendo as infos
         if (staffId === 'none') {
+            const originalAttachments = interaction.message.attachments.map(a => a);
+
             const thankYouHeader = new TextDisplayBuilder()
-                .setContent('# ✅ Feedback Recebido\nObrigado pela sua avaliação!');
+                .setContent(`# ✅ Feedback Recebido\n**🔖 Protocolo:** \`${protocol}\`\n**Nota:** ${rating}/5 ⭐\n\nObrigado pela sua avaliação!`);
 
             const container = new ContainerBuilder()
                 .setAccentColor(0x57F287)
                 .addTextDisplayComponents(thankYouHeader);
 
-            // Remove os botões imediatamente
             return interaction.update({ 
                 components: [container], 
+                files: originalAttachments, // Mantém anexo
                 flags: [MessageFlags.IsComponentsV2] 
             });
         }
