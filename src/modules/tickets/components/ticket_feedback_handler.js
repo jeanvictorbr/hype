@@ -1,35 +1,35 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags, ContainerBuilder, TextDisplayBuilder } = require('discord.js');
 
 module.exports = {
-    // 🚨 IMPORTANTE: ID Fictício para o loader carregar este arquivo na memória
+    // ID Fictício para o loader
     customId: 'ticket_rate_loader',
-    
-    // O interactionCreate vai usar este prefixo para rotear a ação correta
     customIdPrefix: 'rate_', 
 
     async execute(interaction, client) {
-        // Formato recebido: rate_NOTA_GUILDID_STAFFID_PROTOCOL
         const parts = interaction.customId.split('_');
-        
-        // parts[0] = "rate"
-        // parts[1] = Nota (1-5)
-        // parts[2] = Guild ID
-        // parts[3] = Staff ID
-        // parts[4] = Protocolo
-
         const rating = parts[1];
         const guildId = parts[2];
         const staffId = parts[3];
         const protocol = parts[4];
 
-        // Se o Staff for 'none' (ninguém atendeu), apenas agradecemos
+        // Se ninguém atendeu, não abre modal, apenas finaliza e remove botões
         if (staffId === 'none') {
-            return interaction.reply({ content: '✅ Obrigado pelo feedback!', flags: [MessageFlags.Ephemeral] });
+            const thankYouHeader = new TextDisplayBuilder()
+                .setContent('# ✅ Feedback Recebido\nObrigado pela sua avaliação!');
+
+            const container = new ContainerBuilder()
+                .setAccentColor(0x57F287)
+                .addTextDisplayComponents(thankYouHeader);
+
+            // Remove os botões imediatamente
+            return interaction.update({ 
+                components: [container], 
+                flags: [MessageFlags.IsComponentsV2] 
+            });
         }
 
-        // Cria o Modal para comentário
+        // Abre Modal
         const modal = new ModalBuilder()
-            // Passamos todos os dados para o ID do modal para usar depois
             .setCustomId(`submit_feedback_${rating}_${guildId}_${staffId}_${protocol}`) 
             .setTitle(`Avaliação: ${rating} Estrelas`);
 
