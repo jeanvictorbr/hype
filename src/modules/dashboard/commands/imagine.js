@@ -21,42 +21,52 @@ module.exports = {
     async execute(interaction, client) {
         const prompt = interaction.options.getString('prompt');
 
-        // 1. Mensagem de feedback IMEDIATA para "enrolar" e tranquilizar o utilizador
+        // 1. Mensagem para enrolar o utilizador enquanto a imagem carrega
         await interaction.reply({ 
-            content: '🖌️ **A preparar os pincéis...** A IA está a desenhar a tua ideia. Isto demora cerca de 10 a 15 segundos, aguarda!' 
+            content: '🖌️ **A preparar os pincéis...** A IA está a desenhar a tua ideia. Isto demora uns segundos, aguarda!' 
         });
 
-        // 2. Gerador de URL (com seed aleatório para resultados diferentes)
         const generateImageUrl = (basePrompt) => {
             const randomSeed = Math.floor(Math.random() * 1000000);
-            return `https://image.pollinations.ai/prompt/${encodeURIComponent(basePrompt)}?width=1024&height=1024&nologo=true&seed=${randomSeed}`;
+            return `https://image.pollinations.ai/prompt/${encodeURIComponent(basePrompt.trim())}?width=1024&height=1024&nologo=true&seed=${randomSeed}`;
         };
 
-        // 3. A NOVA MÁGICA: Função que obriga o Bot a baixar a imagem completa antes de mostrar
-        const fetchImageAsAttachment = async (url) => {
-            // O bot vai à internet buscar a imagem ativamente
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Falha no download da IA');
-            
-            // Converte a imagem para dados brutos (Buffer)
-            const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            
-            // Cria o anexo do Discord a partir dos dados brutos
-            return new AttachmentBuilder(buffer, { name: 'arte.png' });
+        // 2. NOVA MÁGICA: Download blindado com Disfarce e Sistema de Tentativas
+        const fetchImageAsAttachment = async (url, retries = 2) => {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            // 👇 O "Disfarce": Fingimos ser um navegador Chrome atualizado
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            'Accept': 'image/jpeg, image/png, image/webp, image/*'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const arrayBuffer = await response.arrayBuffer();
+                        const buffer = Buffer.from(arrayBuffer);
+                        return new AttachmentBuilder(buffer, { name: 'arte.png' });
+                    }
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                }
+                // Se falhou, espera 2 segundos e tenta de novo silenciosamente
+                await new Promise(r => setTimeout(r, 2000));
+            }
+            throw new Error('Falha no download após tentativas');
         };
 
         try {
             const imageUrl = generateImageUrl(prompt);
-            
-            // O código FICA PARADO AQUI até a imagem estar 100% baixada
             const attachment = await fetchImageAsAttachment(imageUrl);
 
-            // 4. Montamos o Embed (Agora sim a imagem vai aparecer, pois é um ficheiro físico)
+            // 3. Monta o Embed ligando ao ficheiro físico que baixámos
             const embed = new EmbedBuilder()
                 .setTitle('🎨 Obra de Arte Gerada!')
                 .setDescription(`**Prompt:** \`${prompt}\``)
-                .setImage('attachment://arte.png') // Liga o Embed ao ficheiro baixado
+                .setImage('attachment://arte.png') 
                 .setColor(0x5865F2)
                 .setFooter({ 
                     text: `Gerado por IA para ${interaction.user.username}`, 
@@ -70,7 +80,7 @@ module.exports = {
                     .setStyle(ButtonStyle.Primary)
             );
 
-            // 5. Substituímos a mensagem de "enrolar" pelo resultado final!
+            // 4. Edita a mensagem inicial com a Arte!
             const message = await interaction.editReply({ 
                 content: '✅ **Arte finalizada com sucesso!**', 
                 embeds: [embed], 
@@ -83,7 +93,7 @@ module.exports = {
             // ==========================================
             const collector = message.createMessageComponentCollector({ 
                 componentType: ComponentType.Button, 
-                time: 600000 // 10 minutos
+                time: 600000 
             });
 
             collector.on('collect', async (i) => {
@@ -91,7 +101,6 @@ module.exports = {
                     return i.reply({ content: '🚫 Só quem usou o comando pode pedir uma nova versão.', ephemeral: true });
                 }
 
-                // Quando ele clica, esconde a imagem velha e mostra um texto a carregar
                 await i.update({ 
                     content: '⏳ **A criar uma nova versão...** Aguarda mais uns segundos.', 
                     embeds: [], 
@@ -100,11 +109,9 @@ module.exports = {
                 });
                 
                 try {
-                    // Baixa uma nova imagem
                     const newUrl = generateImageUrl(prompt);
                     const newAttachment = await fetchImageAsAttachment(newUrl);
 
-                    // Devolve o Embed com a imagem nova
                     await interaction.editReply({ 
                         content: '✅ **Nova versão gerada!**', 
                         embeds: [embed], 
@@ -112,7 +119,7 @@ module.exports = {
                         files: [newAttachment] 
                     });
                 } catch (err) {
-                    await interaction.editReply({ content: '❌ Houve um erro ao recriar a imagem. Tenta enviar o comando novamente.' });
+                    await interaction.editReply({ content: '❌ Houve um erro ao recriar a imagem. Os servidores podem estar cheios.' });
                 }
             });
 
@@ -122,7 +129,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Erro na geração da imagem:', error);
-            await interaction.editReply({ content: '❌ Oops! Os servidores da IA estão sobrecarregados. Tenta de novo em alguns segundos!' });
+            await interaction.editReply({ content: '❌ Oops! Os servidores da IA bloquearam o pedido ou estão muito sobrecarregados. Tenta usar palavras diferentes!' });
         }
     }
 };
