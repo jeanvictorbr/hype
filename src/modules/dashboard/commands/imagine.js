@@ -5,7 +5,7 @@ const {
     ButtonBuilder, 
     ButtonStyle, 
     ComponentType,
-    AttachmentBuilder // 👈 Adicionámos isto para o bot baixar a imagem
+    AttachmentBuilder 
 } = require('discord.js');
 
 module.exports = {
@@ -14,31 +14,49 @@ module.exports = {
         .setDescription('🎨 Cria uma imagem do zero usando Inteligência Artificial!')
         .addStringOption(option =>
             option.setName('prompt')
-                .setDescription('O que queres desenhar? (Em inglês os resultados são MUITO melhores)')
+                .setDescription('O que queres desenhar? (Em inglês os resultados são melhores)')
                 .setRequired(true)
         ),
 
     async execute(interaction, client) {
-        // 1. O bot fica a pensar... (Pode demorar uns 10 segundos agora, é normal!)
-        await interaction.deferReply(); 
-
         const prompt = interaction.options.getString('prompt');
 
-        // 2. Gera a URL com a instrução (prompt)
+        // 1. Mensagem de feedback IMEDIATA para "enrolar" e tranquilizar o utilizador
+        await interaction.reply({ 
+            content: '🖌️ **A preparar os pincéis...** A IA está a desenhar a tua ideia. Isto demora cerca de 10 a 15 segundos, aguarda!' 
+        });
+
+        // 2. Gerador de URL (com seed aleatório para resultados diferentes)
         const generateImageUrl = (basePrompt) => {
             const randomSeed = Math.floor(Math.random() * 1000000);
             return `https://image.pollinations.ai/prompt/${encodeURIComponent(basePrompt)}?width=1024&height=1024&nologo=true&seed=${randomSeed}`;
         };
 
-        // 3. Constrói a mensagem com o anexo FORÇADO
-        const buildMessage = (url) => {
-            // Obrigamos o bot a tratar a URL como um ficheiro real (arte.png)
-            const attachment = new AttachmentBuilder(url, { name: 'arte.png' });
+        // 3. A NOVA MÁGICA: Função que obriga o Bot a baixar a imagem completa antes de mostrar
+        const fetchImageAsAttachment = async (url) => {
+            // O bot vai à internet buscar a imagem ativamente
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Falha no download da IA');
+            
+            // Converte a imagem para dados brutos (Buffer)
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            
+            // Cria o anexo do Discord a partir dos dados brutos
+            return new AttachmentBuilder(buffer, { name: 'arte.png' });
+        };
 
+        try {
+            const imageUrl = generateImageUrl(prompt);
+            
+            // O código FICA PARADO AQUI até a imagem estar 100% baixada
+            const attachment = await fetchImageAsAttachment(imageUrl);
+
+            // 4. Montamos o Embed (Agora sim a imagem vai aparecer, pois é um ficheiro físico)
             const embed = new EmbedBuilder()
                 .setTitle('🎨 Obra de Arte Gerada!')
                 .setDescription(`**Prompt:** \`${prompt}\``)
-                .setImage('attachment://arte.png') // 👈 Dizemos ao Embed para olhar para o ficheiro que acabámos de anexar
+                .setImage('attachment://arte.png') // Liga o Embed ao ficheiro baixado
                 .setColor(0x5865F2)
                 .setFooter({ 
                     text: `Gerado por IA para ${interaction.user.username}`, 
@@ -52,18 +70,18 @@ module.exports = {
                     .setStyle(ButtonStyle.Primary)
             );
 
-            // Retornamos os files junto com os embeds
-            return { content: null, embeds: [embed], components: [row], files: [attachment] };
-        };
-
-        try {
-            // 4. Envia a primeira imagem
-            const response = await interaction.editReply(buildMessage(generateImageUrl(prompt)));
+            // 5. Substituímos a mensagem de "enrolar" pelo resultado final!
+            const message = await interaction.editReply({ 
+                content: '✅ **Arte finalizada com sucesso!**', 
+                embeds: [embed], 
+                components: [row], 
+                files: [attachment] 
+            });
 
             // ==========================================
             // 🔄 LÓGICA DO BOTÃO "GERAR NOVAMENTE"
             // ==========================================
-            const collector = response.createMessageComponentCollector({ 
+            const collector = message.createMessageComponentCollector({ 
                 componentType: ComponentType.Button, 
                 time: 600000 // 10 minutos
             });
@@ -73,11 +91,29 @@ module.exports = {
                     return i.reply({ content: '🚫 Só quem usou o comando pode pedir uma nova versão.', ephemeral: true });
                 }
 
-                // Avisa que está a carregar
-                await i.update({ content: '⏳ A desenhar uma nova versão, aguarda uns segundos...', embeds: [], components: [], files: [] });
+                // Quando ele clica, esconde a imagem velha e mostra um texto a carregar
+                await i.update({ 
+                    content: '⏳ **A criar uma nova versão...** Aguarda mais uns segundos.', 
+                    embeds: [], 
+                    components: [], 
+                    files: [] 
+                });
                 
-                // Edita com a nova imagem gerada
-                await interaction.editReply(buildMessage(generateImageUrl(prompt)));
+                try {
+                    // Baixa uma nova imagem
+                    const newUrl = generateImageUrl(prompt);
+                    const newAttachment = await fetchImageAsAttachment(newUrl);
+
+                    // Devolve o Embed com a imagem nova
+                    await interaction.editReply({ 
+                        content: '✅ **Nova versão gerada!**', 
+                        embeds: [embed], 
+                        components: [row], 
+                        files: [newAttachment] 
+                    });
+                } catch (err) {
+                    await interaction.editReply({ content: '❌ Houve um erro ao recriar a imagem. Tenta enviar o comando novamente.' });
+                }
             });
 
             collector.on('end', () => {
@@ -86,7 +122,7 @@ module.exports = {
 
         } catch (error) {
             console.error('Erro na geração da imagem:', error);
-            await interaction.editReply({ content: '❌ Oops! A IA demorou muito a responder ou houve um erro. Tenta de novo!' });
+            await interaction.editReply({ content: '❌ Oops! Os servidores da IA estão sobrecarregados. Tenta de novo em alguns segundos!' });
         }
     }
 };
