@@ -94,7 +94,7 @@ module.exports = {
                 }
 
                 const tempChannel = await newState.guild.channels.create({
-                    name: `🔊 Sala de ${member.displayName}`,
+                    name: `🔊・Sala de ${member.displayName}`,
                     type: ChannelType.GuildVoice,
                     parent: config.tempCategory || null,
                     permissionOverwrites: permissionOverwrites,
