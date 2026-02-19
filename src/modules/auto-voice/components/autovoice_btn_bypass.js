@@ -3,7 +3,7 @@ const {
     TextDisplayBuilder, 
     SeparatorBuilder,
     ActionRowBuilder, 
-    RoleSelectMenuBuilder,
+    RoleSelectMenuBuilder, // 👈 O segredo está aqui! (Puxa os Cargos)
     ButtonBuilder,
     ButtonStyle,
     MessageFlags
@@ -14,10 +14,11 @@ module.exports = {
 
     async execute(interaction, client) {
         const headerText = new TextDisplayBuilder()
-            .setContent('# 🎟️ Configurar Passe Livre\nSelecione no menu abaixo os cargos da sua Staff que podem entrar em salas trancadas.');
+            .setContent('# 🎟️ Configurar Passe Livre\nSelecione no menu abaixo os **Cargos** da sua Staff que podem entrar em salas trancadas.');
 
         const divider = new SeparatorBuilder();
 
+        // 👇 AQUI: Menu nativo exclusivo para Cargos (Roles)
         const roleMenuRow = new ActionRowBuilder().addComponents(
             new RoleSelectMenuBuilder()
                 .setCustomId('select_bypass_role')
@@ -26,10 +27,11 @@ module.exports = {
                 .setMaxValues(10)
         );
 
+        // Botão para voltar ao Menu do Auto-Voice
         const backButtonRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setCustomId('dashboard_select_module') // Volta para o menu Auto-Voice
-                .setLabel('◀ Voltar')
+                .setCustomId('dashboard_btn_back') // 👈 Corrigido para voltar ao painel de Voice
+                .setLabel('◀ Voltar ao Painel')
                 .setStyle(ButtonStyle.Secondary)
         );
 
@@ -38,8 +40,11 @@ module.exports = {
             .addTextDisplayComponents(headerText)
             .addSeparatorComponents(divider)
             .addActionRowComponents(roleMenuRow)
-            .addActionRowComponents(backButtonRow); // ✅ Linhas separadas
+            .addActionRowComponents(backButtonRow);
 
-        await interaction.update({ components: [bypassContainer], flags: [MessageFlags.IsComponentsV2] });
+        await interaction.update({ 
+            components: [bypassContainer], 
+            flags: [MessageFlags.IsComponentsV2] 
+        });
     }
 };
