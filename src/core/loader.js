@@ -59,9 +59,14 @@ async function loadModules(client) {
             for (const file of componentFiles) {
                 try {
                     const component = require(path.join(componentsPath, file));
+                    
+                    // 👇 A CORREÇÃO ESTÁ AQUI: Agora aceita customId ou customIdPrefix
                     if (component.customId) {
                         client.components.set(component.customId, component);
+                    } else if (component.customIdPrefix) {
+                        client.components.set(component.customIdPrefix, component);
                     }
+                    
                 } catch (error) {
                     console.error(`❌ [Loader] Erro ao carregar componente '${file}':`, error);
                 }

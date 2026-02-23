@@ -17,6 +17,12 @@ module.exports = {
     async execute(interaction, client) {
         if (interaction.user.id !== process.env.OWNER_ID) return;
 
+        // 👇 TRAVAS SALVADORAS AQUI 👇
+        // Se a interação for para ABRIR o painel financeiro, ignora!
+        if (interaction.customId.startsWith('dev_config_vip_finance_')) return;
+        // Se a interação for o ENVIO do modal financeiro, ignora também!
+        if (interaction.customId.startsWith('dev_submit_vip_finance_')) return;
+
         // Formato esperado: dev_TIPO_ACAO_VALOR_GUILDID
         // Ex: dev_vip_add_30_123456789
         const parts = interaction.customId.split('_');
@@ -28,16 +34,21 @@ module.exports = {
         if (!guildId) return;
 
         const guildData = await prisma.guild.findUnique({ where: { id: guildId } });
+        
+        // Proteção contra crashes caso a guilda ainda não exista no banco
+        if (!guildData) return interaction.reply({ content: '❌ Erro: Guilda não encontrada no banco de dados.', flags: [MessageFlags.Ephemeral] });
+
         let newExpireDate = guildData.vipExpiresAt ? new Date(guildData.vipExpiresAt) : new Date();
         
         // Se já venceu, reseta para hoje antes de adicionar
         if (newExpireDate < new Date()) newExpireDate = new Date();
 
-        let feedbackMsg = '';
+        // Inicializamos com um texto padrão para nunca dar erro de 'mensagem vazia'
+        let feedbackMsg = 'Ação de sistema concluída com sucesso.';
 
         // --- LÓGICA VIP (DATAS) ---
         if (actionType === 'vip') {
-            let feats = guildData.features;
+            let feats = guildData.features || [];
             
             if (action === 'add') {
                 const daysToAdd = parseInt(value);
@@ -67,7 +78,7 @@ module.exports = {
         // --- LÓGICA FEATURES (TOGGLE) ---
         else if (actionType === 'feat') {
             const featureName = value;
-            let feats = guildData.features;
+            let feats = guildData.features || [];
 
             if (feats.includes(featureName)) {
                 feats = feats.filter(f => f !== featureName); // Remove

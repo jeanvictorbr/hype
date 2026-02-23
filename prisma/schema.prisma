@@ -13,7 +13,79 @@ model Guild {
   autoVoiceConfig AutoVoiceConfig?
   ticketConfig    TicketConfig?
   vipExpiresAt    DateTime?
+  vipConfig       VipConfig?
   features        String[] @default([])
+  storeItems    StoreItem[]
+}
+// 📦 MÓDULO: CONFIGURAÇÃO DE CARGOS VIP
+model VipConfig {
+  guildId   String @id
+  guild     Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  // 👇 NOVAS LINHAS DO AGIOTA
+  agiotaId      String?   // ID do VIP que ativou o pedágio
+  agiotaExpires DateTime? // Até quando o pedágio está ativo (15 min)
+  banRequestChannel String?
+  roleVip1  String?  // Cargo do Nível 1 (Pista Premium)
+  roleVip2  String?  // Cargo do Nível 2 (Camarote)
+  roleVip3  String?  // Cargo do Nível 3 (Dono do Baile)
+  priceVip1 Float?
+  priceVip2 Float?
+  priceVip3 Float?
+  mpAccessToken String? // O Token do Mercado Pago para receber a grana
+}
+// ==========================================
+// 📦 MÓDULO: HYPE ECONOMY & VIP
+// ==========================================
+
+// Perfil global do utilizador (Saldo e VIP)
+model HypeUser {
+  id            String   @id // ID do Discord do Jogador
+  hypeCash      Int      @default(0) // Saldo da moeda virtual
+  vipLevel      Int      @default(0) // 0 = Normal, 1 = Nível 1, 2 = Nível 2, 3 = Nível 3
+  vipExpiresAt  DateTime?
+  lastTimeout   DateTime? // 👇 NOVA LINHA AQUI (Controle do Ditador)
+  lastDaily     DateTime?  // 👇 ADICIONA ESTA LINHA AQUI!
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  banRequestsCount Int       @default(0)
+  cardNumber       String?   @unique
+  banRequestReset  DateTime?
+  lastAnnounce     DateTime?
+  // 👇 NOVOS COOLDOWNS ADICIONADOS AQUI
+  lastBlackout     DateTime? // Cooldown do Apagão
+  lastMoneyRain    DateTime? // Cooldown da Chuva de Prata
+  customRoleId  String?  // 👇 NOVA LINHA AQUI! (ID do cargo que ele criou)
+}
+// 👇 NOVO MODELO: Cofre de Vendas (Anti-Golpe)
+model VipSale {
+  id            String   @id @default(uuid())
+  guildId       String
+  userId        String
+  planLevel     Int      // 1, 2 ou 3
+  planName      String   // "Camarote", "Dono do Baile"
+  price         Float    // Valor total pago
+  devShare      Float    // Seus 40%
+  clientShare   Float    // Os 60% do dono do servidor
+  status        String   @default("PENDING") // PENDING ou APPROVED
+  paymentId     String?  // ID da transação no Mercado Pago
+  
+  createdAt     DateTime @default(now())
+  approvedAt    DateTime?
+}
+// Itens da Lojinha vinculados ao servidor (Guild)
+model StoreItem {
+  id          String   @id @default(uuid())
+  guildId     String
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  price       Int
+  
+  roleId      String?  // Se o item der um cargo automático no Discord, salvamos o ID aqui
+  isGameItem  Boolean  @default(false) // Se for true, exige entrega manual/log no Roblox
+  
+  createdAt   DateTime @default(now())
 }
 // 📦 MÓDULO: TICKETS (Tickets Ativos)
 model ActiveTicket {

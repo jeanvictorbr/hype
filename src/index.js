@@ -2,6 +2,7 @@ require('dotenv').config();
 const { execSync } = require('child_process');
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const { loadModules } = require('./core/loader');
+const vipChecker = require('./utils/vipChecker'); // 👇 Adiciona no topo do ficheiro
 
 // ==========================================
 // 🛡️ AUTO-MIGRATION (Blindagem da Host/Discloud)
@@ -11,7 +12,7 @@ const { loadModules } = require('./core/loader');
 console.log('⏳ [SaaS] Sincronizando tabelas do PostgreSQL via Prisma...');
 try {
     // stdio: 'inherit' faz com que os logs do Prisma apareçam no seu console da Discloud
-    execSync('npx prisma db push', { stdio: 'inherit' });
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
     console.log('✅ [SaaS] Banco de dados atualizado e sincronizado!');
 } catch (error) {
     console.error('❌ [ERRO FATAL] Falha ao sincronizar o Banco de Dados.');
@@ -38,6 +39,7 @@ client.components = new Collection();
 // Chama o motor inteligente que lê as pastas de módulos
 console.log('🔄 [Core] Carregando módulos e componentes...');
 loadModules(client);
+vipChecker(client);
 
 // Liga o motor!
 client.login(process.env.DISCORD_TOKEN).then(() => {
