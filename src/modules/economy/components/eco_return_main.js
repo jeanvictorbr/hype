@@ -1,25 +1,25 @@
 const { 
-    ContainerBuilder, 
-    TextDisplayBuilder, 
-    SeparatorBuilder, 
     ActionRowBuilder, 
     ButtonBuilder, 
     ButtonStyle,
-    MessageFlags 
+    MessageFlags,
+    AttachmentBuilder,
+    EmbedBuilder
 } = require('discord.js');
 const { prisma } = require('../../../core/database');
+const { generateHypeCard } = require('../../../utils/canvasCard');
 
 module.exports = {
     customId: 'eco_return_main',
 
     async execute(interaction, client) {
+        // 1. Avisa que vai processar e segura a interação
         await interaction.deferUpdate();
 
         const userId = interaction.user.id;
         const guildId = interaction.guild.id;
 
         try {
-            // Busca o perfil do usuário e as configurações VIP do servidor
             let [userProfile, config] = await Promise.all([
                 prisma.hypeUser.findUnique({ where: { id: userId } }),
                 prisma.vipConfig.findUnique({ where: { guildId } })
@@ -29,7 +29,6 @@ module.exports = {
             // GERAÇÃO DO CARTÃO HYPE (SE NÃO TIVER)
             // ==========================================
             if (!userProfile || !userProfile.cardNumber) {
-                // Gera um número único no formato HYPE-XXXX-YYYY
                 const randomHex = () => Math.floor(Math.random() * 65535).toString(16).toUpperCase().padStart(4, '0');
                 const newCardNumber = `HYPE-${randomHex()}-${randomHex()}`;
 
@@ -41,34 +40,30 @@ module.exports = {
             }
 
             // ==========================================
-            // VERIFICAÇÃO DE VIP (BANCO + CARGOS DO DISCORD)
+            // VERIFICAÇÃO DE NÍVEIS VIP E VALIDADE
             // ==========================================
             const member = interaction.member;
             let vipRealLevel = 0;
             let txtVip = "Membro Comum";
-            let colorAccent = 0x2b2d31; // Cor padrão (cinza escuro)
+            let colorAccent = '#2b2d31'; // Cor compatível com Embed V1
             let txtValidade = "";
 
-            // Verifica primeiro o VIP 3 (Dono do Baile)
-            if (userProfile.vipLevel >= 3 || (config?.roleVip3 && member.roles.cache.has(config.roleVip3))) {
-                vipRealLevel = 3; 
-                txtVip = "🥇 Dono do Baile"; 
-                colorAccent = 16766720; // Dourado
+            if (userProfile.vipLevel >= 5) {
+                vipRealLevel = 5; txtVip = "⭐ SUPREME"; colorAccent = '#ED4245'; 
+            }
+            else if (userProfile.vipLevel === 4) {
+                vipRealLevel = 4; txtVip = "⭐ ELITE"; colorAccent = '#FEE75C'; 
+            }
+            else if (userProfile.vipLevel === 3 || (config?.roleVip3 && member.roles.cache.has(config.roleVip3))) {
+                vipRealLevel = 3; txtVip = "⭐ EXCLUSIVE"; colorAccent = '#9b59b6'; 
             } 
-            // Se não for, verifica o VIP 2 (Camarote)
-            else if (userProfile.vipLevel >= 2 || (config?.roleVip2 && member.roles.cache.has(config.roleVip2))) {
-                vipRealLevel = 2; 
-                txtVip = "🥈 Camarote"; 
-                colorAccent = 12632256; // Prateado
+            else if (userProfile.vipLevel === 2 || (config?.roleVip2 && member.roles.cache.has(config.roleVip2))) {
+                vipRealLevel = 2; txtVip = "⭐ PRIME"; colorAccent = '#ffffff'; 
             } 
-            // Se não for, verifica o VIP 1 (Pista Premium)
-            else if (userProfile.vipLevel >= 1 || (config?.roleVip1 && member.roles.cache.has(config.roleVip1))) {
-                vipRealLevel = 1; 
-                txtVip = "🥉 Pista Premium"; 
-                colorAccent = 13467442; // Bronze
+            else if (userProfile.vipLevel === 1 || (config?.roleVip1 && member.roles.cache.has(config.roleVip1))) {
+                vipRealLevel = 1; txtVip = "⭐ VIP BOOSTER"; colorAccent = '#ff85cd'; 
             }
 
-            // CALCULAR VALIDADE (Se a compra tiver sido por dias via painel dev)
             if (vipRealLevel > 0 && userProfile.vipExpiresAt) {
                 const now = new Date();
                 const expires = new Date(userProfile.vipExpiresAt);
@@ -76,51 +71,56 @@ module.exports = {
                 const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 
                 if (diasRestantes > 0) {
-                    txtValidade = ` *(Vence em ${diasRestantes} dias)*`;
+                    txtValidade = `(Vence em ${diasRestantes} dias)`;
                 } else {
-                    txtVip = "⚠️ VIP Expirado"; 
-                    colorAccent = 0xED4245; // Vermelho
-                    txtValidade = "";
+                    txtVip = "⚠️ Expirado"; colorAccent = '#ED4245'; txtValidade = "";
                 }
             } else if (vipRealLevel > 0) {
-                txtValidade = ` *(Vitalício / Cargo)*`;
+                txtValidade = `(Plano Vitalício)`;
             }
-
-            // ==========================================
-            // CONSTRUIR A INTERFACE DO CARTÃO
-            // ==========================================
-            const header = new TextDisplayBuilder()
-                .setContent(`# 💳 Seu Cartão Hype\nBem-vindo de volta ao seu painel financeiro, <@${userId}>.`);
 
             const saldoFormatado = (userProfile.hypeCash || 0).toLocaleString('pt-BR');
 
-            const status = new TextDisplayBuilder()
-                .setContent(`**💳 Número do Cartão:** \`${userProfile.cardNumber}\`\n**👑 Status VIP:** ${txtVip}${txtValidade}\n**💰 Saldo Atual:** **${saldoFormatado}** HypeCash`);
+            // ==========================================
+            // REGERA A IMAGEM DO CARTÃO 
+            // ==========================================
+            const cardBuffer = await generateHypeCard(
+                interaction.user,
+                userProfile.cardNumber,
+                saldoFormatado,
+                vipRealLevel,
+                txtVip,
+                txtValidade
+            );
+            
+            const attachment = new AttachmentBuilder(cardBuffer, { name: 'hypecard.png' });
 
-            // Botões de Ação
+            const embed = new EmbedBuilder()
+                .setColor(colorAccent)
+                .setImage('attachment://hypecard.png');
+
+            // Botões do Painel Inicial
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('eco_user_store').setLabel('Lojinha Hype').setStyle(ButtonStyle.Primary).setEmoji('🛒'),
                 new ButtonBuilder().setCustomId('eco_user_daily').setLabel('Pegar Daily').setStyle(ButtonStyle.Success).setEmoji('🎁'),
                 new ButtonBuilder().setCustomId('eco_user_config').setLabel('Benefícios VIP').setStyle(ButtonStyle.Secondary).setEmoji('💎')
             );
 
-            // Montagem Final do Container
-            const container = new ContainerBuilder()
-                .setAccentColor(colorAccent)
-                .addTextDisplayComponents(header)
-                .addSeparatorComponents(new SeparatorBuilder())
-                .addTextDisplayComponents(status)
-                .addSeparatorComponents(new SeparatorBuilder())
-                .addActionRowComponents(row);
+            // 👇 A MÁGICA DA ROBUSTEZ ESTÁ AQUI
+            // Como a API não deixa tirar o modo V2, nós DESTRUÍMOS a Lojinha
+            // e mandamos o Bot enviar o Cartão por cima!
+            
+            await interaction.deleteReply().catch(() => {}); // Apaga a Lojinha/Benefícios/Daily
 
-            await interaction.editReply({ 
-                components: [container], 
-                flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral] 
+            await interaction.followUp({ 
+                embeds: [embed], 
+                components: [row], 
+                files: [attachment], 
+                flags: [MessageFlags.Ephemeral] // Envia como uma NOVA mensagem privada
             });
 
         } catch (error) {
             console.error('❌ Erro ao voltar ao menu principal:', error);
-            await interaction.followUp({ content: '❌ Ocorreu um erro ao carregar o seu cartão. Tente usar o comando novamente.', flags: [MessageFlags.Ephemeral] });
         }
     }
 };

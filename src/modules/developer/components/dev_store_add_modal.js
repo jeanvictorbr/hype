@@ -25,7 +25,7 @@ module.exports = {
         // 3. Campo: Preço
         const priceInput = new TextInputBuilder()
             .setCustomId('item_price')
-            .setLabel('Preço (em HypeCash)')
+            .setLabel('Preço (em HypeCoins)')
             .setPlaceholder('Ex: 1500')
             .setStyle(TextInputStyle.Short)
             .setRequired(true);

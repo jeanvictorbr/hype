@@ -39,9 +39,11 @@ module.exports = {
                 const emptyContainer = new ContainerBuilder()
                     .setAccentColor(0x2b2d31) 
                     .addTextDisplayComponents(emptyText)
-                    .addActionRowComponents(rowBack); // Adicionado botão de voltar quando vazio
+                    .addActionRowComponents(rowBack); 
 
+                // 👇 CORREÇÃO: Limpamos embeds e ficheiros antigos antes de injetar a V2
                 return interaction.editReply({
+                    embeds: [], files: [], attachments: [],
                     components: [emptyContainer],
                     flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
                 });
@@ -73,9 +75,11 @@ module.exports = {
                 .setAccentColor(0x5865F2) 
                 .addTextDisplayComponents(storeText)
                 .addActionRowComponents(rowMenu)
-                .addActionRowComponents(rowBack); // Adicionado botão de voltar embaixo do menu
+                .addActionRowComponents(rowBack); 
 
+            // 👇 CORREÇÃO: Limpamos embeds e ficheiros antigos antes de injetar a V2
             await interaction.editReply({
+                embeds: [], files: [], attachments: [],
                 components: [storeContainer],
                 flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
             });

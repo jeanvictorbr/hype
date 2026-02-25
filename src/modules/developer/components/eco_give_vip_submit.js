@@ -12,7 +12,8 @@ module.exports = {
         const level = parseInt(interaction.fields.getTextInputValue('vip_level'));
         const days = parseInt(interaction.fields.getTextInputValue('vip_days'));
 
-        if (isNaN(level) || level < 1 || level > 3) return interaction.editReply('❌ Nível inválido. Digite 1, 2 ou 3.');
+        // 👇 Trava atualizada para aceitar do 1 ao 5
+        if (isNaN(level) || level < 1 || level > 5) return interaction.editReply('❌ Nível inválido. Digite um número de 1 a 5.');
         if (isNaN(days) || days < 1) return interaction.editReply('❌ Quantidade de dias inválida.');
 
         try {
@@ -26,32 +27,41 @@ module.exports = {
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + days);
 
-            // Salva na Base de Dados
+            // Salva na Base de Dados com o novo Nível 4 ou 5
             await prisma.hypeUser.upsert({
                 where: { id: targetId },
                 update: { vipLevel: level, vipExpiresAt: expiresAt },
                 create: { id: targetId, vipLevel: level, vipExpiresAt: expiresAt }
             });
 
-            // Entrega o Cargo do Discord
+            // Entrega o Cargo do Discord (se configurado)
             let roleGiven = null;
             if (level === 1 && config?.roleVip1) roleGiven = config.roleVip1;
             if (level === 2 && config?.roleVip2) roleGiven = config.roleVip2;
             if (level === 3 && config?.roleVip3) roleGiven = config.roleVip3;
+            // Se um dia adicionares no painel o config para cargo 4 e 5, ele já vai ler:
+            if (level === 4 && config?.roleVip4) roleGiven = config.roleVip4;
+            if (level === 5 && config?.roleVip5) roleGiven = config.roleVip5;
 
+            // Tira outros VIPs primeiro para não ficar com 2 cargos VIP
+            const rolesToRemove = [
+                config?.roleVip1, config?.roleVip2, config?.roleVip3,
+                config?.roleVip4, config?.roleVip5
+            ].filter(Boolean);
+            
+            await member.roles.remove(rolesToRemove).catch(() => {});
+            
             if (roleGiven) {
-                // Tira outros VIPs primeiro para não ficar com 2 cargos VIP
-                const rolesToRemove = [config.roleVip1, config.roleVip2, config.roleVip3].filter(Boolean);
-                await member.roles.remove(rolesToRemove).catch(() => {});
                 await member.roles.add(roleGiven).catch(() => {});
             }
 
-            const levelNames = ['', 'Pista Premium (Bronze)', 'Camarote (Prata)', 'Dono do Baile (Ouro)'];
+            // 👇 Novos nomes oficias do sistema Premium
+            const levelNames = ['', '⭐ VIP BOOSTER', '⭐ PRIME', '⭐ EXCLUSIVE', '⭐ ELITE', '⭐ SUPREME'];
 
-            await interaction.editReply(`✅ Sucesso! O VIP **${levelNames[level]}** foi entregue a <@${targetId}> e vai expirar em exatos **${days} dias**.`);
+            await interaction.editReply(`✅ Sucesso! O **${levelNames[level]}** foi entregue a <@${targetId}> e vai expirar em exatos **${days} dias**.\n\n*(Lembrete: O cartão visual dele já foi atualizado automaticamente)*`);
 
             // Avisa o Jogador
-            member.send(`🎉 **Parabéns!** A Administração concedeu-lhe o acesso **${levelNames[level]}** no servidor por **${days} dias**! Use \`/vip\` para abrir o seu painel.`).catch(() => {});
+            member.send(`🎉 **Parabéns!** A Administração concedeu-lhe o acesso **${levelNames[level]}** no servidor por **${days} dias**! Use o comando \`/vip\` para ver o seu novo Cartão Black!`).catch(() => {});
 
         } catch (err) {
             console.error(err);

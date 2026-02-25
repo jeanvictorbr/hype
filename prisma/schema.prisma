@@ -51,6 +51,10 @@ model HypeUser {
   cardNumber       String?   @unique
   banRequestReset  DateTime?
   lastAnnounce     DateTime?
+  bio           String?   @default("Membro da família Hype! Use o comando de perfil para mudar este texto.")
+  rep           Int       @default(0)
+  lastRepGiven  DateTime? 
+  profileTheme  String?   @default("default")
   // 👇 NOVOS COOLDOWNS ADICIONADOS AQUI
   lastBlackout     DateTime? // Cooldown do Apagão
   lastMoneyRain    DateTime? // Cooldown da Chuva de Prata

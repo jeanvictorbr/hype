@@ -77,7 +77,14 @@ module.exports = {
                 }
             ];
 
-            await interaction.editReply({ components: componentsArray, flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral] });
+            // 👇 CORREÇÃO: Limpamos embeds e ficheiros antigos antes de injetar a V2
+            await interaction.editReply({ 
+                embeds: [], 
+                files: [], 
+                attachments: [], 
+                components: componentsArray, 
+                flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral] 
+            });
         } catch (error) {
             console.error('Erro ao carregar painel VIP:', error);
         }

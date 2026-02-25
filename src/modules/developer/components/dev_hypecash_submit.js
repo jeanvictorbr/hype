@@ -61,7 +61,7 @@ module.exports = {
 
             // 6. Confirmação Visual V2
             const successText = new TextDisplayBuilder()
-                .setContent(`# 💸 Transação Concluída!\n**Ação:** ${verb} ${amount} HypeCash\n**Usuário:** <@${targetId}> (\`${targetId}\`)\n**Novo Saldo:** 💰 ${newBalance} HypeCash`);
+                .setContent(`# 💸 Transação Concluída!\n**Ação:** ${verb} ${amount} HypeCoins\n**Usuário:** <@${targetId}> (\`${targetId}\`)\n**Novo Saldo:** 💰 ${newBalance} HypeCoins`);
 
             const successContainer = new ContainerBuilder()
                 .setAccentColor(action === 'add' ? 0x57F287 : 0xED4245) // Verde p/ Add, Vermelho p/ Rem
@@ -74,7 +74,7 @@ module.exports = {
             });
 
         } catch (error) {
-            console.error('❌ Erro na transação de HypeCash:', error);
+            console.error('❌ Erro na transação de HypeCoins:', error);
             await interaction.followUp({ 
                 content: '❌ Erro no banco de dados ao processar a transação.', 
                 flags: [MessageFlags.Ephemeral] 

@@ -20,8 +20,8 @@ module.exports = {
 
         const levelInput = new TextInputBuilder()
             .setCustomId('vip_level')
-            .setLabel('Nível do VIP (1, 2 ou 3)')
-            .setPlaceholder('Ex: 3 (Para Dono do Baile)')
+            .setLabel('Nível do VIP (1 ao 5)')
+            .setPlaceholder('Ex: 5 (Para VIP Supreme)')
             .setStyle(TextInputStyle.Short)
             .setMaxLength(1)
             .setRequired(true);

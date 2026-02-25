@@ -63,11 +63,13 @@ module.exports = {
 
         const rowFeatures = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId(`dev_feat_toggle_tickets_${guildId}`).setLabel('Tickets (Toggle)').setStyle(ButtonStyle.Secondary).setEmoji('🎫'),
-            new ButtonBuilder().setCustomId(`dev_feat_toggle_autovoice_${guildId}`).setLabel('Voice (Toggle)').setStyle(ButtonStyle.Secondary).setEmoji('🔊')
+            new ButtonBuilder().setCustomId(`dev_feat_toggle_autovoice_${guildId}`).setLabel('Voice (Toggle)').setStyle(ButtonStyle.Secondary).setEmoji('🔊'),
+            // 👇 AQUI ESTÁ O NOVO BOTÃO DO CASSINO
+            new ButtonBuilder().setCustomId(`dev_feat_toggle_cassino_${guildId}`).setLabel('Cassino (Toggle)').setStyle(ButtonStyle.Secondary).setEmoji('🎰')
         );
 
         // Seção de Economia e Lojinha
-        const labelEconomy = new TextDisplayBuilder().setContent('**💰 Gestão HypeCash & Loja**');
+        const labelEconomy = new TextDisplayBuilder().setContent('**💰 Gestão HypeCoins & Loja**');
         
         const rowEconomy = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId(`eco_hypecash_add_${guildId}`).setLabel('Dar Saldo').setStyle(ButtonStyle.Success).setEmoji('➕'),
@@ -76,7 +78,6 @@ module.exports = {
             new ButtonBuilder().setCustomId(`eco_store_list_${guildId}`).setLabel('Ver Itens').setStyle(ButtonStyle.Secondary).setEmoji('📋')
         );
 
-// 👇 Agora com o botão de entregar VIP!
         const rowVipLogs = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(`eco_manage_vip_roles_${guildId}`)
@@ -94,10 +95,10 @@ module.exports = {
                 .setStyle(ButtonStyle.Success)
                 .setEmoji('🎁')
         );
-        // 👇 NOVA LINHA DE BOTÕES PARA O FINANCEIRO VIP
+
         const rowVipFinance = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setCustomId(`eco_config_vip_finance_${guildId}`) // AGORA
+                .setCustomId(`eco_config_vip_finance_${guildId}`)
                 .setLabel('Configurar Preços e Mercado Pago')
                 .setStyle(ButtonStyle.Success)
                 .setEmoji('💸')
@@ -114,7 +115,7 @@ module.exports = {
             .addTextDisplayComponents(labelEconomy) 
             .addActionRowComponents(rowEconomy)
             .addActionRowComponents(rowVipFinance)
-            .addActionRowComponents(rowVipLogs); // Adicionando a nova linha que contém os dois botões juntos!
+            .addActionRowComponents(rowVipLogs); 
 
         await interaction.update({
             components: [container],

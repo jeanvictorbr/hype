@@ -24,11 +24,11 @@ module.exports = {
         if (interaction.customId.startsWith('dev_submit_vip_finance_')) return;
 
         // Formato esperado: dev_TIPO_ACAO_VALOR_GUILDID
-        // Ex: dev_vip_add_30_123456789
+        // Ex: dev_vip_add_30_123456789  |  dev_feat_toggle_cassino_123456789
         const parts = interaction.customId.split('_');
         const actionType = parts[1]; // vip ou feat
         const action = parts[2]; // add, set, remove, toggle
-        const value = parts[3]; // 30, lifetime, tickets
+        const value = parts[3]; // 30, lifetime, tickets, cassino
         const guildId = parts[4]; // ID do servidor
 
         if (!guildId) return;
@@ -77,7 +77,8 @@ module.exports = {
 
         // --- LÓGICA FEATURES (TOGGLE) ---
         else if (actionType === 'feat') {
-            const featureName = value;
+            // 👇 A MÁGICA FOI AQUI: Converte "cassino" para "CASSINO" (Exigido pelo comando)
+            const featureName = value.toUpperCase(); 
             let feats = guildData.features || [];
 
             if (feats.includes(featureName)) {
