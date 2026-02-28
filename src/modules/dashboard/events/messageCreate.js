@@ -204,6 +204,56 @@ module.exports = {
 
             return message.reply({ embeds: [embed] });
         }
+
+        // ==========================================
+        // 🃏 GAME: Blackjack (zblackjack / zbj)
+        // ==========================================
+        if (command === 'blackjack' || command === 'bj') {
+            const args = message.content.split(' ');
+            const betInput = args[1]; // Ex: zbj 5000
+
+            if (!betInput) return message.reply('❌ **Uso correto:** `zbj <valor>` ou `zbj all`.');
+
+            // 1. Busca perfil e verifica saldo na CARTEIRA
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
+            if (!userProfile) userProfile = await prisma.hypeUser.create({ data: { id: message.author.id } });
+
+            let betAmount;
+            if (betInput.toLowerCase() === 'all') {
+                betAmount = userProfile.carteira;
+            } else {
+                betAmount = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            }
+
+            if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
+            if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
+
+            // 2. Cooldown de Proteção (5 segundos entre jogos)
+            const gameCD = 5000;
+            if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < gameCD)) {
+                return message.reply('⏳ Calma! Não jogues tão rápido, deixa as cartas serem baralhadas.');
+            }
+
+            // 3. Integração com a lógica existente
+            // Importamos o executor do teu slash command original
+            const bjFile = require('../commands/blackjack.js');
+            
+            // Criamos um objeto "Fake Interaction" para reaproveitar o código do /blackjack
+            const fakeInteraction = {
+                user: message.author,
+                guild: message.guild,
+                options: { getInteger: () => betAmount, getString: () => null },
+                reply: (data) => message.reply(data),
+                editReply: (data) => message.reply(data), // Ajuste conforme a necessidade do teu bj
+                deferReply: () => {},
+                followUp: (data) => message.channel.send(data)
+            };
+
+            await bjFile.execute(fakeInteraction, client);
+            
+            // Atualiza o tempo do último jogo no DB
+            await prisma.hypeUser.update({ where: { id: message.author.id }, data: { lastGame: new Date() } });
+        }
   // ==========================================
         // 💰 COMANDOS: zdiario / zsemanal / zmensal (Salários)
         // ==========================================
