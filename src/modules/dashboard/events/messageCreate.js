@@ -13,7 +13,7 @@ module.exports = {
         const command = args.shift().toLowerCase();
 
 // ==========================================
-        // 🎭 MÓDULO SOCIAL (Interações + Economia + DB)
+        // 🎭 MÓDULO SOCIAL (Cooldown 20m por Comando)
         // ==========================================
         
         const gifs = {
@@ -68,37 +68,43 @@ module.exports = {
             // 2. Busca o utilizador no Banco de Dados
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: authorId } });
             
-            // 3. Verifica o Cooldown Seguro (3 Minutos)
-            const cooldownTime = 3 * 60 * 1000;
-            if (userProfile && userProfile.lastSocial) {
+            // 3. Define qual a coluna de cooldown com base no comando dinamicamente
+            // Ex: beijar -> lastBeijar, tapa -> lastTapa
+            const columnString = 'last' + action.type.charAt(0).toUpperCase() + action.type.slice(1);
+            
+            // 4. Verifica o Cooldown Seguro (20 Minutos APENAS para este comando)
+            const cooldownTime = 20 * 60 * 1000;
+            if (userProfile && userProfile[columnString]) {
                 const now = new Date().getTime();
-                const lastTime = new Date(userProfile.lastSocial).getTime();
+                const lastTime = new Date(userProfile[columnString]).getTime();
 
                 if (now - lastTime < cooldownTime) {
                     const timeLeft = Math.ceil((cooldownTime - (now - lastTime)) / 1000);
-                    return message.reply(`⏳ **Calma aí, emocionado(a)!** Precisas descansar.\nPodes interagir de novo em **${timeLeft} segundos**.`);
+                    // UX Melhorada: Mostra o tempo formatado em Minutos e Segundos
+                    const minutes = Math.floor(timeLeft / 60);
+                    const seconds = timeLeft % 60;
+                    return message.reply(`⏳ **Descansa a mão!** Já usaste o \`z${command}\` há pouco tempo.\nPodes usá-lo de novo em **${minutes}m e ${seconds}s**.`);
                 }
             }
 
-            // 4. RNG (Probabilidade: 70% chance de dar certo)
+            // 5. RNG (Probabilidade: 70% chance de dar certo)
             const isSuccess = Math.random() > 0.30; 
             const rewardAmount = isSuccess ? Math.floor(Math.random() * (350000 - 100000 + 1)) + 100000 : 0;
 
-            // 5. Salva no Banco de Dados o Cooldown (e o Dinheiro, se ganhou)
+            // 6. Prepara os dados para salvar no Banco dinamicamente apenas na coluna certa
+            const updateData = { carteira: { increment: rewardAmount } };
+            updateData[columnString] = new Date(); 
+            
+            const createData = { id: authorId, carteira: rewardAmount };
+            createData[columnString] = new Date();
+
             await prisma.hypeUser.upsert({
                 where: { id: authorId },
-                update: { 
-                    carteira: { increment: rewardAmount },
-                    lastSocial: new Date() // Reseta o tempo para agora
-                },
-                create: { 
-                    id: authorId, 
-                    carteira: rewardAmount,
-                    lastSocial: new Date()
-                }
+                update: updateData,
+                create: createData
             });
 
-            // 6. Mensagens de Falha (Se o RNG bater nos 30%)
+            // 7. Mensagens de Falha (Se o RNG bater nos 30%)
             if (!isSuccess) {
                 let failMsg = '';
                 if (action.type === 'beijar') failMsg = `<@${targetUser.id}> virou a cara e deixou-te no vácuo! Que vergonha... 🥶`;
@@ -110,7 +116,7 @@ module.exports = {
                 return message.reply(`❌ **FALHOU!**\n${failMsg}`);
             }
 
-            // 7. Sucesso! Anexa a Imagem e envia fora do embed
+            // 8. Sucesso! Anexa a Imagem e envia fora do embed
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
             const { AttachmentBuilder } = require('discord.js');
             const attachment = new AttachmentBuilder(randomGif, { name: 'animacao.gif' });
