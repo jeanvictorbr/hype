@@ -117,16 +117,19 @@ module.exports = {
                 create: createData
             });
 
-            // 7. Mensagens de Falha (Se o RNG bater nos 30%)
+// 7. Mensagens de Esquiva Amigáveis (Se o RNG bater nos 30%)
             if (!isSuccess) {
                 let failMsg = '';
-                if (action.type === 'beijar') failMsg = `<@${targetUser.id}> virou a cara e deixou-te no vácuo! Que vergonha... 🥶`;
-                else if (action.type === 'tapa') failMsg = `<@${targetUser.id}> é o próprio Matrix e desviou do teu tapa! 🕶️`;
-                else if (action.type === 'abracar') failMsg = `<@${targetUser.id}> deu um passo para trás e recusou o teu abraço! 🛑`;
-                else if (action.type === 'morder') failMsg = `<@${targetUser.id}> esquivou-se e tu mordeste a própria língua! 🦷`;
-                else if (action.type === 'pat') failMsg = `<@${targetUser.id}> bateu na tua mão e não quis carinho! ✋`;
+                if (action.type === 'beijar') failMsg = `Opa! <@${targetUser.id}> fez um movimento de mestre e você acabou beijando o vento! 🌬️💋`;
+                else if (action.type === 'tapa') failMsg = `<@${targetUser.id}> ativou o modo Instinto Superior e desviou do seu tapa com estilo! 💨✋`;
+                else if (action.type === 'abracar') failMsg = `<@${targetUser.id}> deu um passinho pro lado e você abraçou o ar! Que abraço fantasmagórico... 👻🫂`;
+                else if (action.type === 'morder') failMsg = `<@${targetUser.id}> foi mais rápido e você quase mordeu a própria língua! Cuidado com os dentes! 🦷🧛`;
+                else if (action.type === 'pat') failMsg = `<@${targetUser.id}> deu uma de ninja e escapou do carinho! Fica pra próxima... 🐈💨`;
+                else if (action.type === 'socar') failMsg = `UOU! <@${targetUser.id}> fez uma esquiva digna de cinema e o seu soco passou direto! 🥊🎥`;
+                else if (action.type === 'cafune') failMsg = `<@${targetUser.id}> deu uma abaixadinha e você acabou fazendo cafuné no vazio! 💆‍♂️☁️`;
 
-                return message.reply(`❌ **FALHOU!**\n${failMsg}`);
+                // Retorno amigável sem "humilhar" o jogador
+                return message.reply(`✨ **QUASE!**\n${failMsg}\n*(O tempo de descanso foi ativado, tente novamente em breve!)*`);
             }
 
             // 8. Sucesso! Anexa a Imagem e envia fora do embed
