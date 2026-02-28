@@ -47,6 +47,7 @@ model HypeUser {
   lastDaily     DateTime?  // 👇 ADICIONA ESTA LINHA AQUI!
   carteira   Int      @default(0) // 👈 ADICIONA ISTO: Dinheiro na mão
   createdAt     DateTime @default(now())
+  lastSocial   DateTime?
   updatedAt     DateTime @updatedAt
   banRequestsCount Int       @default(0)
   cardNumber       String?   @unique

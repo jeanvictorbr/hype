@@ -13,7 +13,7 @@ module.exports = {
         const command = args.shift().toLowerCase();
 
 // ==========================================
-        // 🎭 MÓDULO SOCIAL (Interações Fora do Embed)
+        // 🎭 MÓDULO SOCIAL (Interações + Economia + DB)
         // ==========================================
         
         const gifs = {
@@ -55,30 +55,68 @@ module.exports = {
             'pat': { verb: 'fez um carinho fofo na cabeça de', type: 'pat', emoji: '🥰' }
         };
 
-   if (socialCommands[command]) {
+        if (socialCommands[command]) {
             const action = socialCommands[command];
+            const authorId = message.author.id;
             const targetUser = message.mentions.users.first();
 
-            if (!targetUser) {
-                return message.reply(`❌ Tens de mencionar alguém! Exemplo: \`z${command} @usuario\``);
-            }
-            if (targetUser.id === message.author.id) {
-                return message.reply(`❌ Não podes fazer isso a ti mesmo(a)! Dá isso a outra pessoa!`);
-            }
-            if (targetUser.id === client.user.id) {
-                return message.reply(`😳 Eh lá... eu sou apenas um bot de sistema! Mas agradeço a intenção.`);
+            // 1. Verificações Básicas
+            if (!targetUser) return message.reply(`❌ Tens de mencionar alguém! Exemplo: \`z${command} @usuario\``);
+            if (targetUser.id === authorId) return message.reply(`❌ Não podes fazer isso a ti mesmo(a)! Dá isso a outra pessoa!`);
+            if (targetUser.bot) return message.reply(`😳 Eh lá... eu sou apenas um bot de sistema! Mas agradeço a intenção.`);
+
+            // 2. Busca o utilizador no Banco de Dados
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: authorId } });
+            
+            // 3. Verifica o Cooldown Seguro (3 Minutos)
+            const cooldownTime = 3 * 60 * 1000;
+            if (userProfile && userProfile.lastSocial) {
+                const now = new Date().getTime();
+                const lastTime = new Date(userProfile.lastSocial).getTime();
+
+                if (now - lastTime < cooldownTime) {
+                    const timeLeft = Math.ceil((cooldownTime - (now - lastTime)) / 1000);
+                    return message.reply(`⏳ **Calma aí, emocionado(a)!** Precisas descansar.\nPodes interagir de novo em **${timeLeft} segundos**.`);
+                }
             }
 
-            // Escolhe um GIF aleatório do arsenal
+            // 4. RNG (Probabilidade: 70% chance de dar certo)
+            const isSuccess = Math.random() > 0.30; 
+            const rewardAmount = isSuccess ? Math.floor(Math.random() * (350000 - 100000 + 1)) + 100000 : 0;
+
+            // 5. Salva no Banco de Dados o Cooldown (e o Dinheiro, se ganhou)
+            await prisma.hypeUser.upsert({
+                where: { id: authorId },
+                update: { 
+                    carteira: { increment: rewardAmount },
+                    lastSocial: new Date() // Reseta o tempo para agora
+                },
+                create: { 
+                    id: authorId, 
+                    carteira: rewardAmount,
+                    lastSocial: new Date()
+                }
+            });
+
+            // 6. Mensagens de Falha (Se o RNG bater nos 30%)
+            if (!isSuccess) {
+                let failMsg = '';
+                if (action.type === 'beijar') failMsg = `<@${targetUser.id}> virou a cara e deixou-te no vácuo! Que vergonha... 🥶`;
+                else if (action.type === 'tapa') failMsg = `<@${targetUser.id}> é o próprio Matrix e desviou do teu tapa! 🕶️`;
+                else if (action.type === 'abracar') failMsg = `<@${targetUser.id}> deu um passo para trás e recusou o teu abraço! 🛑`;
+                else if (action.type === 'morder') failMsg = `<@${targetUser.id}> esquivou-se e tu mordeste a própria língua! 🦷`;
+                else if (action.type === 'pat') failMsg = `<@${targetUser.id}> bateu na tua mão e não quis carinho! ✋`;
+
+                return message.reply(`❌ **FALHOU!**\n${failMsg}`);
+            }
+
+            // 7. Sucesso! Anexa a Imagem e envia fora do embed
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
-
-            // 🔥 A MÁGICA: Transforma o URL num arquivo anexo (Igual ao zc e zperfil)
             const { AttachmentBuilder } = require('discord.js');
             const attachment = new AttachmentBuilder(randomGif, { name: 'animacao.gif' });
 
-            // Envia apenas o texto limpo e o ficheiro da imagem por fora! Zero links visíveis.
             return message.reply({ 
-                content: `${action.emoji} | <@${message.author.id}> **${action.verb}** <@${targetUser.id}>!`, 
+                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸 **SOCIAL REWARD:** Ganhaste **R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)`, 
                 files: [attachment] 
             });
         }
