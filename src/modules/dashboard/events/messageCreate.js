@@ -236,7 +236,8 @@ module.exports = {
 
             // 3. Integração com a lógica existente
             // Importamos o executor do teu slash command original
-            const bjFile = require('../commands/blackjack.js');
+            // O caminho correto saindo de dashboard/events para economy/commands
+const bjFile = require('../../economy/commands/blackjack.js');
             
             // Criamos um objeto "Fake Interaction" para reaproveitar o código do /blackjack
             const fakeInteraction = {
