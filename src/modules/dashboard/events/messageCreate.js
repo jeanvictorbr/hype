@@ -44,6 +44,16 @@ module.exports = {
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjYzYWx1bDFuampvb3NxMXllYXQ0OHVjOG5pbDZlZWJvZG9obTZuaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/5tmRHwTlHAA9WkVxTU/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjYzYWx1bDFuampvb3NxMXllYXQ0OHVjOG5pbDZlZWJvZG9obTZuaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/u9BxQbM5bxvwY/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjYzYWx1bDFuampvb3NxMXllYXQ0OHVjOG5pbDZlZWJvZG9obTZuaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/L2z7dnOduqEow/giphy.gif'
+            ],
+            // 👇 NOVOS GIFS AQUI
+            socar: [
+                'https://media1.tenor.com/m/6a42QGaaXikAAAAC/anime-punch.gif',
+                'https://media.giphy.com/media/l1J3G5lf06vi58EIE/giphy.gif',
+                'https://media1.tenor.com/m/xY2SjK0L6pIAAAAC/punch-anime.gif'
+            ],
+            cafune: [
+                'https://media1.tenor.com/m/E6fMkQRZBdYAAAAC/anime-pat.gif',
+                'https://media1.tenor.com/m/N41zKIGXCGQAAAAC/anime-head-pat.gif'
             ]
         };
 
@@ -52,7 +62,10 @@ module.exports = {
             'tapa': { verb: 'deu um tapa bem dado na cara de', type: 'tapa', emoji: '🖐️' },
             'abracar': { verb: 'deu um abraço bem apertado em', type: 'abracar', emoji: '🫂' },
             'morder': { verb: 'deu uma mordida em', type: 'morder', emoji: '🧛' },
-            'pat': { verb: 'fez um carinho fofo na cabeça de', type: 'pat', emoji: '🥰' }
+            'pat': { verb: 'fez um carinho fofo na cabeça de', type: 'pat', emoji: '🥰' },
+            'socar': { verb: 'deu um soco com toda a força na cara de', type: 'socar', emoji: '🥊' },
+            'cafune': { verb: 'fez um cafuné gostoso em', type: 'cafune', emoji: '💆' }
+        
         };
 
         if (socialCommands[command]) {
@@ -175,6 +188,59 @@ module.exports = {
                     text: 'O tempo passa devagar, não é? ⏳', 
                     iconURL: message.author.displayAvatarURL({ dynamic: true }) 
                 });
+
+            return message.reply({ embeds: [embed] });
+        }
+        // ==========================================
+        // 💰 COMANDOS: zsemanal / zmensal (Salários)
+        // ==========================================
+        if (command === 'semanal' || command === 'mensal') {
+            const userId = message.author.id;
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+            
+            const isSemanal = command === 'semanal';
+            const cooldownTime = isSemanal ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+            const columnString = isSemanal ? 'lastSemanal' : 'lastMensal';
+            const nomePremio = isSemanal ? 'Salário Semanal' : 'Salário Mensal';
+
+            // Verifica o Cooldown (Usando a Tag do Discord para mostrar o tempo exato ao vivo)
+            if (userProfile && userProfile[columnString]) {
+                const now = new Date().getTime();
+                const lastTime = new Date(userProfile[columnString]).getTime();
+
+                if (now - lastTime < cooldownTime) {
+                    const expireUnix = Math.floor((lastTime + cooldownTime) / 1000);
+                    return message.reply(`⏳ **Calma lá, magnata!** Já recolheste o teu ${nomePremio}.\nPodes recolher de novo <t:${expireUnix}:R>.`);
+                }
+            }
+
+            // Sorteio dos Valores
+            let rewardAmount = 0;
+            if (isSemanal) {
+                rewardAmount = Math.floor(Math.random() * (400000 - 200000 + 1)) + 200000; // 200k a 400k
+            } else {
+                rewardAmount = Math.floor(Math.random() * (650000 - 400000 + 1)) + 400000; // 400k a 650k
+            }
+
+            // Salva na Base de Dados
+            const updateData = { carteira: { increment: rewardAmount } };
+            updateData[columnString] = new Date();
+            const createData = { id: userId, carteira: rewardAmount };
+            createData[columnString] = new Date();
+
+            await prisma.hypeUser.upsert({
+                where: { id: userId },
+                update: updateData,
+                create: createData
+            });
+
+            // Envia Embed Ostentação
+            const { EmbedBuilder } = require('discord.js');
+            const embed = new EmbedBuilder()
+                .setColor(isSemanal ? '#57F287' : '#FEE75C')
+                .setTitle(`💰 ${nomePremio} Recolhido!`)
+                .setDescription(`Foste ao banco e levantaste a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
+                .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
 
             return message.reply({ embeds: [embed] });
         }

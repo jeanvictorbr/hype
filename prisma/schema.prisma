@@ -53,6 +53,10 @@ model HypeUser {
   lastAbracar  DateTime?
   lastMorder   DateTime?
   lastPat      DateTime?
+  lastSocar    DateTime?
+  lastCafune   DateTime?
+  lastSemanal  DateTime?
+  lastMensal   DateTime?
   updatedAt     DateTime @updatedAt
   banRequestsCount Int       @default(0)
   cardNumber       String?   @unique
