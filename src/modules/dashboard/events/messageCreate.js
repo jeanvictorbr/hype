@@ -256,47 +256,58 @@ const bjFile = require('../../economy/commands/blackjack.js');
             await prisma.hypeUser.update({ where: { id: message.author.id }, data: { lastGame: new Date() } });
         }
         // ==========================================
-        // 🏆 COMANDOS: zrank / ztop / zrankglobal
+        // 🏆 COMANDOS: zrank / ztop / zrankglobal (Soma Total)
         // ==========================================
         if (command === 'rank' || command === 'top' || command === 'rankglobal') {
             const isGlobal = command === 'rankglobal';
             
-            // 1. Busca os TOP 10 usuários (Soma de Carteira + Banco)
-            const allUsers = await prisma.hypeUser.findMany({
-                orderBy: { carteira: 'desc' }, // Ordena por quem tem mais na mão
-                take: isGlobal ? 10 : 50,      // No local pegamos mais para filtrar quem está na guilda
+            // 1. Puxa os usuários do Banco
+            // Se for global, pegamos os 100 mais ricos (em carteira) para garantir uma base boa
+            // Se for local, pegamos todos para poder filtrar quem é do servidor
+            const allUsersRaw = await prisma.hypeUser.findMany({
+                take: isGlobal ? 100 : 500, 
             });
 
-            let topUsers = allUsers;
+            // 2. Mágica do JS: Soma Carteira + Banco e Ordena
+            let sortedUsers = allUsersRaw.map(u => ({
+                id: u.id,
+                total: (u.carteira || 0) + (u.banco || 0)
+            })).sort((a, b) => b.total - a.total);
 
-            // 2. Se for Ranking Local, filtra apenas quem está neste servidor
+            // 3. Se for Ranking Local, filtra apenas quem está no servidor atual
             if (!isGlobal) {
                 const guildMembers = await message.guild.members.fetch();
-                topUsers = allUsers
+                sortedUsers = sortedUsers
                     .filter(u => guildMembers.has(u.id))
                     .slice(0, 10);
+            } else {
+                sortedUsers = sortedUsers.slice(0, 10);
             }
 
-            if (topUsers.length === 0) return message.reply('❌ Ninguém tem dinheiro por aqui ainda...');
+            if (sortedUsers.length === 0) return message.reply('❌ Ninguém tem moedas por aqui ainda...');
 
-            // 3. Monta a lista visual
+            // 4. Monta a lista visual
             let description = '';
-            for (let i = 0; i < topUsers.length; i++) {
-                const u = topUsers[i];
-                const userTag = client.users.cache.get(u.id)?.username || `Usuário Desconhecido (${u.id})`;
-                const total = u.carteira + (u.banco || 0); // Soma o que está na mão e no banco
+            for (let i = 0; i < sortedUsers.length; i++) {
+                const u = sortedUsers[i];
+                // Busca o nome do usuário no cache ou coloca o ID se não encontrar
+                const userObj = client.users.cache.get(u.id);
+                const userTag = userObj ? userObj.username : `Usuário (${u.id})`;
                 
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `**${i + 1}.**`;
-                description += `${medal} **${userTag}** — \`R$ ${total.toLocaleString('pt-BR')}\`\n`;
+                description += `${medal} **${userTag}** — \`R$ ${u.total.toLocaleString('pt-BR')}\`\n`;
             }
 
             const { EmbedBuilder } = require('discord.js');
             const embed = new EmbedBuilder()
                 .setColor(isGlobal ? '#f1c40f' : '#3498db')
                 .setTitle(isGlobal ? '🌎 Ranking Global de Riqueza' : `🏆 Top Ricos — ${message.guild.name}`)
-                .setDescription(description)
+                .setDescription(`Confira os jogadores mais poderosos (Carteira + Banco):\n\n${description}`)
                 .setThumbnail(isGlobal ? 'https://cdn-icons-png.flaticon.com/512/2947/2947656.png' : null)
-                .setFooter({ text: `Consultado por ${message.author.username}`, iconURL: message.author.displayAvatarURL() });
+                .setFooter({ 
+                    text: `Consultado por ${message.author.username}`, 
+                    iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+                });
 
             return message.reply({ embeds: [embed] });
         }
