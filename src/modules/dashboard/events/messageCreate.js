@@ -177,6 +177,7 @@ module.exports = {
             desc += makeLine('Diário', userProfile.lastDaily, dailyCD) + '\n';
             desc += makeLine('Semanal', userProfile.lastSemanal, semanalCD) + '\n';
             desc += makeLine('Mensal', userProfile.lastMensal, mensalCD) + '\n\n';
+            desc += makeLine('Roubar', userProfile.lastRob, 10 * 60 * 1000) + '\n';
             
             // Bloco de Interações RP
             desc += makeLine('Beijar', userProfile.lastBeijar, socialCD) + '\n';
@@ -200,19 +201,41 @@ module.exports = {
 
             return message.reply({ embeds: [embed] });
         }
+  // ==========================================
+        // 💰 COMANDOS: zdiario / zsemanal / zmensal (Salários)
         // ==========================================
-        // 💰 COMANDOS: zsemanal / zmensal (Salários)
-        // ==========================================
-        if (command === 'semanal' || command === 'mensal') {
+        if (command === 'diario' || command === 'semanal' || command === 'mensal') {
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             
-            const isSemanal = command === 'semanal';
-            const cooldownTime = isSemanal ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
-            const columnString = isSemanal ? 'lastSemanal' : 'lastMensal';
-            const nomePremio = isSemanal ? 'Salário Semanal' : 'Salário Mensal';
+            let cooldownTime;
+            let columnString;
+            let nomePremio;
+            let rewardAmount;
+            let embedColor;
 
-            // Verifica o Cooldown (Usando a Tag do Discord para mostrar o tempo exato ao vivo)
+            // Define as regras dinamicamente com base no comando digitado
+            if (command === 'diario') {
+                cooldownTime = 24 * 60 * 60 * 1000; // 24 horas
+                columnString = 'lastDaily';         // Usa a mesma coluna do painel VIP
+                nomePremio = 'Salário Diário';
+                rewardAmount = Math.floor(Math.random() * (105000 - 50000 + 1)) + 50000; // 50k a 105k
+                embedColor = '#3498db'; // Azul
+            } else if (command === 'semanal') {
+                cooldownTime = 7 * 24 * 60 * 60 * 1000; // 7 dias
+                columnString = 'lastSemanal';
+                nomePremio = 'Salário Semanal';
+                rewardAmount = Math.floor(Math.random() * (400000 - 200000 + 1)) + 200000; // 200k a 400k
+                embedColor = '#57F287'; // Verde
+            } else if (command === 'mensal') {
+                cooldownTime = 30 * 24 * 60 * 60 * 1000; // 30 dias
+                columnString = 'lastMensal';
+                nomePremio = 'Salário Mensal';
+                rewardAmount = Math.floor(Math.random() * (650000 - 400000 + 1)) + 400000; // 400k a 650k
+                embedColor = '#FEE75C'; // Dourado
+            }
+
+            // Verifica o Cooldown (Usando a Tag de contagem regressiva nativa)
             if (userProfile && userProfile[columnString]) {
                 const now = new Date().getTime();
                 const lastTime = new Date(userProfile[columnString]).getTime();
@@ -223,15 +246,7 @@ module.exports = {
                 }
             }
 
-            // Sorteio dos Valores
-            let rewardAmount = 0;
-            if (isSemanal) {
-                rewardAmount = Math.floor(Math.random() * (400000 - 200000 + 1)) + 200000; // 200k a 400k
-            } else {
-                rewardAmount = Math.floor(Math.random() * (650000 - 400000 + 1)) + 400000; // 400k a 650k
-            }
-
-            // Salva na Base de Dados
+            // Salva na Base de Dados e Adiciona o Dinheiro
             const updateData = { carteira: { increment: rewardAmount } };
             updateData[columnString] = new Date();
             const createData = { id: userId, carteira: rewardAmount };
@@ -246,12 +261,85 @@ module.exports = {
             // Envia Embed Ostentação
             const { EmbedBuilder } = require('discord.js');
             const embed = new EmbedBuilder()
-                .setColor(isSemanal ? '#57F287' : '#FEE75C')
+                .setColor(embedColor)
                 .setTitle(`💰 ${nomePremio} Recolhido!`)
                 .setDescription(`Foste ao banco e levantaste a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
                 .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
 
             return message.reply({ embeds: [embed] });
+        }
+        // ==========================================
+        // 🔫 COMANDO: zroubar (Assalto a Jogadores)
+        // ==========================================
+        if (command === 'roubar' || command === 'assaltar') {
+            const authorId = message.author.id;
+            const targetUser = message.mentions.users.first();
+
+            // 1. Verificações de Segurança
+            if (!targetUser) return message.reply('❌ Precisas de mencionar a vítima! Exemplo: `zroubar @usuario`');
+            if (targetUser.id === authorId) return message.reply('❌ Queres roubar a ti próprio? Vai ao psicólogo, não ao bot!');
+            if (targetUser.bot) return message.reply('🤖 Roubar um bot? Eu não guardo notas de papel, só código!');
+
+            // 2. Busca dados de ambos
+            let [ladrao, vitima] = await Promise.all([
+                prisma.hypeUser.findUnique({ where: { id: authorId } }),
+                prisma.hypeUser.findUnique({ where: { id: targetUser.id } })
+            ]);
+
+            if (!ladrao) ladrao = await prisma.hypeUser.create({ data: { id: authorId } });
+            if (!vitima || vitima.carteira <= 0) {
+                return message.reply(`💨 **Vácuo!** <@${targetUser.id}> não tem nem um centavo na carteira. Não vale o esforço!`);
+            }
+
+            // 3. Cooldown de Roubo (10 minutos para não virar spam)
+            const cooldownRoubo = 10 * 60 * 1000;
+            if (ladrao.lastRob) {
+                const diff = Date.now() - new Date(ladrao.lastRob).getTime();
+                if (diff < cooldownRoubo) {
+                    const expireUnix = Math.floor((new Date(ladrao.lastRob).getTime() + cooldownRoubo) / 1000);
+                    return message.reply(`⏳ A polícia está de olho em ti! Espera até <t:${expireUnix}:R> para tentares outro assalto.`);
+                }
+            }
+
+            // 4. Lógica de Sucesso (45% de chance)
+            const sorteio = Math.random();
+            const sucesso = sorteio <= 0.45;
+
+            if (sucesso) {
+                // Rouba entre 20% a 100% do que está na mão da vítima
+                const porcentagemRoubada = Math.random() * (1.0 - 0.2) + 0.2;
+                const valorFinal = Math.floor(vitima.carteira * porcentagemRoubada);
+
+                await prisma.$transaction([
+                    prisma.hypeUser.update({ where: { id: authorId }, data: { carteira: { increment: valorFinal }, lastRob: new Date() } }),
+                    prisma.hypeUser.update({ where: { id: targetUser.id }, data: { carteira: { decrement: valorFinal } } })
+                ]);
+
+                const { EmbedBuilder } = require('discord.js');
+                const embed = new EmbedBuilder()
+                    .setColor('#57F287')
+                    .setTitle('🥷 ASSALTO BEM SUCEDIDO!')
+                    .setDescription(`Tu passaste a mão na carteira de <@${targetUser.id}> e fugiste num carro de fuga!\n\n💸 **Levaste:** R$ ${valorFinal.toLocaleString('pt-BR')}\n*(Dinheiro adicionado à tua carteira)*`)
+                    .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nn/3o7TKMGpxS5O7E6pW0/giphy.gif');
+
+                return message.reply({ embeds: [embed] });
+
+            } else {
+                // FALHOU! Paga multa de 10% do que o ladrão tem na mão ou 50k (o que for maior)
+                const multaBase = 50000;
+                const multaPorcentagem = Math.floor(ladrao.carteira * 0.10);
+                const multaFinal = Math.max(multaBase, multaPorcentagem);
+
+                await prisma.hypeUser.update({ 
+                    where: { id: authorId }, 
+                    data: { 
+                        carteira: { decrement: ladrao.carteira >= multaFinal ? multaFinal : ladrao.carteira },
+                        lastRob: new Date() 
+                    } 
+                });
+
+                return message.reply(`🚨 **TE PEGARAM!** O alarme disparou e a polícia chegou a tempo. <@${targetUser.id}> conseguiu fugir e tu tiveste de pagar **R$ ${multaFinal.toLocaleString('pt-BR')}** de fiança para sair da esquadra!`);
+            }
         }
         // ==========================================
         // 🚀 COMANDO: zperfil

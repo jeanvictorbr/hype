@@ -50,6 +50,7 @@ model HypeUser {
   // Cooldowns Sociais (Independentes)
   lastBeijar   DateTime?
   lastTapa     DateTime?
+  lastRob DateTime?
   lastAbracar  DateTime?
   lastMorder   DateTime?
   lastPat      DateTime?
