@@ -140,50 +140,59 @@ module.exports = {
             });
         }
         // ==========================================
-        // 📋 COMANDO: zwork / zcd (Estilo Zany Clean)
+        // 📋 COMANDO: zwork / zcd (Painel Completo)
         // ==========================================
         if (command === 'work' || command === 'cd' || command === 'cooldowns') {
             const userId = message.author.id;
-            
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             
             if (!userProfile) {
                 return message.reply('❌ Ainda não tens um perfil registado. Usa o `zcarteira` para começares a jogar!');
             }
 
-            // Tempos de Cooldown (em milissegundos)
-            const dailyCD = 24 * 60 * 60 * 1000;
-            const socialCD = 20 * 60 * 1000;
+            // Tempos de Cooldown Exatos (em milissegundos)
+            const dailyCD = 24 * 60 * 60 * 1000;         // 24 horas
+            const semanalCD = 7 * 24 * 60 * 60 * 1000;   // 7 dias
+            const mensalCD = 30 * 24 * 60 * 60 * 1000;   // 30 dias
+            const socialCD = 20 * 60 * 1000;             // 20 minutos
 
-            // 🔥 Função Mágica que recria as linhas do Zany
+            // Função que gera a formatação visual (Disponível vs Tempo Restante)
             const makeLine = (name, lastDate, cooldownMs) => {
                 if (!lastDate) return `• ✅ **${name}**: \`Disponível.\``;
-                
                 const lastTime = new Date(lastDate).getTime();
+                
                 if (Date.now() - lastTime >= cooldownMs) {
                     return `• ✅ **${name}**: \`Disponível.\``;
                 }
-
-                // Calcula o Unix Timestamp para o Discord renderizar a contagem regressiva nativa
+                
+                // Transforma em Timestamp Nativo do Discord para atualizar sozinho na tela
                 const expireUnix = Math.floor((lastTime + cooldownMs) / 1000);
                 return `• ⏰ **${name}**: <t:${expireUnix}:R>`; 
             };
 
-            // Construção da lista dinâmica
+            // Construção da lista de forma elegante e dividida
             let desc = `Confira os **cooldown's** abaixo:\n\n`;
+            
+            // Bloco de Economia / Salários
             desc += makeLine('Diário', userProfile.lastDaily, dailyCD) + '\n';
+            desc += makeLine('Semanal', userProfile.lastSemanal, semanalCD) + '\n';
+            desc += makeLine('Mensal', userProfile.lastMensal, mensalCD) + '\n\n';
+            
+            // Bloco de Interações RP
             desc += makeLine('Beijar', userProfile.lastBeijar, socialCD) + '\n';
             desc += makeLine('Abraçar', userProfile.lastAbracar, socialCD) + '\n';
-            desc += makeLine('Carinho', userProfile.lastPat, socialCD) + '\n';
+            desc += makeLine('Cafuné', userProfile.lastCafune, socialCD) + '\n';
+            desc += makeLine('Socar', userProfile.lastSocar, socialCD) + '\n';
             desc += makeLine('Morder', userProfile.lastMorder, socialCD) + '\n';
             desc += makeLine('Tapa', userProfile.lastTapa, socialCD) + '\n';
 
+            // Montagem do Embed Final
             const { EmbedBuilder } = require('discord.js');
             const embed = new EmbedBuilder()
-                .setColor('#9b59b6') // Roxo Zany
+                .setColor('#9b59b6') // Roxo Premium
                 .setAuthor({ name: `⏰ Cooldown's de ${message.author.username}` })
                 .setDescription(desc)
-                .setThumbnail('https://cdn-icons-png.flaticon.com/512/3103/3103306.png') // Ícone de Ampulheta Clean
+                .setThumbnail('https://cdn-icons-png.flaticon.com/512/3103/3103306.png') // Ícone de Ampulheta
                 .setFooter({ 
                     text: 'O tempo passa devagar, não é? ⏳', 
                     iconURL: message.author.displayAvatarURL({ dynamic: true }) 
