@@ -127,6 +127,67 @@ module.exports = {
             });
         }
         // ==========================================
+        // 📋 COMANDO: zwork / zcd (Painel de Cooldowns)
+        // ==========================================
+        if (command === 'work' || command === 'cd' || command === 'cooldowns') {
+            const userId = message.author.id;
+            
+            // Busca o perfil do utilizador para ler os tempos guardados
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+            
+            if (!userProfile) {
+                return message.reply('❌ Ainda não tens um perfil registado. Usa o `zcarteira` ou interage com alguém para começares a jogar!');
+            }
+
+            const now = Date.now();
+
+            // Função mágica (Helper) para calcular o tempo que falta e formatar bonitinho
+            const getStatus = (lastDate, cooldownMs) => {
+                if (!lastDate) return '✅ **Pronto a usar!**';
+                
+                const lastTime = new Date(lastDate).getTime();
+                const diff = now - lastTime;
+                
+                // Se o tempo que passou for maior que o cooldown, já pode usar
+                if (diff >= cooldownMs) return '✅ **Pronto a usar!**';
+
+                // Caso contrário, calcula quanto tempo falta
+                const timeLeft = cooldownMs - diff;
+                const horas = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutos = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const segundos = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+                let timeStr = '';
+                if (horas > 0) timeStr += `${horas}h `;
+                if (minutos > 0 || horas > 0) timeStr += `${minutos}m `;
+                timeStr += `${segundos}s`;
+
+                return `⏳ *Espera ${timeStr.trim()}*`;
+            };
+
+            // Os nossos tempos definidos (em milissegundos)
+            const dailyCD = 24 * 60 * 60 * 1000; // 24 horas
+            const socialCD = 20 * 60 * 1000;     // 20 minutos
+
+            const { EmbedBuilder } = require('discord.js');
+            const embed = new EmbedBuilder()
+                .setColor('#2b2d31') // Dark theme elegante
+                .setTitle(`📋 Painel de Trabalhos e Ações`)
+                .setDescription(`Bem-vindo ao teu painel, <@${userId}>! Confere abaixo as ações que tens disponíveis para farmar dinheiro para a tua carteira.`)
+                .setThumbnail(message.author.displayAvatarURL({ dynamic: true, size: 256 }))
+                .addFields(
+                    { name: '🎁 Daily Heist (Botão no `zvip`)', value: getStatus(userProfile.lastDaily, dailyCD), inline: false },
+                    { name: '💋 Beijar (`zbeijar`)', value: getStatus(userProfile.lastBeijar, socialCD), inline: true },
+                    { name: '🖐️ Tapa (`ztapa`)', value: getStatus(userProfile.lastTapa, socialCD), inline: true },
+                    { name: '🫂 Abraçar (`zabracar`)', value: getStatus(userProfile.lastAbracar, socialCD), inline: true },
+                    { name: '🧛 Morder (`zmorder`)', value: getStatus(userProfile.lastMorder, socialCD), inline: true },
+                    { name: '🥰 Carinho (`zpat`)', value: getStatus(userProfile.lastPat, socialCD), inline: true }
+                )
+                .setFooter({ text: 'Dica: Interage com outros membros para ganhares dinheiro limpo na tua mão!' });
+
+            return message.reply({ embeds: [embed] });
+        }
+        // ==========================================
         // 🚀 COMANDO: zperfil
         // ==========================================
         if (command === 'perfil') {
