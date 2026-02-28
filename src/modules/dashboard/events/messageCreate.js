@@ -255,6 +255,51 @@ const bjFile = require('../../economy/commands/blackjack.js');
             // Atualiza o tempo do último jogo no DB
             await prisma.hypeUser.update({ where: { id: message.author.id }, data: { lastGame: new Date() } });
         }
+        // ==========================================
+        // 🏆 COMANDOS: zrank / ztop / zrankglobal
+        // ==========================================
+        if (command === 'rank' || command === 'top' || command === 'rankglobal') {
+            const isGlobal = command === 'rankglobal';
+            
+            // 1. Busca os TOP 10 usuários (Soma de Carteira + Banco)
+            const allUsers = await prisma.hypeUser.findMany({
+                orderBy: { carteira: 'desc' }, // Ordena por quem tem mais na mão
+                take: isGlobal ? 10 : 50,      // No local pegamos mais para filtrar quem está na guilda
+            });
+
+            let topUsers = allUsers;
+
+            // 2. Se for Ranking Local, filtra apenas quem está neste servidor
+            if (!isGlobal) {
+                const guildMembers = await message.guild.members.fetch();
+                topUsers = allUsers
+                    .filter(u => guildMembers.has(u.id))
+                    .slice(0, 10);
+            }
+
+            if (topUsers.length === 0) return message.reply('❌ Ninguém tem dinheiro por aqui ainda...');
+
+            // 3. Monta a lista visual
+            let description = '';
+            for (let i = 0; i < topUsers.length; i++) {
+                const u = topUsers[i];
+                const userTag = client.users.cache.get(u.id)?.username || `Usuário Desconhecido (${u.id})`;
+                const total = u.carteira + (u.banco || 0); // Soma o que está na mão e no banco
+                
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `**${i + 1}.**`;
+                description += `${medal} **${userTag}** — \`R$ ${total.toLocaleString('pt-BR')}\`\n`;
+            }
+
+            const { EmbedBuilder } = require('discord.js');
+            const embed = new EmbedBuilder()
+                .setColor(isGlobal ? '#f1c40f' : '#3498db')
+                .setTitle(isGlobal ? '🌎 Ranking Global de Riqueza' : `🏆 Top Ricos — ${message.guild.name}`)
+                .setDescription(description)
+                .setThumbnail(isGlobal ? 'https://cdn-icons-png.flaticon.com/512/2947/2947656.png' : null)
+                .setFooter({ text: `Consultado por ${message.author.username}`, iconURL: message.author.displayAvatarURL() });
+
+            return message.reply({ embeds: [embed] });
+        }
   // ==========================================
         // 💰 COMANDOS: zdiario / zsemanal / zmensal (Salários)
         // ==========================================
