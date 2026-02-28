@@ -163,7 +163,7 @@ async function generateTopMoneyImage(topUsers, callerData) {
         ctx.textAlign = 'right';
         ctx.fillStyle = '#57F287'; 
         ctx.font = 'bold 30px Arial';
-        ctx.fillText(`${user.cash.toLocaleString('pt-BR')} HC`, width - 60, currentY + rowHeight / 2);
+        ctx.fillText(`R$ ${user.cash.toLocaleString('pt-BR')}`, width - 60, currentY + rowHeight / 2);
     }
 
     // ==========================================
@@ -184,7 +184,7 @@ async function generateTopMoneyImage(topUsers, callerData) {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 26px Arial';
-    ctx.fillText(`Sua Posição: #${callerData.rank}  |  Seu Saldo: ${callerData.cash.toLocaleString('pt-BR')} HC`, width / 2, footerY + 35);
+    ctx.fillText(`Sua Posição: #${callerData.rank}  |  Seu Saldo: R$ ${callerData.cash.toLocaleString('pt-BR')}`, width / 2, footerY + 35);
 
     // ==========================================
     // 6. MOLDURA GERAL

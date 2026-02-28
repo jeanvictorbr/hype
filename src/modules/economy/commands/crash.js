@@ -55,7 +55,7 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setColor('#FEE75C') // Amarelo
                 .setTitle('🚀 CRASH HYPE')
-                .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** ${betAmount} HC\n\n🟢 O foguetão está a subir! Pule antes que exploda!`)
+                .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount}\n\n🟢 O foguetão está a subir! Pule antes que exploda!`)
                 .setImage('attachment://crash.png');
 
             const cashoutBtn = new ActionRowBuilder().addComponents(
@@ -116,13 +116,13 @@ module.exports = {
                 // PERDEU TUDO
                 embed.setColor('#ED4245')
                      .setTitle('💥 FOGUETÃO DESTRUÍDO')
-                     .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** ${betAmount} HC\n**Perdeu:** 💸 -${betAmount} HC\n\nDemorou muito tempo! O foguetão explodiu em **${finalState.crashPoint}x**.`);
+                     .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount}\n**Perdeu:** 💸 -R$ ${betAmount}\n\nDemorou muito tempo! O foguetão explodiu em **${finalState.crashPoint}x**.`);
             } else if (finalState.status === 'cashed_out') {
                 // SALTOU A TEMPO (Foi processado no botão)
                 const profit = Math.floor(betAmount * finalState.multiplier);
                 embed.setColor('#57F287')
                      .setTitle('💸 RETIRADA SEGURA!')
-                     .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** ${betAmount} HC\n**Lucro:** 💰 +${profit} HC\n\nSaltou do foguetão em **${finalState.multiplier.toFixed(2)}x** em segurança!`);
+                     .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount}\n**Lucro:** 💰 +R$ ${profit}\n\nSaltou do foguetão em **${finalState.multiplier.toFixed(2)}x** em segurança!`);
             }
 
             // Edita a última vez tirando os botões

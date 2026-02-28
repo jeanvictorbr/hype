@@ -54,7 +54,7 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setColor('#2a0404')
                 .setTitle('🔫 MESA DA MÁFIA ABERTA')
-                .setDescription(`**Aposta por Cadeira:** ${valorAposta.toLocaleString('pt-BR')} HypeCoins\n\nQualquer pessoa pode entrar! Quando a mesa tiver entre 2 e 6 jogadores, o dono da mesa pode mandar girar o tambor.`)
+                .setDescription(`**Aposta por Cadeira:** R$ ${valorAposta.toLocaleString('pt-BR')}\n\nQualquer pessoa pode entrar! Quando a mesa tiver entre 2 e 6 jogadores, o dono da mesa pode mandar girar o tambor.`)
                 .setImage('attachment://roleta.png');
 
             const row = new ActionRowBuilder().addComponents(

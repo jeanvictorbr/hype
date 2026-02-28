@@ -5,7 +5,9 @@ module.exports = {
     customId: 'eco_user_config',
 
     async execute(interaction, client) {
-        await interaction.deferUpdate();
+        // 👇 A MÁGICA AQUI: Abre um pop-up novo (invisível) em vez de tentar editar/apagar o Cartão VIP
+        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+        
         const userId = interaction.user.id;
         const guildId = interaction.guild.id;
 
@@ -65,28 +67,20 @@ module.exports = {
                             ]
                         },
                         { "type": 14, "divider": true, "spacing": 2 },
-                        { "type": 10, "content": statusMsg },
-                        { "type": 14, "divider": true, "spacing": 2 },
-                        {
-                            "type": 1, 
-                            "components": [
-                                { "type": 2, "style": 2, "label": "Voltar para o Cartão", "emoji": { "name": "↩️" }, "custom_id": "eco_return_main" }
-                            ]
-                        }
+                        { "type": 10, "content": statusMsg }
+                        // Botão de "Voltar para o Cartão" foi removido porque agora é um Pop-up!
                     ]
                 }
             ];
 
-            // 👇 CORREÇÃO: Limpamos embeds e ficheiros antigos antes de injetar a V2
+            // Apenas envia a UI V2 limpa, sem conflitos com Embeds antigos!
             await interaction.editReply({ 
-                embeds: [], 
-                files: [], 
-                attachments: [], 
                 components: componentsArray, 
-                flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral] 
+                flags: [MessageFlags.IsComponentsV2] 
             });
         } catch (error) {
             console.error('Erro ao carregar painel VIP:', error);
+            await interaction.editReply({ content: '❌ Erro ao carregar o painel de benefícios VIP.', flags: [] });
         }
     }
 };

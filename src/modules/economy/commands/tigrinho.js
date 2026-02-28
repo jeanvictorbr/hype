@@ -30,7 +30,7 @@ module.exports = {
             // 2. Verificação de Saldo
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             if (!userProfile || userProfile.hypeCash < aposta) {
-                return interaction.editReply(`❌ Saldo insuficiente. Você tem **${userProfile?.hypeCash || 0} HC**, mas tentou apostar **${aposta} HC**.`);
+                return interaction.editReply(`❌ Saldo insuficiente. Você tem **R$ ${userProfile?.hypeCash || 0}**, mas tentou apostar **R$ ${aposta}**.`);
             }
 
             // 3. Remove as moedas da conta ANTES do jogo começar (Para evitar roubos se a net cair)

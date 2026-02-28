@@ -4,9 +4,7 @@ const {
     StringSelectMenuOptionBuilder, 
     ContainerBuilder, 
     TextDisplayBuilder, 
-    MessageFlags,
-    ButtonBuilder,
-    ButtonStyle
+    MessageFlags
 } = require('discord.js');
 const { prisma } = require('../../../core/database');
 
@@ -14,7 +12,8 @@ module.exports = {
     customId: 'eco_user_store',
 
     async execute(interaction, client) {
-        await interaction.deferUpdate();
+        // 👇 CORREÇÃO: Usa deferReply para abrir um Pop-Up sem quebrar a API V2!
+        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
         const guildId = interaction.guild.id;
 
@@ -24,28 +23,17 @@ module.exports = {
                 orderBy: { price: 'asc' } 
             });
 
-            const rowBack = new ActionRowBuilder().addComponents(
-                new ButtonBuilder()
-                    .setCustomId('eco_return_main')
-                    .setLabel('Voltar para o Cartão')
-                    .setStyle(ButtonStyle.Secondary)
-                    .setEmoji('↩️')
-            );
-
             if (storeItems.length === 0) {
                 const emptyText = new TextDisplayBuilder()
                     .setContent('## 🛒 Vitrine Hype\n\nPoxa, as prateleiras estão vazias no momento. A gerência ainda está abastecendo o estoque. Volte mais tarde!');
                 
                 const emptyContainer = new ContainerBuilder()
                     .setAccentColor(0x2b2d31) 
-                    .addTextDisplayComponents(emptyText)
-                    .addActionRowComponents(rowBack); 
+                    .addTextDisplayComponents(emptyText);
 
-                // 👇 CORREÇÃO: Limpamos embeds e ficheiros antigos antes de injetar a V2
                 return interaction.editReply({
-                    embeds: [], files: [], attachments: [],
                     components: [emptyContainer],
-                    flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
+                    flags: [MessageFlags.IsComponentsV2]
                 });
             }
 
@@ -59,7 +47,7 @@ module.exports = {
                 const limitDesc = item.description ? item.description.substring(0, 95) + '...' : 'Item disponível para compra.';
                 
                 const option = new StringSelectMenuOptionBuilder()
-                    .setLabel(`${item.name} — 💰 ${item.price} HC`)
+                    .setLabel(`${item.name} — 💰 R$ ${item.price}`)
                     .setDescription(limitDesc)
                     .setValue(item.id); 
                 
@@ -69,23 +57,22 @@ module.exports = {
             const rowMenu = new ActionRowBuilder().addComponents(selectMenu);
             
             const storeText = new TextDisplayBuilder()
-                .setContent(`# 🛒 Vitrine Hype\nEscolha um item abaixo no menu para inspecionar os detalhes e realizar a compra com o seu **HypeCash**.`);
+                .setContent(`# 🛒 Vitrine Hype\nEscolha um item abaixo no menu para inspecionar os detalhes e realizar a compra com o saldo do seu **Cartão Hype**.`);
             
             const storeContainer = new ContainerBuilder()
                 .setAccentColor(0x5865F2) 
                 .addTextDisplayComponents(storeText)
-                .addActionRowComponents(rowMenu)
-                .addActionRowComponents(rowBack); 
+                .addActionRowComponents(rowMenu);
 
-            // 👇 CORREÇÃO: Limpamos embeds e ficheiros antigos antes de injetar a V2
+            // Apenas envia o container V2 limpo!
             await interaction.editReply({
-                embeds: [], files: [], attachments: [],
                 components: [storeContainer],
-                flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
+                flags: [MessageFlags.IsComponentsV2]
             });
 
         } catch (error) {
             console.error('❌ Erro ao abrir a lojinha:', error);
+            await interaction.editReply({ content: '❌ Erro ao carregar a vitrine da loja.' });
         }
     }
 };

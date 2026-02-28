@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const { AttachmentBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
 const { generateDailyImage } = require('../../../utils/canvasDaily');
 
@@ -6,7 +6,8 @@ module.exports = {
     customId: 'eco_user_daily',
 
     async execute(interaction, client) {
-        await interaction.deferUpdate();
+        // 👇 A MÁGICA AQUI: Abre como um Pop-Up Ephemeral para não destruir o Cartão VIP
+        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
         
         const userId = interaction.user.id;
         const guildId = interaction.guild.id;
@@ -17,10 +18,6 @@ module.exports = {
 
             const now = new Date();
             const lastDailyCheck = userProfile.lastDaily ? new Date(userProfile.lastDaily) : null;
-            
-            const rowBack = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('eco_return_main').setLabel('Fugir / Voltar').setStyle(ButtonStyle.Secondary).setEmoji('🏃')
-            );
 
             // ==========================================
             // CENA 1: CARRO JÁ ROUBADO (COOLDOWN)
@@ -41,7 +38,7 @@ module.exports = {
                     .setImage('attachment://daily.png');
 
                 return interaction.editReply({ 
-                    embeds: [embed], files: [attachment], attachments: [], components: [rowBack]
+                    embeds: [embed], files: [attachment], attachments: [], components: []
                 });
             }
 
@@ -99,7 +96,7 @@ module.exports = {
             await prisma.hypeUser.update({
                 where: { id: userId },
                 data: { 
-                    hypeCash: { increment: finalAmount },
+                    carteira: { increment: finalAmount }, // 🔥 ATUALIZADO: Agora cai na carteira na mão (Risco)
                     lastDaily: new Date() 
                 }
             });
@@ -107,20 +104,21 @@ module.exports = {
             const winBuffer = await generateDailyImage('success', finalAmount);
             const winAttachment = new AttachmentBuilder(winBuffer, { name: 'daily.png' });
 
-            let vipText = multiplier > 1 ? `\n\n*(Sua licença VIP multiplicou os ganhos em **x${multiplier}**!)*` : '';
+            let vipText = multiplier > 1 ? `\n*(Sua licença VIP multiplicou os ganhos em **x${multiplier}**!)*` : '';
             
             const winEmbed = new EmbedBuilder()
                 .setColor('#FEE75C') // Dourado Ouro
                 .setTitle('💰 CAIXA FORTE ABERTA!')
-                .setDescription(`Você entrou, roubou os malotes e saiu sem deixar rastros!${vipText}`)
+                .setDescription(`Você entrou, roubou os malotes e saiu sem deixar rastros! O dinheiro foi para a sua **Carteira**. Cuidado nas ruas!${vipText}`)
                 .setImage('attachment://daily.png');
 
             await interaction.editReply({ 
-                embeds: [winEmbed], files: [winAttachment], attachments: [], components: [rowBack]
+                embeds: [winEmbed], files: [winAttachment], attachments: [], components: []
             }).catch(() => {});
 
         } catch (error) {
             console.error('❌ Erro no Daily Heist:', error);
+            await interaction.editReply({ content: '❌ Erro ao tentar assaltar o cofre.' }).catch(() => {});
         }
     }
 };

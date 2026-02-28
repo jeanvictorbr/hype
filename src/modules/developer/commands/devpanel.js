@@ -14,12 +14,10 @@ module.exports = {
         .setDescription('💻 [DEV] Central de Controle SaaS (Master)'),
 
     async execute(interaction, client) {
-        // 🔒 Segurança Máxima: Lê os IDs separados por vírgula no .env
-        const ownerIds = (process.env.OWNER_ID || '').split(',');
-
-        if (!ownerIds.includes(interaction.user.id)) {
+        // 🔒 Segurança Máxima
+        if (interaction.user.id !== process.env.OWNER_ID) {
             return interaction.reply({ 
-                content: '🚫 Acesso restrito ao CEO e Diretoria da Koda.', 
+                content: '🚫 Acesso restrito ao CEO da Koda.', 
                 flags: [MessageFlags.Ephemeral] 
             });
         }

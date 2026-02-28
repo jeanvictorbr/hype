@@ -74,7 +74,7 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setColor('#2b2d31') // Fundo Invisível Dark
                 .setTitle('🃏 BLACKJACK HYPE')
-                .setDescription(`**Jogador:** <@${userId}>\n**Aposta:** ${betAmount} HC\n**Seus Pontos:** ${playerScore}`)
+                .setDescription(`**Jogador:** <@${userId}>\n**Aposta:** R$ ${betAmount}\n**Seus Pontos:** ${playerScore}`)
                 .setImage('attachment://table.png');
 
             const row = new ActionRowBuilder().addComponents(

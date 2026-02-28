@@ -28,7 +28,7 @@ module.exports = {
 
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             if (!userProfile || userProfile.hypeCash < betAmount) {
-                return interaction.editReply(`❌ Saldo insuficiente. Faltam moedas para apostar **${betAmount} HC**.`);
+                return interaction.editReply(`❌ Saldo insuficiente. Faltam moedas para apostar **R$ ${betAmount}**.`);
             }
 
             // 2. Cobra a Aposta
@@ -61,7 +61,7 @@ module.exports = {
 
             // 5. Constrói o Visual V2 (App Native)
             const header = new TextDisplayBuilder().setContent(`# 💣 MINES HYPE\nO campo minado de <@${userId}> começou!`);
-            const stats = new TextDisplayBuilder().setContent(`**Aposta:** ${betAmount} HC\n**Multiplicador:** 1.00x\n**Lucro Atual:** 0 HC`);
+            const stats = new TextDisplayBuilder().setContent(`**Aposta:** R$ ${betAmount}\n**Multiplicador:** 1.00x\n**Lucro Atual:** 0 HC`);
 
             const container = new ContainerBuilder()
                 .setAccentColor(0x2b2d31) // Cinzento escuro padrão
@@ -89,7 +89,7 @@ module.exports = {
             const actionRow = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId(`eco_mines_cashout_${userId}`)
-                    .setLabel('💰 Retirar Lucro (0 HC)')
+                    .setLabel('💰 Retirar Lucro (R$ 0)')
                     .setStyle(ButtonStyle.Success)
                     .setDisabled(true)
             );

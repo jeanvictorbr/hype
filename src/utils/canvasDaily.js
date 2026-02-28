@@ -167,7 +167,7 @@ async function generateDailyImage(status, amount = 0, timeString = '') {
         
         ctx.fillStyle = textGrad;
         ctx.font = '900 65px "Arial Black", sans-serif';
-        ctx.fillText(`+ ${amount.toLocaleString('pt-BR')} HC`, width / 2, height / 2 + 35);
+        ctx.fillText(`+ R$ ${amount.toLocaleString('pt-BR')}`, width / 2, height / 2 + 35);
         
         ctx.fillStyle = '#a7f3d0';
         ctx.font = 'bold 24px Arial';
