@@ -47,13 +47,13 @@ module.exports = {
             ],
             // 👇 NOVOS GIFS AQUI
             socar: [
-                'https://media1.tenor.com/m/6a42QGaaXikAAAAC/anime-punch.gif',
-                'https://media.giphy.com/media/l1J3G5lf06vi58EIE/giphy.gif',
-                'https://media1.tenor.com/m/xY2SjK0L6pIAAAAC/punch-anime.gif'
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYngwbjU1ODdrcGl3bzBnaDc5NzBoZHdpeTAzaXY3M2o2ODFub3MxcyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/yo3TC0yeHd53G/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYngwbjU1ODdrcGl3bzBnaDc5NzBoZHdpeTAzaXY3M2o2ODFub3MxcyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/11HeubLHnQJSAU/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYngwbjU1ODdrcGl3bzBnaDc5NzBoZHdpeTAzaXY3M2o2ODFub3MxcyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/arbHBoiUWUgmc/giphy.gif'
             ],
             cafune: [
-                'https://media1.tenor.com/m/E6fMkQRZBdYAAAAC/anime-pat.gif',
-                'https://media1.tenor.com/m/N41zKIGXCGQAAAAC/anime-head-pat.gif'
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGpvdmVlNnJ0amp1d2o5eG44ZmoxOTVuZ2dvYnU3bmUwdDJyeDM4MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/SPCwSrGf9kVt6/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3OWRrb2t6M2F0NjJpZjNxNDkweWxjMGs5eDFsdnlrdTJqYmFqNWswNyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/NB0MtUxFyMmRi/giphy.gif'
             ]
         };
 

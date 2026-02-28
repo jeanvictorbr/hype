@@ -8,43 +8,62 @@ module.exports = {
         const dropId = interaction.customId.replace('eco_vip_rain_catch_', '');
         const rain = client.activeRains?.get(dropId);
 
-        if (!rain) return interaction.reply({ content: '❌ A chuva já acabou ou já levaram tudo!', flags: [MessageFlags.Ephemeral] });
-
-        if (rain.participants.has(interaction.user.id)) {
-            return interaction.reply({ content: '⚠️ Você já agarrou a sua nota! Deixe para os outros.', flags: [MessageFlags.Ephemeral] });
+        // 1. Verifica se a chuva ainda existe
+        if (!rain) {
+            return interaction.reply({ 
+                content: '❌ O vento levou as notas... A chuva já acabou ou já levaram tudo!', 
+                flags: [MessageFlags.Ephemeral] 
+            });
         }
 
-        // Adiciona o jogador à lista de ganhadores
+        // 2. Impede o jogador de pegar duas vezes na mesma chuva
+        if (rain.participants.has(interaction.user.id)) {
+            return interaction.reply({ 
+                content: '⚠️ Tu já agarraste a tua nota! Deixa um pouco para os outros malandros.', 
+                flags: [MessageFlags.Ephemeral] 
+            });
+        }
+
+        // Adiciona o jogador à lista temporária de ganhadores
         rain.participants.add(interaction.user.id);
 
+        // 3. Verifica se atingiu o limite de 5 pessoas
         if (rain.participants.size >= rain.max) {
-            // Atingiu o limite de 5 pessoas! Distribui o dinheiro!
+            // Atingiu o limite! Vamos distribuir a grana
             client.activeRains.delete(dropId);
             
             const slice = Math.floor(rain.amount / rain.max);
             const winners = Array.from(rain.participants);
             
-            // Entrega as moedas (O Upsert garante que se o cara for novo, a conta é criada)
+            // 🔥 ENTREGA OS R$ NA CARTEIRA (Dinheiro vivo na mão)
             for (const p of winners) {
                 await prisma.hypeUser.upsert({ 
                     where: { id: p }, 
-                    create: { id: p, hypeCash: slice },
-                    update: { hypeCash: { increment: slice } }
+                    create: { id: p, carteira: slice }, // Cria conta com saldo na carteira
+                    update: { carteira: { increment: slice } } // Incrementa saldo na carteira
                 });
             }
             
             const winnersMentions = winners.map(w => `<@${w}>`).join(', ');
             
+            // Edita a mensagem pública finalizando o evento
             await interaction.message.edit({
-                content: `💸 **CHUVA ENCERRADA!** O dinheiro acabou. 💸\n\nO Dono do Baile <@${rain.host}> bancou **${rain.amount} HC**!\n\n🏆 **Vencedores:** ${winnersMentions}\n💰 Cada um embolsou **${slice} HC** direto na conta!`,
-                components: []
+                content: `💸 **CHUVA ENCERRADA!** As notas acabaram. 💸\n\nO Patrão <@${rain.host}> bancou **R$ ${rain.amount.toLocaleString('pt-BR')}**!\n\n🏆 **Sortudos:** ${winnersMentions}\n💰 Cada um embolsou **R$ ${slice.toLocaleString('pt-BR')}** na carteira! Corram para o banco!`,
+                components: [],
+                files: [] // Remove o banner para limpar o chat após o fim
             });
             
-            await interaction.reply({ content: `✅ Boa! Você foi rápido e garantiu **${slice} HC** da chuva!`, flags: [MessageFlags.Ephemeral] });
+            await interaction.reply({ 
+                content: `✅ Boa! Foste rápido e garantiste **R$ ${slice.toLocaleString('pt-BR')}** da chuva!`, 
+                flags: [MessageFlags.Ephemeral] 
+            });
         } else {
-            // Ainda faltam pessoas, apenas avisa que ele está dentro
+            // Ainda não atingiu o limite de 5, apenas confirma a participação
             const faltam = rain.max - rain.participants.size;
-            await interaction.reply({ content: `✅ Você apanhou uma nota! Aguarde mais ${faltam} pessoa(s) para o prêmio ser dividido.`, flags: [MessageFlags.Ephemeral] });
+            await interaction.reply({ 
+                content: `✅ Pegaste uma nota no ar! Aguarda mais ${faltam} pessoa(s) para o prémio ser dividido.`, 
+                flags: [MessageFlags.Ephemeral] 
+            });
         }
     }
 };

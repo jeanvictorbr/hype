@@ -7,21 +7,33 @@ module.exports = {
 
     async execute(interaction, client) {
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+        
+        // Agora o valor é tratado como R$
         const amount = parseInt(interaction.fields.getTextInputValue('rain_amount'));
 
-        if (isNaN(amount) || amount < 500) return interaction.editReply({ content: '❌ O valor mínimo para a chuva é de 500 HC.' });
+        // Valor mínimo de R$ 500 para não floodarem o chat com centavos
+        if (isNaN(amount) || amount < 500) {
+            return interaction.editReply({ content: '❌ O valor mínimo para a chuva é de **R$ 500**.' });
+        }
 
         try {
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: interaction.user.id } });
-            if (!userProfile || userProfile.hypeCash < amount) return interaction.editReply({ content: '❌ Você não tem saldo suficiente para bancar essa chuva!' });
+            
+            // Verificação na CARTEIRA (dinheiro vivo)
+            if (!userProfile || userProfile.carteira < amount) {
+                return interaction.editReply({ content: '❌ Você não tem esse dinheiro todo na **carteira**! Vá ao banco sacar primeiro.' });
+            }
 
-            // Desconta o dinheiro e aplica cooldown
+            // 1. Desconta o dinheiro da CARTEIRA e atualiza o tempo da última chuva
             await prisma.hypeUser.update({
                 where: { id: interaction.user.id },
-                data: { hypeCash: { decrement: amount }, lastMoneyRain: new Date() }
+                data: { 
+                    carteira: { decrement: amount }, 
+                    lastMoneyRain: new Date() 
+                }
             });
 
-            // Cria um ID único para este evento no motor do Bot
+            // 2. Cria o ID do evento no motor do Bot
             const dropId = Date.now().toString();
             if (!client.activeRains) client.activeRains = new Map();
             
@@ -32,41 +44,56 @@ module.exports = {
                 host: interaction.user.id
             });
 
-            const btn = new ButtonBuilder().setCustomId(`eco_vip_rain_catch_${dropId}`).setLabel('Apanhar Dinheiro!').setStyle(ButtonStyle.Success).setEmoji('💰');
+            const btn = new ButtonBuilder()
+                .setCustomId(`eco_vip_rain_catch_${dropId}`)
+                .setLabel('Apanhar Grana!')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('💸');
 
-            // 🎨 1. GERA A IMAGEM PREMIUM (Dourada para a Chuva)
+            // 🎨 3. GERA A IMAGEM PREMIUM (Dourada)
             const bannerBuffer = await generateVipBanner(
                 interaction.user, 
                 interaction.guild, 
-                "CHUVA DE PRATA!", 
-                `💸 Atirou ${amount} HypeCash no ar!`, 
-                "#D4AF37" // Cor Dourada Premium
+                "CHUVA DE NOTAS!", 
+                `💸 Atirou R$ ${amount.toLocaleString('pt-BR')} no ar!`, 
+                "#D4AF37" 
             );
             
             const attachment = new AttachmentBuilder(bannerBuffer, { name: 'rain.png' });
 
-            // 2. Envia a mensagem pública com a Imagem e o Botão
+            // 4. Envia a mensagem pública
             const msg = await interaction.channel.send({
-                content: `💸 **<@${interaction.user.id}> enlouqueceu e atirou dinheiro no chat!**\nOs primeiros 5 a clicar no botão vão dividir **${amount} HC**! Corre!`,
-                files: [attachment], // Anexa a imagem gerada
+                content: `🎊 **OSTENTAÇÃO!** <@${interaction.user.id}> jogou dinheiro pro alto!\nOs primeiros 5 a clicar vão dividir **R$ ${amount.toLocaleString('pt-BR')}**!`,
+                files: [attachment],
                 components: [new ActionRowBuilder().addComponents(btn)]
             });
 
-            await interaction.editReply({ content: `✅ Chuva iniciada! Você atirou ${amount} moedas no chat e um banner foi gerado.` });
+            await interaction.editReply({ content: `✅ Sucesso! Você espalhou **R$ ${amount.toLocaleString('pt-BR')}** pelo chat.` });
 
-            // Cancela se ninguém pegar após 3 minutos
+            // 5. Sistema de Devolução (Caso ninguém pegue em 3 minutos)
             setTimeout(async () => {
                 const activeRain = client.activeRains?.get(dropId);
                 if (activeRain && activeRain.participants.size === 0) {
                     client.activeRains.delete(dropId);
-                    await msg.edit({ content: `🌬️ **O vento levou...** Ninguém apanhou o dinheiro a tempo. O valor foi devolvido ao Patrão.`, components: [], files: [] }).catch(()=>{});
-                    await prisma.hypeUser.update({ where: { id: activeRain.host }, data: { hypeCash: { increment: amount } }});
+                    
+                    // Edita a mensagem avisando que expirou
+                    await msg.edit({ 
+                        content: `🌬️ **O vento levou...** Ninguém apanhou o dinheiro a tempo. O valor foi devolvido para <@${activeRain.host}>.`, 
+                        components: [], 
+                        files: [] 
+                    }).catch(()=>{});
+
+                    // Devolve para a carteira do dono
+                    await prisma.hypeUser.update({ 
+                        where: { id: activeRain.host }, 
+                        data: { carteira: { increment: amount } }
+                    });
                 }
             }, 3 * 60 * 1000);
 
         } catch (error) { 
             console.error('Erro na Chuva de Dinheiro:', error); 
-            await interaction.editReply({ content: '❌ Ocorreu um erro interno ao processar a chuva de dinheiro.' });
+            await interaction.editReply({ content: '❌ Ocorreu um erro ao processar a chuva de R$.' });
         }
     }
 };
