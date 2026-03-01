@@ -1,22 +1,205 @@
 const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { prisma } = require('../../../core/database');
 const { generateProfileImage } = require('../../../utils/canvasProfile');
-
-
+const { generateBlackjackTable } = require('../../../utils/canvasBlackjack');
+const { generateRoletaImage } = require('../../../utils/canvasRoletaRussa');
+const { generateCrashImage } = require('../../../utils/canvasCrash');
+// Mapa global para guardar as mesas ativas por canal da Roleta Russa
+const ActiveTables = new Map();
 module.exports = {
     name: 'messageCreate',
     async execute(message, client) {
-        // Ignora bots e mensagens sem o prefixo Z (z ou Z)
-        if (message.author.bot || !message.content.toLowerCase().startsWith('z')) return;
+        // Ignora bots e mensagens sem o prefixo H (h ou H)
+        if (message.author.bot || !message.content.toLowerCase().startsWith('h')) return;
+        if (!client.activeRoleta) client.activeRoleta = ActiveTables;
 
         // Separa o comando dos argumentos
         const args = message.content.slice(1).trim().split(/ +/);
         const command = args.shift().toLowerCase();
-
 // ==========================================
+        // 🎰 GAME: Tigrinho (htigrinho)
+        // ==========================================
+        if (command === 'tigrinho' || command === 'tiger') {
+            const betInput = args[0];
+
+            if (!betInput) return message.reply('❌ **Uso correto:** `htigrinho <valor>` ou `htigrinho all`.');
+
+            const userId = message.author.id;
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado.');
+
+            let aposta = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            if (isNaN(aposta) || aposta <= 0) return message.reply('❌ Valor de aposta inválido.');
+            if (userProfile.carteira < aposta) return message.reply(`❌ Não tens **R$ ${aposta.toLocaleString('pt-BR')}** na carteira!`);
+
+            if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
+                return message.reply('⏳ A máquina está a ser reiniciada! Aguarda 5 segundos.');
+            }
+
+            // Desconta o dinheiro da CARTEIRA
+            await prisma.hypeUser.update({
+                where: { id: userId },
+                data: { carteira: { decrement: aposta }, lastGame: new Date() }
+            });
+
+// Dá uma indicação rápida e APAGA-A de seguida
+            const loadingMsg = await message.reply('🎰 A montar a máquina do Tigrinho...');
+
+            try {
+                await loadingMsg.delete().catch(() => {});
+
+                const cassinoEngine = require('../../economy/components/cassino_tigrinho_engine');
+                
+                // Passamos o CANAL diretamente. O Engine vai criar a mensagem visual pura!
+                // (canal, autor, client, aposta, isAuto, mensagemAntiga)
+                await cassinoEngine.run(message.channel, message.author, client, aposta, false, null);
+
+            } catch (error) {
+                console.error('Erro no Tigrinho Prefix:', error);
+                message.channel.send('❌ Ocorreu um erro na máquina.').catch(() => {});
+            }
+        }
+        // ==========================================
+        // 💣 GAME: Mines (hmines)
+        // ==========================================
+        if (command === 'mines') {
+            const betInput = args[0];
+
+            if (!betInput) return message.reply('❌ **Uso correto:** `hmines <valor>` ou `hmines all`.');
+
+            const userId = message.author.id;
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado.');
+
+            let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
+            if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
+
+            if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
+                return message.reply('⏳ Estão a plantar as bombas! Aguarda 5 segundos.');
+            }
+
+            // Cobra a Aposta da CARTEIRA
+            await prisma.hypeUser.update({
+                where: { id: userId },
+                data: { carteira: { decrement: betAmount }, lastGame: new Date() }
+            });
+
+            // Lógica do Grid
+            const totalTiles = 20;
+            const bombCount = 3;
+            let grid = Array(totalTiles).fill('gem');
+            for (let i = 0; i < bombCount; i++) { grid[i] = 'bomb'; }
+            
+            for (let i = grid.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [grid[i], grid[j]] = [grid[j], grid[i]];
+            }
+
+            if (!client.activeMines) client.activeMines = new Map();
+            client.activeMines.set(userId, { bet: betAmount, bombs: bombCount, grid: grid, clicked: [], hits: 0 });
+
+            // Importa as ferramentas da V2
+            const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('discord.js');
+
+            const header = new TextDisplayBuilder().setContent(`# 💣 MINES HYPE\nO campo minado de <@${userId}> começou!`);
+            const stats = new TextDisplayBuilder().setContent(`**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Multiplicador:** 1.00x\n**Lucro Atual:** R$ 0`);
+
+            const container = new ContainerBuilder()
+                .setAccentColor(0x2b2d31)
+                .addTextDisplayComponents(header)
+                .addSeparatorComponents(new SeparatorBuilder())
+                .addTextDisplayComponents(stats);
+
+            const rows = [];
+            for (let r = 0; r < 4; r++) {
+                const row = new ActionRowBuilder();
+                for (let c = 0; c < 5; c++) {
+                    const index = r * 5 + c;
+                    row.addComponents(
+                        new ButtonBuilder().setCustomId(`eco_mines_click_${index}_${userId}`).setStyle(ButtonStyle.Secondary).setEmoji('🔲')
+                    );
+                }
+                rows.push(row);
+            }
+
+            const actionRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`eco_mines_cashout_${userId}`).setLabel('💰 Retirar Lucro (R$ 0)').setStyle(ButtonStyle.Success).setDisabled(true)
+            );
+            rows.push(actionRow);
+
+            const { MessageFlags } = require('discord.js');
+            return message.reply({ components: [container, ...rows], flags: [MessageFlags.IsComponentsV2] });
+        }
+
+        // ==========================================
+        // 🔫 GAME: Roleta Russa (hroleta)
+        // ==========================================
+        if (command === 'roleta' || command === 'roletarussa') {
+            const betInput = args[0];
+            const canalId = message.channel.id;
+
+            if (!betInput) return message.reply('❌ **Uso correto:** `hroleta <valor_entrada>` (Ex: `hroleta 5k`)');
+
+            if (client.activeRoleta.has(canalId)) {
+                return message.reply('❌ Já existe uma mesa de Roleta Russa aberta neste canal! Esperem o jogo acabar.');
+            }
+
+            let valorAposta = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            if (isNaN(valorAposta) || valorAposta < 100) return message.reply('❌ A aposta mínima para abrir a mesa é de **R$ 100**.');
+
+            const dono = message.author;
+            
+            // Verifica se o dono tem o valor (embora ele só pague ao clicar)
+            const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
+            if (!userProfile || userProfile.carteira < valorAposta) {
+                return message.reply(`❌ Você não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira para garantires a tua cadeira.`);
+            }
+
+            const donoData = {
+                id: dono.id,
+                username: dono.username,
+                avatarBuffer: dono.displayAvatarURL({ extension: 'png', size: 128 }),
+                isDead: false
+            };
+
+            const mesa = {
+                donoId: dono.id,
+                valorAposta: valorAposta,
+                pot: 0, 
+                players: [donoData], 
+                estado: 'lobby'
+            };
+            client.activeRoleta.set(canalId, mesa);
+
+            const loadingMsg = await message.reply('🔫 A montar a mesa do submundo...');
+
+            try {
+                const imgBuffer = await generateRoletaImage('lobby', mesa.players, -1, mesa.pot);
+                const attachment = new AttachmentBuilder(imgBuffer, { name: 'roleta.png' });
+
+                const embed = new EmbedBuilder()
+                    .setColor('#2a0404')
+                    .setTitle('🔫 MESA DA MÁFIA ABERTA')
+                    .setDescription(`**Aposta por Cadeira:** R$ ${valorAposta.toLocaleString('pt-BR')}\n\nQualquer pessoa com dinheiro na carteira pode entrar! Quando a mesa tiver entre 2 e 6 jogadores, o dono da mesa pode mandar girar o tambor.`)
+                    .setImage('attachment://roleta.png');
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('eco_roleta_join').setLabel('Sentar e Pagar').setStyle(ButtonStyle.Success).setEmoji('💰'),
+                    new ButtonBuilder().setCustomId('eco_roleta_start').setLabel('Girar Tambor (Dono)').setStyle(ButtonStyle.Danger).setEmoji('🔫')
+                );
+
+                await loadingMsg.edit({ content: '', embeds: [embed], files: [attachment], components: [row] });
+
+            } catch (error) {
+                console.error('❌ Erro a gerar Lobby da Roleta:', error);
+                client.activeRoleta.delete(canalId); 
+                await loadingMsg.edit('❌ Erro a montar a mesa.');
+            }
+        }
+        // ==========================================
         // 🎭 MÓDULO SOCIAL (Cooldown 20m por Comando)
         // ==========================================
-        
         const gifs = {
             beijar: [
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYnh1dWhnczlzNWpwbWE3M3g4M3U1Nm5iNzNpZDU2aHR3ODU4Z2pnMyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/11rWoZNpAKw8w/giphy.gif',
@@ -46,7 +229,6 @@ module.exports = {
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjYzYWx1bDFuampvb3NxMXllYXQ0OHVjOG5pbDZlZWJvZG9obTZuaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/u9BxQbM5bxvwY/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjYzYWx1bDFuampvb3NxMXllYXQ0OHVjOG5pbDZlZWJvZG9obTZuaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/L2z7dnOduqEow/giphy.gif'
             ],
-            // 👇 NOVOS GIFS AQUI
             socar: [
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYngwbjU1ODdrcGl3bzBnaDc5NzBoZHdpeTAzaXY3M2o2ODFub3MxcyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/yo3TC0yeHd53G/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYngwbjU1ODdrcGl3bzBnaDc5NzBoZHdpeTAzaXY3M2o2ODFub3MxcyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/11HeubLHnQJSAU/giphy.gif',
@@ -66,7 +248,6 @@ module.exports = {
             'pat': { verb: 'fez um carinho fofo na cabeça de', type: 'pat', emoji: '🥰' },
             'socar': { verb: 'deu um soco com toda a força na cara de', type: 'socar', emoji: '🥊' },
             'cafune': { verb: 'fez um cafuné gostoso em', type: 'cafune', emoji: '💆' }
-        
         };
 
         if (socialCommands[command]) {
@@ -75,18 +256,15 @@ module.exports = {
             const targetUser = message.mentions.users.first();
 
             // 1. Verificações Básicas
-            if (!targetUser) return message.reply(`❌ Tens de mencionar alguém! Exemplo: \`z${command} @usuario\``);
+            if (!targetUser) return message.reply(`❌ Tens de mencionar alguém! Exemplo: \`h${command} @usuario\``);
             if (targetUser.id === authorId) return message.reply(`❌ Não podes fazer isso a ti mesmo(a)! Dá isso a outra pessoa!`);
             if (targetUser.bot) return message.reply(`😳 Eh lá... eu sou apenas um bot de sistema! Mas agradeço a intenção.`);
 
             // 2. Busca o utilizador no Banco de Dados
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: authorId } });
             
-            // 3. Define qual a coluna de cooldown com base no comando dinamicamente
-            // Ex: beijar -> lastBeijar, tapa -> lastTapa
+            // 3. Verifica Cooldown
             const columnString = 'last' + action.type.charAt(0).toUpperCase() + action.type.slice(1);
-            
-            // 4. Verifica o Cooldown Seguro (20 Minutos APENAS para este comando)
             const cooldownTime = 20 * 60 * 1000;
             if (userProfile && userProfile[columnString]) {
                 const now = new Date().getTime();
@@ -94,18 +272,31 @@ module.exports = {
 
                 if (now - lastTime < cooldownTime) {
                     const timeLeft = Math.ceil((cooldownTime - (now - lastTime)) / 1000);
-                    // UX Melhorada: Mostra o tempo formatado em Minutos e Segundos
                     const minutes = Math.floor(timeLeft / 60);
                     const seconds = timeLeft % 60;
-                    return message.reply(`⏳ **Descansa a mão!** Já usaste o \`z${command}\` há pouco tempo.\nPodes usá-lo de novo em **${minutes}m e ${seconds}s**.`);
+                    return message.reply(`⏳ **Descansa a mão!** Já usaste o \`h${command}\` há pouco tempo.\nPodes usá-lo de novo em **${minutes}m e ${seconds}s**.`);
                 }
             }
 
-            // 5. RNG (Probabilidade: 70% chance de dar certo)
-            const isSuccess = Math.random() > 0.30; 
-            const rewardAmount = isSuccess ? Math.floor(Math.random() * (350000 - 100000 + 1)) + 100000 : 0;
+// 💎 LÓGICA VIP (PROBABILIDADE & MULTIPLICADOR - PADRÃO ESCASSO)
+            const vipLevel = userProfile?.vipLevel || 0;
+            
+            // Define o multiplicador manualmente (como no Cofre VIP)
+            let vipMultiplier = 1.0;
+            if (vipLevel === 1) vipMultiplier = 1.5;
+            else if (vipLevel === 2) vipMultiplier = 2.0;
+            else if (vipLevel === 3) vipMultiplier = 3.0;
+            else if (vipLevel >= 4) vipMultiplier = 5.0;
+            else if (vipLevel >= 5) vipMultiplier = 5.0;
 
-            // 6. Prepara os dados para salvar no Banco dinamicamente apenas na coluna certa
+            // Chance de falha diminui com VIP (VIP 3 ou superior nunca falha)
+            const failChance = Math.max(0, 0.30 - (vipLevel * 0.10));
+            const isSuccess = Math.random() > failChance; 
+
+            // Recompensa Base (Baixa para dificultar: 150 a 500)
+            const baseReward = Math.floor(Math.random() * (500 - 150 + 1)) + 150;
+            const rewardAmount = isSuccess ? Math.floor(baseReward * vipMultiplier) : 0;
+            // 4. Salva no Banco
             const updateData = { carteira: { increment: rewardAmount } };
             updateData[columnString] = new Date(); 
             
@@ -118,7 +309,7 @@ module.exports = {
                 create: createData
             });
 
-// 7. Mensagens de Esquiva Amigáveis (Se o RNG bater nos 30%)
+            // 5. Mensagens de Esquiva (Falha)
             if (!isSuccess) {
                 let failMsg = '';
                 if (action.type === 'beijar') failMsg = `Opa! <@${targetUser.id}> fez um movimento de mestre e você acabou beijando o vento! 🌬️💋`;
@@ -129,61 +320,50 @@ module.exports = {
                 else if (action.type === 'socar') failMsg = `UOU! <@${targetUser.id}> fez uma esquiva digna de cinema e o seu soco passou direto! 🥊🎥`;
                 else if (action.type === 'cafune') failMsg = `<@${targetUser.id}> deu uma abaixadinha e você acabou fazendo cafuné no vazio! 💆‍♂️☁️`;
 
-                // Retorno amigável sem "humilhar" o jogador
                 return message.reply(`✨ **QUASE!**\n${failMsg}\n*(O tempo de descanso foi ativado, tente novamente em breve!)*`);
             }
 
-            // 8. Sucesso! Anexa a Imagem e envia fora do embed
+            // 6. Sucesso
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
-            const { AttachmentBuilder } = require('discord.js');
             const attachment = new AttachmentBuilder(randomGif, { name: 'animacao.gif' });
+            
+            let extraMsg = vipLevel > 0 ? `\n💎 **Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
 
             return message.reply({ 
-                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸 **SOCIAL REWARD:** Ganhaste **R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)`, 
+                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸 **VOCÊ GANHOU;**  **R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)${extraMsg}`, 
                 files: [attachment] 
             });
         }
+
         // ==========================================
-        // 📋 COMANDO: zwork / zcd (Painel Completo)
+        // 📋 COMANDO: htempo / hcd (Painel Completo)
         // ==========================================
-        if (command === 'work' || command === 'cd' || command === 'cooldowns') {
+        if (command === 'tempo' || command === 'cd' || command === 'cooldowns') {
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             
             if (!userProfile) {
-                return message.reply('❌ Ainda não tens um perfil registado. Usa o `zcarteira` para começares a jogar!');
+                return message.reply('❌ Ainda não tens um perfil registado. Usa o `hcarteira` para começares a jogar!');
             }
 
-            // Tempos de Cooldown Exatos (em milissegundos)
-            const dailyCD = 24 * 60 * 60 * 1000;         // 24 horas
-            const semanalCD = 7 * 24 * 60 * 60 * 1000;   // 7 dias
-            const mensalCD = 30 * 24 * 60 * 60 * 1000;   // 30 dias
-            const socialCD = 20 * 60 * 1000;             // 20 minutos
+            const dailyCD = 24 * 60 * 60 * 1000;
+            const semanalCD = 7 * 24 * 60 * 60 * 1000;
+            const mensalCD = 30 * 24 * 60 * 60 * 1000;
+            const socialCD = 20 * 60 * 1000;
 
-            // Função que gera a formatação visual (Disponível vs Tempo Restante)
             const makeLine = (name, lastDate, cooldownMs) => {
                 if (!lastDate) return `• ✅ **${name}**: \`Disponível.\``;
                 const lastTime = new Date(lastDate).getTime();
-                
-                if (Date.now() - lastTime >= cooldownMs) {
-                    return `• ✅ **${name}**: \`Disponível.\``;
-                }
-                
-                // Transforma em Timestamp Nativo do Discord para atualizar sozinho na tela
+                if (Date.now() - lastTime >= cooldownMs) return `• ✅ **${name}**: \`Disponível.\``;
                 const expireUnix = Math.floor((lastTime + cooldownMs) / 1000);
                 return `• ⏰ **${name}**: <t:${expireUnix}:R>`; 
             };
 
-            // Construção da lista de forma elegante e dividida
             let desc = `Confira os **cooldown's** abaixo:\n\n`;
-            
-            // Bloco de Economia / Salários
             desc += makeLine('Diário', userProfile.lastDaily, dailyCD) + '\n';
             desc += makeLine('Semanal', userProfile.lastSemanal, semanalCD) + '\n';
             desc += makeLine('Mensal', userProfile.lastMensal, mensalCD) + '\n\n';
             desc += makeLine('Roubar', userProfile.lastRob, 10 * 60 * 1000) + '\n';
-            
-            // Bloco de Interações RP
             desc += makeLine('Beijar', userProfile.lastBeijar, socialCD) + '\n';
             desc += makeLine('Abraçar', userProfile.lastAbracar, socialCD) + '\n';
             desc += makeLine('Cafuné', userProfile.lastCafune, socialCD) + '\n';
@@ -191,51 +371,258 @@ module.exports = {
             desc += makeLine('Morder', userProfile.lastMorder, socialCD) + '\n';
             desc += makeLine('Tapa', userProfile.lastTapa, socialCD) + '\n';
 
-            // Montagem do Embed Final
-            const { EmbedBuilder } = require('discord.js');
             const embed = new EmbedBuilder()
-                .setColor('#9b59b6') // Roxo Premium
+                .setColor('#9b59b6')
                 .setAuthor({ name: `⏰ Cooldown's de ${message.author.username}` })
                 .setDescription(desc)
-                .setThumbnail('https://cdn-icons-png.flaticon.com/512/3103/3103306.png') // Ícone de Ampulheta
-                .setFooter({ 
-                    text: 'O tempo passa devagar, não é? ⏳', 
-                    iconURL: message.author.displayAvatarURL({ dynamic: true }) 
-                });
+                .setThumbnail('https://cdn-icons-png.flaticon.com/512/3103/3103306.png')
+                .setFooter({ text: 'O tempo passa devagar, não é? ⏳', iconURL: message.author.displayAvatarURL({ dynamic: true }) });
 
             return message.reply({ embeds: [embed] });
         }
 
-  // ==========================================
-        // 🃏 GAME: Blackjack (zblackjack / zbj)
+        // ==========================================
+        // 💰 COMANDOS: hdiario / hsemanal / hmensal
+        // ==========================================
+        if (command === 'diario' || command === 'semanal' || command === 'mensal') {
+            const userId = message.author.id;
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+            
+            let cooldownTime;
+            let columnString;
+            let nomePremio;
+            let baseAmount;
+            let embedColor;
+
+            if (command === 'diario') {
+                cooldownTime = 24 * 60 * 60 * 1000;
+                columnString = 'lastDaily';
+                nomePremio = 'Salário Diário';
+                baseAmount = Math.floor(Math.random() * (25000 - 10000 + 1)) + 10000; // 10k a 25k
+                embedColor = '#3498db';
+            } else if (command === 'semanal') {
+                cooldownTime = 7 * 24 * 60 * 60 * 1000;
+                columnString = 'lastSemanal';
+                nomePremio = 'Salário Semanal';
+                baseAmount = Math.floor(Math.random() * (100000 - 50000 + 1)) + 50000; // 50k a 100k
+                embedColor = '#57F287';
+            } else if (command === 'mensal') {
+                cooldownTime = 30 * 24 * 60 * 60 * 1000;
+                columnString = 'lastMensal';
+                nomePremio = 'Salário Mensal';
+                baseAmount = Math.floor(Math.random() * (350000 - 200000 + 1)) + 200000; // 200k a 350k
+                embedColor = '#FEE75C';
+            }
+
+            if (userProfile && userProfile[columnString]) {
+                const now = new Date().getTime();
+                const lastTime = new Date(userProfile[columnString]).getTime();
+
+                if (now - lastTime < cooldownTime) {
+                    const expireUnix = Math.floor((lastTime + cooldownTime) / 1000);
+                    return message.reply(`⏳ **Calma lá, magnata!** Já recolheste o teu ${nomePremio}.\nPodes recolher de novo <t:${expireUnix}:R>.`);
+                }
+            }
+
+// 💎 LÓGICA VIP (PADRÃO ESCASSO)
+            const vipLevel = userProfile?.vipLevel || 0;
+            
+            let vipMultiplier = 1.0;
+            if (vipLevel === 1) vipMultiplier = 1.5;
+            else if (vipLevel === 2) vipMultiplier = 2.0;
+            else if (vipLevel === 3) vipMultiplier = 3.0;
+            else if (vipLevel >= 4) vipMultiplier = 5.0;
+             else if (vipLevel >= 5) vipMultiplier = 6.0;
+
+            const rewardAmount = Math.floor(baseAmount * vipMultiplier);
+
+            const updateData = { carteira: { increment: rewardAmount } };
+            updateData[columnString] = new Date();
+            const createData = { id: userId, carteira: rewardAmount };
+            createData[columnString] = new Date();
+
+            await prisma.hypeUser.upsert({
+                where: { id: userId },
+                update: updateData,
+                create: createData
+            });
+
+            let extraMsg = vipLevel > 0 ? `\n\n💎 **Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
+
+            const embed = new EmbedBuilder()
+                .setColor(embedColor)
+                .setTitle(`💰 ${nomePremio} Recolhido!`)
+                .setDescription(`Foste ao banco e levantaste a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}${extraMsg}\n\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
+                .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
+
+            return message.reply({ embeds: [embed] });
+        }
+        // ==========================================
+        // 💸 COMANDO: hpix / hpagar / htransferir
+        // ==========================================
+        if (command === 'pix' || command === 'pagar' || command === 'transferir') {
+            const targetUser = message.mentions.users.first();
+            const amountStr = args[1]; // Exemplo de uso: hpix @usuario 5000
+
+            if (!targetUser || !amountStr) {
+                return message.reply('❌ **Uso correto:** `hpix @usuario <valor>` ou `hpix @usuario all`');
+            }
+
+            if (targetUser.id === message.author.id) {
+                return message.reply('❌ Não podes fazer um Pix para ti mesmo!');
+            }
+
+            if (targetUser.bot) {
+                return message.reply('❌ Bots não têm conta no Hype Bank.');
+            }
+
+            const senderId = message.author.id;
+            const receiverId = targetUser.id;
+
+            let senderProfile = await prisma.hypeUser.findUnique({ where: { id: senderId } });
+            
+            // Lê o valor ('all', 'k', ou número)
+            let amount = parseInt(amountStr.replace(/k/g, '000').replace(/\./g, ''));
+            if (amountStr.toLowerCase() === 'tudo' || amountStr.toLowerCase() === 'all') {
+                amount = senderProfile?.hypeCash || 0;
+            }
+
+            if (isNaN(amount) || amount <= 0) {
+                return message.reply('❌ Valor inválido para transferência.');
+            }
+
+            // Verifica se o dinheiro está no Cartão (Banco)
+            if (!senderProfile || senderProfile.hypeCash < amount) {
+                return message.reply(`❌ **Saldo Insuficiente!** Tu não tens **R$ ${amount.toLocaleString('pt-BR')}** no teu Cartão Hype.\nO teu saldo atual é **R$ ${(senderProfile?.hypeCash || 0).toLocaleString('pt-BR')}**.\n*(Usa o \`hdep\` para depositar o dinheiro da mão)*`);
+            }
+
+            const loadingMsg = await message.reply('🔄 A contactar o Banco Central e a verificar dados...');
+
+            try {
+                // Transação segura: Tira de um, coloca noutro. Se falhar, reverte tudo.
+                await prisma.$transaction([
+                    prisma.hypeUser.update({
+                        where: { id: senderId },
+                        data: { hypeCash: { decrement: amount } }
+                    }),
+                    prisma.hypeUser.upsert({
+                        where: { id: receiverId },
+                        update: { hypeCash: { increment: amount } },
+                        create: { id: receiverId, hypeCash: amount }
+                    })
+                ]);
+
+                // Gera um ID Único de Transação
+                const txId = 'HYP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+                
+                // Gera o Comprovante Visual (Canvas)
+                const { generatePixReceipt } = require('../../../utils/canvasPix');
+                const imageBuffer = await generatePixReceipt(message.author, targetUser, amount, txId);
+                const attachment = new AttachmentBuilder(imageBuffer, { name: 'comprovante_pix.png' });
+
+                await loadingMsg.edit({
+                    content: `✅ **PIX CONCLUÍDO!**\n<@${senderId}> transferiu **R$ ${amount.toLocaleString('pt-BR')}** diretamente para a conta de <@${receiverId}>.`,
+                    files: [attachment]
+                });
+
+            } catch (error) {
+                console.error('❌ Erro no PIX:', error);
+                await loadingMsg.edit('❌ Ocorreu um erro no servidor do banco ao processar o teu Pix.');
+            }
+        }
+
+        // ==========================================
+        // 🔫 COMANDO: hroubar (Assalto a Jogadores)
+        // ==========================================
+        if (command === 'roubar' || command === 'assaltar') {
+            const authorId = message.author.id;
+            const targetUser = message.mentions.users.first();
+
+            if (!targetUser) return message.reply('❌ Precisas de mencionar a vítima! Exemplo: `hroubar @usuario`');
+            if (targetUser.id === authorId) return message.reply('❌ Queres roubar a ti próprio? Vai ao psicólogo, não ao bot!');
+            if (targetUser.bot) return message.reply('🤖 Roubar um bot? Eu não guardo notas de papel, só código!');
+
+            let [ladrao, vitima] = await Promise.all([
+                prisma.hypeUser.findUnique({ where: { id: authorId } }),
+                prisma.hypeUser.findUnique({ where: { id: targetUser.id } })
+            ]);
+
+            if (!ladrao) ladrao = await prisma.hypeUser.create({ data: { id: authorId } });
+            if (!vitima || vitima.carteira <= 0) {
+                return message.reply(`💨 **Vácuo!** <@${targetUser.id}> não tem nem um centavo na carteira. Não vale o esforço!`);
+            }
+
+            const cooldownRoubo = 10 * 60 * 1000;
+            if (ladrao.lastRob) {
+                const diff = Date.now() - new Date(ladrao.lastRob).getTime();
+                if (diff < cooldownRoubo) {
+                    const expireUnix = Math.floor((new Date(ladrao.lastRob).getTime() + cooldownRoubo) / 1000);
+                    return message.reply(`⏳ A polícia está de olho em ti! Espera até <t:${expireUnix}:R> para tentares outro assalto.`);
+                }
+            }
+
+            const sorteio = Math.random();
+            const sucesso = sorteio <= 0.45;
+
+            if (sucesso) {
+                const porcentagemRoubada = Math.random() * (1.0 - 0.2) + 0.2;
+                const valorFinal = Math.floor(vitima.carteira * porcentagemRoubada);
+
+                await prisma.$transaction([
+                    prisma.hypeUser.update({ where: { id: authorId }, data: { carteira: { increment: valorFinal }, lastRob: new Date() } }),
+                    prisma.hypeUser.update({ where: { id: targetUser.id }, data: { carteira: { decrement: valorFinal } } })
+                ]);
+
+                const embed = new EmbedBuilder()
+                    .setColor('#57F287')
+                    .setTitle('🥷 ASSALTO BEM SUCEDIDO!')
+                    .setDescription(`***Você passou a mão na carteira*** de <@${targetUser.id}> e fugiu num carro de fuga!\n\n💸 **Levou:** R$ ${valorFinal.toLocaleString('pt-BR')}\n*(Dinheiro adicionado à tua carteira)*`)
+                    .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nn/3o7TKMGpxS5O7E6pW0/giphy.gif');
+
+                return message.reply({ embeds: [embed] });
+
+            } else {
+                const multaBase = 50000;
+                const multaPorcentagem = Math.floor(ladrao.carteira * 0.10);
+                const multaFinal = Math.max(multaBase, multaPorcentagem);
+
+                await prisma.hypeUser.update({ 
+                    where: { id: authorId }, 
+                    data: { 
+                        carteira: { decrement: ladrao.carteira >= multaFinal ? multaFinal : ladrao.carteira },
+                        lastRob: new Date() 
+                    } 
+                });
+
+                return message.reply(`🚨 **TE PEGARAM!** O alarme disparou e a polícia chegou a tempo. <@${targetUser.id}> conseguiu fugir e tu tiveste de pagar **R$ ${multaFinal.toLocaleString('pt-BR')}** de fiança para sair da esquadra!`);
+            }
+        }
+
+        // ==========================================
+        // 🃏 GAME: Blackjack (hbj)
         // ==========================================
         if (command === 'blackjack' || command === 'bj') {
-            const args = message.content.split(' ');
-            const betInput = args[1];
+            const betInput = args[0];
 
-            if (!betInput) return message.reply('❌ **Uso correto:** `zbj <valor>` ou `zbj all`.');
+            if (!betInput) return message.reply('❌ **Uso correto:** `hbj <valor>` ou `hbj all`.');
 
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
-            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado. Usa o `zdiario` para começar!');
+            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado. Usa o `hdiario` para começar!');
 
-            // Sistema Inteligente de Apostas (Lê 'all' ou 'k')
             let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
             if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira! (Vai ao banco sacar)`);
 
-            // Cooldown
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
                 return message.reply('⏳ Calma! O Agiota ainda está a baralhar as cartas. Aguarda 5 segundos.');
             }
 
-            // Desconta o dinheiro da CARTEIRA
             await prisma.hypeUser.update({
                 where: { id: userId },
                 data: { carteira: { decrement: betAmount }, lastGame: new Date() }
             });
 
-            // Lógica do Deck
             function createDeck() {
                 const suits = ['♠', '♥', '♦', '♣'];
                 const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -268,7 +655,6 @@ module.exports = {
 
             const playerScore = calculateScore(playerHand);
 
-            // Gera a Imagem
             const imageBuffer = await generateBlackjackTable(playerHand, dealerHand, false);
             const attachment = new AttachmentBuilder(imageBuffer, { name: 'table.png' });
 
@@ -287,13 +673,12 @@ module.exports = {
         }
 
         // ==========================================
-        // 🚀 GAME: Crash (zcrash)
+        // 🚀 GAME: Crash (hcrash)
         // ==========================================
         if (command === 'crash') {
-            const args = message.content.split(' ');
-            const betInput = args[1];
+            const betInput = args[0];
 
-            if (!betInput) return message.reply('❌ **Uso correto:** `zcrash <valor>` ou `zcrash all`.');
+            if (!betInput) return message.reply('❌ **Uso correto:** `hcrash <valor>` ou `hcrash all`.');
 
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
@@ -307,13 +692,11 @@ module.exports = {
                 return message.reply('⏳ O foguetão ainda está a abastecer! Aguarda 5 segundos.');
             }
 
-            // Desconta o dinheiro
             await prisma.hypeUser.update({
                 where: { id: userId },
                 data: { carteira: { decrement: betAmount }, lastGame: new Date() }
             });
 
-            // Lógica de Explosão
             function getCrashPoint() {
                 const r = Math.random();
                 if (r < 0.05) return 1.00;
@@ -342,7 +725,6 @@ module.exports = {
 
             const gameMessage = await message.reply({ embeds: [embed], components: [cashoutBtn], files: [attachment] });
 
-            // O LOOP DO FOGUETÃO
             let stepRate = 0.15;
             while (true) {
                 await new Promise(r => setTimeout(r, 1800));
@@ -387,208 +769,53 @@ module.exports = {
 
             await gameMessage.edit({ embeds: [embed], components: [], files: [attachment], attachments: [] }).catch(() => {});
         }
+
         // ==========================================
-        // 🏆 COMANDOS: zrank / ztop / zrankglobal (Soma Total)
+        // 🏆 COMANDOS: hrank / htop / hrankglobal
         // ==========================================
         if (command === 'rank' || command === 'top' || command === 'rankglobal') {
             const isGlobal = command === 'rankglobal';
             
-            // 1. Puxa os usuários do Banco
-            // Se for global, pegamos os 100 mais ricos (em carteira) para garantir uma base boa
-            // Se for local, pegamos todos para poder filtrar quem é do servidor
-            const allUsersRaw = await prisma.hypeUser.findMany({
-                take: isGlobal ? 100 : 500, 
-            });
+            const allUsersRaw = await prisma.hypeUser.findMany({ take: isGlobal ? 100 : 500 });
 
-            // 2. Mágica do JS: Soma Carteira + Banco e Ordena
             let sortedUsers = allUsersRaw.map(u => ({
                 id: u.id,
                 total: (u.carteira || 0) + (u.banco || 0)
             })).sort((a, b) => b.total - a.total);
 
-            // 3. Se for Ranking Local, filtra apenas quem está no servidor atual
             if (!isGlobal) {
-                const guildMembers = await message.guild.members.fetch();
-                sortedUsers = sortedUsers
-                    .filter(u => guildMembers.has(u.id))
-                    .slice(0, 10);
+                sortedUsers = sortedUsers.filter(u => message.guild.members.cache.has(u.id)).slice(0, 10);
             } else {
                 sortedUsers = sortedUsers.slice(0, 10);
             }
 
             if (sortedUsers.length === 0) return message.reply('❌ Ninguém tem moedas por aqui ainda...');
 
-            // 4. Monta a lista visual
             let description = '';
             for (let i = 0; i < sortedUsers.length; i++) {
                 const u = sortedUsers[i];
-                // Busca o nome do usuário no cache ou coloca o ID se não encontrar
                 const userObj = client.users.cache.get(u.id);
                 const userTag = userObj ? userObj.username : `Usuário (${u.id})`;
-                
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `**${i + 1}.**`;
                 description += `${medal} **${userTag}** — \`R$ ${u.total.toLocaleString('pt-BR')}\`\n`;
             }
 
-            const { EmbedBuilder } = require('discord.js');
             const embed = new EmbedBuilder()
                 .setColor(isGlobal ? '#f1c40f' : '#3498db')
                 .setTitle(isGlobal ? '🌎 Ranking Global de Riqueza' : `🏆 Top Ricos — ${message.guild.name}`)
                 .setDescription(`Confira os jogadores mais poderosos (Carteira + Banco):\n\n${description}`)
                 .setThumbnail(isGlobal ? 'https://cdn-icons-png.flaticon.com/512/2947/2947656.png' : null)
-                .setFooter({ 
-                    text: `Consultado por ${message.author.username}`, 
-                    iconURL: message.author.displayAvatarURL({ dynamic: true }) 
-                });
+                .setFooter({ text: `Consultado por ${message.author.username}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
 
             return message.reply({ embeds: [embed] });
         }
-  // ==========================================
-        // 💰 COMANDOS: zdiario / zsemanal / zmensal (Salários)
+
         // ==========================================
-        if (command === 'diario' || command === 'semanal' || command === 'mensal') {
-            const userId = message.author.id;
-            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
-            
-            let cooldownTime;
-            let columnString;
-            let nomePremio;
-            let rewardAmount;
-            let embedColor;
-
-            // Define as regras dinamicamente com base no comando digitado
-            if (command === 'diario') {
-                cooldownTime = 24 * 60 * 60 * 1000; // 24 horas
-                columnString = 'lastDaily';         // Usa a mesma coluna do painel VIP
-                nomePremio = 'Salário Diário';
-                rewardAmount = Math.floor(Math.random() * (105000 - 50000 + 1)) + 50000; // 50k a 105k
-                embedColor = '#3498db'; // Azul
-            } else if (command === 'semanal') {
-                cooldownTime = 7 * 24 * 60 * 60 * 1000; // 7 dias
-                columnString = 'lastSemanal';
-                nomePremio = 'Salário Semanal';
-                rewardAmount = Math.floor(Math.random() * (400000 - 200000 + 1)) + 200000; // 200k a 400k
-                embedColor = '#57F287'; // Verde
-            } else if (command === 'mensal') {
-                cooldownTime = 30 * 24 * 60 * 60 * 1000; // 30 dias
-                columnString = 'lastMensal';
-                nomePremio = 'Salário Mensal';
-                rewardAmount = Math.floor(Math.random() * (650000 - 400000 + 1)) + 400000; // 400k a 650k
-                embedColor = '#FEE75C'; // Dourado
-            }
-
-            // Verifica o Cooldown (Usando a Tag de contagem regressiva nativa)
-            if (userProfile && userProfile[columnString]) {
-                const now = new Date().getTime();
-                const lastTime = new Date(userProfile[columnString]).getTime();
-
-                if (now - lastTime < cooldownTime) {
-                    const expireUnix = Math.floor((lastTime + cooldownTime) / 1000);
-                    return message.reply(`⏳ **Calma lá, magnata!** Já recolheste o teu ${nomePremio}.\nPodes recolher de novo <t:${expireUnix}:R>.`);
-                }
-            }
-
-            // Salva na Base de Dados e Adiciona o Dinheiro
-            const updateData = { carteira: { increment: rewardAmount } };
-            updateData[columnString] = new Date();
-            const createData = { id: userId, carteira: rewardAmount };
-            createData[columnString] = new Date();
-
-            await prisma.hypeUser.upsert({
-                where: { id: userId },
-                update: updateData,
-                create: createData
-            });
-
-            // Envia Embed Ostentação
-            const { EmbedBuilder } = require('discord.js');
-            const embed = new EmbedBuilder()
-                .setColor(embedColor)
-                .setTitle(`💰 ${nomePremio} Recolhido!`)
-                .setDescription(`Foste ao banco e levantaste a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
-                .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
-
-            return message.reply({ embeds: [embed] });
-        }
-        // ==========================================
-        // 🔫 COMANDO: zroubar (Assalto a Jogadores)
-        // ==========================================
-        if (command === 'roubar' || command === 'assaltar') {
-            const authorId = message.author.id;
-            const targetUser = message.mentions.users.first();
-
-            // 1. Verificações de Segurança
-            if (!targetUser) return message.reply('❌ Precisas de mencionar a vítima! Exemplo: `zroubar @usuario`');
-            if (targetUser.id === authorId) return message.reply('❌ Queres roubar a ti próprio? Vai ao psicólogo, não ao bot!');
-            if (targetUser.bot) return message.reply('🤖 Roubar um bot? Eu não guardo notas de papel, só código!');
-
-            // 2. Busca dados de ambos
-            let [ladrao, vitima] = await Promise.all([
-                prisma.hypeUser.findUnique({ where: { id: authorId } }),
-                prisma.hypeUser.findUnique({ where: { id: targetUser.id } })
-            ]);
-
-            if (!ladrao) ladrao = await prisma.hypeUser.create({ data: { id: authorId } });
-            if (!vitima || vitima.carteira <= 0) {
-                return message.reply(`💨 **Vácuo!** <@${targetUser.id}> não tem nem um centavo na carteira. Não vale o esforço!`);
-            }
-
-            // 3. Cooldown de Roubo (10 minutos para não virar spam)
-            const cooldownRoubo = 10 * 60 * 1000;
-            if (ladrao.lastRob) {
-                const diff = Date.now() - new Date(ladrao.lastRob).getTime();
-                if (diff < cooldownRoubo) {
-                    const expireUnix = Math.floor((new Date(ladrao.lastRob).getTime() + cooldownRoubo) / 1000);
-                    return message.reply(`⏳ A polícia está de olho em ti! Espera até <t:${expireUnix}:R> para tentares outro assalto.`);
-                }
-            }
-
-            // 4. Lógica de Sucesso (45% de chance)
-            const sorteio = Math.random();
-            const sucesso = sorteio <= 0.45;
-
-            if (sucesso) {
-                // Rouba entre 20% a 100% do que está na mão da vítima
-                const porcentagemRoubada = Math.random() * (1.0 - 0.2) + 0.2;
-                const valorFinal = Math.floor(vitima.carteira * porcentagemRoubada);
-
-                await prisma.$transaction([
-                    prisma.hypeUser.update({ where: { id: authorId }, data: { carteira: { increment: valorFinal }, lastRob: new Date() } }),
-                    prisma.hypeUser.update({ where: { id: targetUser.id }, data: { carteira: { decrement: valorFinal } } })
-                ]);
-
-                const { EmbedBuilder } = require('discord.js');
-                const embed = new EmbedBuilder()
-                    .setColor('#57F287')
-                    .setTitle('🥷 ASSALTO BEM SUCEDIDO!')
-                    .setDescription(`Tu passaste a mão na carteira de <@${targetUser.id}> e fugiste num carro de fuga!\n\n💸 **Levaste:** R$ ${valorFinal.toLocaleString('pt-BR')}\n*(Dinheiro adicionado à tua carteira)*`)
-                    .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nn/3o7TKMGpxS5O7E6pW0/giphy.gif');
-
-                return message.reply({ embeds: [embed] });
-
-            } else {
-                // FALHOU! Paga multa de 10% do que o ladrão tem na mão ou 50k (o que for maior)
-                const multaBase = 50000;
-                const multaPorcentagem = Math.floor(ladrao.carteira * 0.10);
-                const multaFinal = Math.max(multaBase, multaPorcentagem);
-
-                await prisma.hypeUser.update({ 
-                    where: { id: authorId }, 
-                    data: { 
-                        carteira: { decrement: ladrao.carteira >= multaFinal ? multaFinal : ladrao.carteira },
-                        lastRob: new Date() 
-                    } 
-                });
-
-                return message.reply(`🚨 **TE PEGARAM!** O alarme disparou e a polícia chegou a tempo. <@${targetUser.id}> conseguiu fugir e tu tiveste de pagar **R$ ${multaFinal.toLocaleString('pt-BR')}** de fiança para sair da esquadra!`);
-            }
-        }
-        // ==========================================
-        // 🚀 COMANDO: zperfil
+        // 🚀 COMANDO: hperfil
         // ==========================================
         if (command === 'perfil') {
             const targetUser = message.mentions.users.first() || message.author;
-            const isOwnProfile = targetUser.id === message.author.id; // Verifica se é o próprio perfil
+            const isOwnProfile = targetUser.id === message.author.id; 
 
             const loadingMsg = await message.reply('🔍 A procurar perfil...');
 
@@ -605,35 +832,23 @@ module.exports = {
                 const imageBuffer = await generateProfileImage(targetUser, userData, userRank);
                 const attachment = new AttachmentBuilder(imageBuffer, { name: 'profile.png' });
 
-                const embed = new EmbedBuilder()
-                    .setColor('#2b2d31')
-                    .setImage('attachment://profile.png');
-
+                const embed = new EmbedBuilder().setColor('#2b2d31').setImage('attachment://profile.png');
                 const components = [];
                 
-                // 👇 LÓGICA DE BOTÕES ADICIONADA AQUI!
                 if (isOwnProfile) {
-                    // Botões de Editar para o dono do perfil
                     const row = new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId('eco_profile_bio').setLabel('Editar Bio').setStyle(ButtonStyle.Secondary).setEmoji('✏️'),
                         new ButtonBuilder().setCustomId('eco_profile_theme').setLabel('Temas de Perfil').setStyle(userData.vipLevel > 0 ? ButtonStyle.Primary : ButtonStyle.Secondary).setEmoji('🎨').setDisabled(userData.vipLevel === 0) 
                     );
                     components.push(row);
                 } else {
-                    // Botão de Dar Fama para amigos
                     const row = new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId('eco_rep_btn').setLabel('Dar +Reputação').setStyle(ButtonStyle.Success).setEmoji('⭐')
                     );
                     components.push(row);
                 }
 
-                // Edita a mensagem incluindo a array de components (os botões)
-                await loadingMsg.edit({ 
-                    content: `Perfil de <@${targetUser.id}>`, 
-                    embeds: [embed], 
-                    files: [attachment],
-                    components: components 
-                });
+                await loadingMsg.edit({ content: `Perfil de <@${targetUser.id}>`, embeds: [embed], files: [attachment], components: components });
             } catch (err) {
                 console.error(err);
                 await loadingMsg.edit('❌ Erro ao gerar o perfil.');
@@ -641,32 +856,61 @@ module.exports = {
         }
 
         // ==========================================
-        // 🚀 COMANDO: zdepositar
+        // 🚀 COMANDOS BANCÁRIOS (Depósitos e Saques)
         // ==========================================
         if (command === 'depositar' || command === 'dep') {
             let valorStr = args[0];
-            if (!valorStr) return message.reply('❌ Tu precisas de dizer o valor! Exemplo: `zdepositar 100` ou `zdepositar tudo`');
+            if (!valorStr) return message.reply('❌ Tu precisas de dizer o valor! Exemplo: `hdepositar 100` ou `hdepositar tudo`');
 
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
             if (!user || user.carteira <= 0) return message.reply('❌ Não tens dinheiro na carteira para depositar.');
 
             let valor = parseInt(valorStr);
-            if (valorStr.toLowerCase() === 'tudo' || valorStr.toLowerCase() === 'all') {
-                valor = user.carteira;
-            }
+            if (valorStr.toLowerCase() === 'tudo' || valorStr.toLowerCase() === 'all') valor = user.carteira;
 
             if (isNaN(valor) || valor <= 0) return message.reply('❌ Valor inválido!');
-            if (user.carteira < valor) return message.reply(`❌ Só tens **R$ ${user.carteira}** na carteira.`);
+            if (user.carteira < valor) return message.reply(`❌ Só tens **R$ ${user.carteira.toLocaleString('pt-BR')}** na carteira.`);
 
-            await prisma.hypeUser.update({
-                where: { id: user.id },
-                data: { carteira: { decrement: valor }, hypeCash: { increment: valor } }
-            });
-
-            return message.reply(`✅ **Sucesso!** Tu depositaste **R$ ${valor}** no teu Cartão Hype! 🏦`);
+            await prisma.hypeUser.update({ where: { id: user.id }, data: { carteira: { decrement: valor }, hypeCash: { increment: valor } } });
+            return message.reply(`✅ **Sucesso!** Tu depositaste **R$ ${valor.toLocaleString('pt-BR')}** no teu Cartão Hype! 🏦`);
         }
-// ==========================================
-        // 🚀 COMANDO: zc / zcarteira
+
+        if (command === 'depall') {
+            const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
+            if (!user || user.carteira <= 0) return message.reply('❌ Não tens nenhum dinheiro na carteira para depositar.');
+            const valorTotal = user.carteira;
+
+            await prisma.hypeUser.update({ where: { id: user.id }, data: { carteira: { decrement: valorTotal }, hypeCash: { increment: valorTotal } } });
+            return message.reply(`✅ **Segurança Máxima!** Tu depositaste todo o teu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) no teu Cartão Hype! 🏦`);
+        }
+
+        if (command === 'sacar' || command === 'saque') {
+            let valorStr = args[0];
+            if (!valorStr) return message.reply('❌ Tu precisas de dizer o valor! Exemplo: `hsacar 100`');
+
+            const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
+            let valor = parseInt(valorStr);
+            if (valorStr.toLowerCase() === 'tudo') valor = user?.hypeCash || 0;
+
+            if (!user || isNaN(valor) || valor <= 0 || user.hypeCash < valor) {
+                return message.reply(`❌ Saldo insuficiente no banco. Tens **R$ ${(user?.hypeCash || 0).toLocaleString('pt-BR')}**.`);
+            }
+
+            await prisma.hypeUser.update({ where: { id: user.id }, data: { hypeCash: { decrement: valor }, carteira: { increment: valor } } });
+            return message.reply(`✅ **Saque feito!** Retiraste **R$ ${valor.toLocaleString('pt-BR')}** do banco. O dinheiro está na tua carteira. Cuidado nas ruas! 🔫`);
+        }
+
+        if (command === 'sacarall') {
+            const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
+            if (!user || user.hypeCash <= 0) return message.reply('❌ O teu banco está a zeros. Não tens nada para sacar.');
+            const valorTotal = user.hypeCash;
+
+            await prisma.hypeUser.update({ where: { id: user.id }, data: { hypeCash: { decrement: valorTotal }, carteira: { increment: valorTotal } } });
+            return message.reply(`✅ **Saque Total!** Retiraste todo o teu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) do banco. Cuidado nas ruas! 🔫`);
+        }
+
+        // ==========================================
+        // 🚀 COMANDO: hc / hcarteira
         // ==========================================
         if (command === 'c' || command === 'carteira') {
             const targetUser = message.mentions.users.first() || message.author;
@@ -680,82 +924,31 @@ module.exports = {
                 const imageBuffer = await generateWalletImage(targetUser, userData);
                 const attachment = new AttachmentBuilder(imageBuffer, { name: 'wallet.png' });
 
-                // 🔥 IMAGEM ENVIADA PURA POR FORA!
-                await loadingMsg.edit({ 
-                    content: `Carteira de <@${targetUser.id}>`, 
-                    files: [attachment] 
-                });
+                await loadingMsg.edit({ content: `Carteira de <@${targetUser.id}>`, files: [attachment] });
             } catch (err) {
                 console.error(err);
                 await loadingMsg.edit('❌ Erro ao gerar a carteira.');
             }
         }
+
         // ==========================================
-        // 🚀 COMANDO: zdepall (Depositar Tudo Rápido)
-        // ==========================================
-        if (command === 'depall') {
-            const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            
-            if (!user || user.carteira <= 0) {
-                return message.reply('❌ Não tens nenhum dinheiro na carteira para depositar.');
-            }
-
-            const valorTotal = user.carteira;
-
-            await prisma.hypeUser.update({
-                where: { id: user.id },
-                data: { 
-                    carteira: { decrement: valorTotal }, 
-                    hypeCash: { increment: valorTotal } 
-                }
-            });
-
-            return message.reply(`✅ **Segurança Máxima!** Tu depositaste todo o teu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) no teu Cartão Hype! 🏦`);
-        }
-        // ==========================================
-        // 🚀 COMANDO: zsacarall (Sacar Tudo Rápido)
-        // ==========================================
-        if (command === 'sacarall') {
-            const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            
-            if (!user || user.hypeCash <= 0) {
-                return message.reply('❌ O teu banco está a zeros. Não tens nada para sacar.');
-            }
-
-            const valorTotal = user.hypeCash;
-
-            await prisma.hypeUser.update({
-                where: { id: user.id },
-                data: { 
-                    hypeCash: { decrement: valorTotal }, 
-                    carteira: { increment: valorTotal } 
-                }
-            });
-
-            return message.reply(`✅ **Saque Total!** Retiraste todo o teu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) do banco. Cuidado nas ruas! 🔫`);
-        }
-        // ==========================================
-        // 🚀 COMANDO: zvip
+        // 🚀 COMANDO: hvip
         // ==========================================
         if (command === 'vip') {
-            // Permite ver o próprio cartão ou o de um amigo
             const targetUser = message.mentions.users.first() || message.author;
             const guildId = message.guild.id;
 
             const loadingMsg = await message.reply('💳 A imprimir o Cartão Hype...');
 
             try {
-                // 1. Busca os dados no Banco
                 let [userProfile, config] = await Promise.all([
                     prisma.hypeUser.findUnique({ where: { id: targetUser.id } }),
                     prisma.vipConfig.findUnique({ where: { guildId } })
                 ]);
 
-                // 2. Geração do Cartão (Caso a pessoa seja nova e não tenha)
                 if (!userProfile || !userProfile.cardNumber) {
                     const randomHex = () => Math.floor(Math.random() * 65535).toString(16).toUpperCase().padStart(4, '0');
                     const newCardNumber = `HYPE-${randomHex()}-${randomHex()}`;
-
                     userProfile = await prisma.hypeUser.upsert({
                         where: { id: targetUser.id },
                         update: { cardNumber: newCardNumber },
@@ -763,7 +956,6 @@ module.exports = {
                     });
                 }
 
-                // 3. Verificação do Nível VIP e Cargos
                 const member = await message.guild.members.fetch(targetUser.id).catch(() => null);
                 let vipRealLevel = 0;
                 let txtVip = "Membro Comum";
@@ -772,19 +964,18 @@ module.exports = {
 
                 if (member) {
                     if (userProfile.vipLevel >= 5) {
-                        vipRealLevel = 5; txtVip = "⭐ VIP SUPREME"; colorAccent = '#ED4245'; // Vermelho
+                        vipRealLevel = 5; txtVip = "⭐ VIP SUPREME"; colorAccent = '#ED4245'; 
                     } else if (userProfile.vipLevel === 4) {
-                        vipRealLevel = 4; txtVip = "⭐ VIP ELITE"; colorAccent = '#FEE75C'; // Dourado
+                        vipRealLevel = 4; txtVip = "⭐ VIP ELITE"; colorAccent = '#FEE75C'; 
                     } else if (userProfile.vipLevel === 3 || (config?.roleVip3 && member.roles.cache.has(config.roleVip3))) {
-                        vipRealLevel = 3; txtVip = "⭐ VIP EXCLUSIVE"; colorAccent = '#9b59b6'; // Roxo
+                        vipRealLevel = 3; txtVip = "⭐ VIP EXCLUSIVE"; colorAccent = '#9b59b6'; 
                     } else if (userProfile.vipLevel === 2 || (config?.roleVip2 && member.roles.cache.has(config.roleVip2))) {
-                        vipRealLevel = 2; txtVip = "⭐ VIP PRIME"; colorAccent = '#ffffff'; // Branco
+                        vipRealLevel = 2; txtVip = "⭐ VIP PRIME"; colorAccent = '#ffffff'; 
                     } else if (userProfile.vipLevel === 1 || (config?.roleVip1 && member.roles.cache.has(config.roleVip1))) {
-                        vipRealLevel = 1; txtVip = "⭐ VIP BOOSTER"; colorAccent = '#ff85cd'; // Rosa
+                        vipRealLevel = 1; txtVip = "⭐ VIP BOOSTER"; colorAccent = '#ff85cd'; 
                     }
                 }
 
-                // 4. Calcular a Validade do Plano
                 if (vipRealLevel > 0 && userProfile.vipExpiresAt) {
                     const now = new Date();
                     const expires = new Date(userProfile.vipExpiresAt);
@@ -802,21 +993,12 @@ module.exports = {
 
                 const saldoFormatado = (userProfile.hypeCash || 0).toLocaleString('pt-BR');
 
-                // 5. Gera a Arte Visual do Cartão
                 const { generateHypeCard } = require('../../../utils/canvasCard');
-                const cardBuffer = await generateHypeCard(
-                    targetUser,
-                    userProfile.cardNumber,
-                    saldoFormatado,
-                    vipRealLevel,
-                    txtVip,
-                    txtValidade
-                );
+                const cardBuffer = await generateHypeCard(targetUser, userProfile.cardNumber, saldoFormatado, vipRealLevel, txtVip, txtValidade);
                 
                 const attachment = new AttachmentBuilder(cardBuffer, { name: 'hypecard.png' });
                 const embed = new EmbedBuilder().setColor(colorAccent).setImage('attachment://hypecard.png');
 
-                // 6. Botões (Mostra apenas se o utilizador estiver a ver o seu próprio VIP)
                 const components = [];
                 if (targetUser.id === message.author.id) {
                     const row = new ActionRowBuilder().addComponents(
@@ -827,41 +1009,12 @@ module.exports = {
                     components.push(row);
                 }
 
-                // Substitui a mensagem de loading pelo resultado final
-                await loadingMsg.edit({
-                    content: `Acesso VIP de <@${targetUser.id}>`,
-                    embeds: [embed],
-                    files: [attachment],
-                    components: components
-                });
+                await loadingMsg.edit({ content: `**Acesso VIP** de <@${targetUser.id}>`, embeds: [embed], files: [attachment], components: components });
 
             } catch (error) {
-                console.error('❌ Erro ao abrir zvip:', error);
+                console.error('❌ Erro ao abrir hvip:', error);
                 await loadingMsg.edit('❌ Erro de sistema ao gerar o teu Cartão Hype. Tenta novamente.');
             }
-        }
-        // ==========================================
-        // 🚀 COMANDO: zsacar
-        // ==========================================
-        if (command === 'sacar' || command === 'saque') {
-            let valorStr = args[0];
-            if (!valorStr) return message.reply('❌ Tu precisas de dizer o valor! Exemplo: `zsacar 100`');
-
-            const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            let valor = parseInt(valorStr);
-
-            if (valorStr.toLowerCase() === 'tudo') valor = user?.hypeCash || 0;
-
-            if (!user || isNaN(valor) || valor <= 0 || user.hypeCash < valor) {
-                return message.reply(`❌ Saldo insuficiente no banco. Tens **R$ ${user?.hypeCash || 0}**.`);
-            }
-
-            await prisma.hypeUser.update({
-                where: { id: user.id },
-                data: { hypeCash: { decrement: valor }, carteira: { increment: valor } }
-            });
-
-            return message.reply(`✅ **Saque feito!** Retiraste **R$ ${valor}** do banco. O dinheiro está na tua carteira. Cuidado nas ruas! 🔫`);
         }
     }
 };

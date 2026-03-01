@@ -3,7 +3,7 @@ const { SlashCommandBuilder, ActionRowBuilder, UserSelectMenuBuilder, Permission
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('resetcooldowns')
-        .setDescription('🛠️ [Dev/Admin] Zere todos os tempos de recarga de um VIP.')
+        .setDescription('🛠️ [Dev/Admin] Zere todos os tempos de recarga de um Jogador ou VIP.')
         .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator), // Bloqueia para quem não é Admin!
 
     async execute(interaction, client) {
@@ -25,7 +25,7 @@ module.exports = {
         const row = new ActionRowBuilder().addComponents(menu);
 
         await interaction.reply({ 
-            content: '🛠️ **Modo Deus: Limpeza de Cooldowns**\nSelecione no menu abaixo qual jogador você deseja purificar. Isso irá zerar instantaneamente o **Daily, Apagão, Ditador, Anúncio Global, Chuva de Dinheiro e Limites de Tribunal**.', 
+            content: '🛠️ **Modo Deus: Limpeza de Cooldowns**\nSelecione no menu abaixo qual jogador você deseja purificar. Isso irá zerar instantaneamente **TODOS OS COOLDOWNS** (Diário, Semanal, Mensal, Sociais, Roubos, Jogos e Habilidades VIP).', 
             components: [row], 
             flags: [MessageFlags.Ephemeral] 
         });

@@ -8,7 +8,7 @@ module.exports = {
 
         // Trava de Segurança para ninguém roubar a máquina
         if (interaction.user.id !== ownerId) {
-            return interaction.reply({ content: '❌ Máquina ocupada! Digite `/tigrinho` para jogar na sua.', flags: [MessageFlags.Ephemeral] });
+            return interaction.reply({ content: '❌ Máquina ocupada! Digite `htigrinho` para jogar na sua.', flags: [MessageFlags.Ephemeral] });
         }
 
         // Cria a Janelinha para ele digitar o novo valor

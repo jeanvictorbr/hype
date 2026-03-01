@@ -54,14 +54,14 @@ module.exports = {
             });
             
             await interaction.reply({ 
-                content: `✅ Boa! Foste rápido e garantiste **R$ ${slice.toLocaleString('pt-BR')}** da chuva!`, 
+                content: `✅ Boa! Foi rápido e garantiu **R$ ${slice.toLocaleString('pt-BR')}** da chuva!`, 
                 flags: [MessageFlags.Ephemeral] 
             });
         } else {
             // Ainda não atingiu o limite de 5, apenas confirma a participação
             const faltam = rain.max - rain.participants.size;
             await interaction.reply({ 
-                content: `✅ Pegaste uma nota no ar! Aguarda mais ${faltam} pessoa(s) para o prémio ser dividido.`, 
+                content: `✅ Pegou uma nota no ar! Aguarda mais ${faltam} pessoa(s) para o prémio ser dividido.`, 
                 flags: [MessageFlags.Ephemeral] 
             });
         }

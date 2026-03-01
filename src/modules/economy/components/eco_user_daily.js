@@ -6,18 +6,27 @@ module.exports = {
     customId: 'eco_user_daily',
 
     async execute(interaction, client) {
-        // 👇 A MÁGICA AQUI: Abre como um Pop-Up Ephemeral para não destruir o Cartão VIP
-        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-        
         const userId = interaction.user.id;
-        const guildId = interaction.guild.id;
 
         try {
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             if (!userProfile) userProfile = await prisma.hypeUser.create({ data: { id: userId } });
 
+            // 1. BLOQUEIO F2P (Só VIPs podem usar)
+            if (!userProfile.vipLevel || userProfile.vipLevel === 0) {
+                // Devolve um aviso silencioso só para quem tentou clicar e não tem VIP
+                return interaction.reply({ 
+                    content: '❌ **Acesso Negado!** Este assalto de elite é exclusivo para membros **VIP**. Adquire o teu passe na Loja!', 
+                    flags: [MessageFlags.Ephemeral] 
+                });
+            }
+
+            // 2. AÇÃO PÚBLICA! Retirámos o Ephemeral para o suspense aparecer no chat
+            await interaction.deferReply(); 
+
             const now = new Date();
-            const lastDailyCheck = userProfile.lastDaily ? new Date(userProfile.lastDaily) : null;
+            // Usa a coluna independente do VIP (Para não chocar com o hdiario)
+            const lastDailyCheck = userProfile.lastVipDaily ? new Date(userProfile.lastVipDaily) : null;
 
             // ==========================================
             // CENA 1: CARRO JÁ ROUBADO (COOLDOWN)
@@ -34,7 +43,7 @@ module.exports = {
                 const embed = new EmbedBuilder()
                     .setColor('#ED4245')
                     .setTitle('🚨 ROTA LIMPA')
-                    .setDescription('As ruas estão vazias. O carro-forte já foi roubado hoje. Esconda-se e volte mais tarde!')
+                    .setDescription(`<@${userId}>, as ruas estão vazias. O carro-forte VIP já foi roubado hoje. Esconda-se e volte mais tarde!`)
                     .setImage('attachment://daily.png');
 
                 return interaction.editReply({ 
@@ -50,8 +59,8 @@ module.exports = {
 
             const hackEmbed = new EmbedBuilder()
                 .setColor('#3b82f6') // Azul
-                .setTitle('💻 INFILTRAÇÃO INICIADA')
-                .setDescription(`<@${userId}> está a desativar as câmeras da escolta armada...`)
+                .setTitle('💻 INFILTRAÇÃO VIP INICIADA')
+                .setDescription(`<@${userId}> está a desativar as câmeras de segurança máxima da escolta armada...`)
                 .setImage('attachment://daily.png');
 
             await interaction.editReply({ 
@@ -70,7 +79,7 @@ module.exports = {
             const detEmbed = new EmbedBuilder()
                 .setColor('#f59e0b') // Laranja/Vermelho
                 .setTitle('🧨 C4 PLANTADA!')
-                .setDescription(`Cuidado com a explosão! O cofre vai abrir a qualquer momento...`)
+                .setDescription(`Todos para o chão! O cofre VIP de <@${userId}> vai abrir a qualquer momento...`)
                 .setImage('attachment://daily.png');
 
             await interaction.editReply({ 
@@ -81,35 +90,38 @@ module.exports = {
             await new Promise(r => setTimeout(r, 2500));
 
             // ==========================================
-            // CENA 4: REVELAÇÃO DO PRÊMIO
+            // CENA 4: REVELAÇÃO DO PRÊMIO (Economia VIP)
             // ==========================================
-            const baseAmount = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
+            // Valor base entre 25k e 50k (Maior que o Diário Normal)
+            const baseAmount = Math.floor(Math.random() * (50000 - 25000 + 1)) + 25000;
             
+            // O Multiplicador que pediste! (Dobra a cada nível VIP)
             let multiplier = 1.0;
-            if (userProfile.vipLevel === 1) multiplier = 1.2;
-            else if (userProfile.vipLevel === 2) multiplier = 1.5;
-            else if (userProfile.vipLevel === 3) multiplier = 2.0;
-            else if (userProfile.vipLevel >= 4) multiplier = 3.0;
+            if (userProfile.vipLevel === 1) multiplier = 1.0;      // Nível 1: 25k - 50k
+            else if (userProfile.vipLevel === 2) multiplier = 2.0; // Nível 2: 50k - 100k
+            else if (userProfile.vipLevel === 3) multiplier = 4.0; // Nível 3: 100k - 200k
+            else if (userProfile.vipLevel >= 4) multiplier = 8.0;  // Nível 4+: 200k - 400k
 
             const finalAmount = Math.floor(baseAmount * multiplier);
 
+            // Guarda na nova coluna para não resetar o hdiario normal
             await prisma.hypeUser.update({
                 where: { id: userId },
                 data: { 
-                    carteira: { increment: finalAmount }, // 🔥 ATUALIZADO: Agora cai na carteira na mão (Risco)
-                    lastDaily: new Date() 
+                    carteira: { increment: finalAmount }, 
+                    lastVipDaily: new Date() 
                 }
             });
 
             const winBuffer = await generateDailyImage('success', finalAmount);
             const winAttachment = new AttachmentBuilder(winBuffer, { name: 'daily.png' });
 
-            let vipText = multiplier > 1 ? `\n*(Sua licença VIP multiplicou os ganhos em **x${multiplier}**!)*` : '';
+            let vipText = multiplier > 1 ? `\n\n💎 *(O seu passe VIP Nível ${userProfile.vipLevel} gerou um lucro de **x${multiplier}**!)*` : '';
             
             const winEmbed = new EmbedBuilder()
                 .setColor('#FEE75C') // Dourado Ouro
-                .setTitle('💰 CAIXA FORTE ABERTA!')
-                .setDescription(`Você entrou, roubou os malotes e saiu sem deixar rastros! O dinheiro foi para a sua **Carteira**. Cuidado nas ruas!${vipText}`)
+                .setTitle('💰 CAIXA FORTE VIP ABERTA!')
+                .setDescription(`<@${userId}> entrou, roubou os malotes e saiu de helicóptero! O dinheiro foi direto para a **Carteira**.\n\n💸 **Faturou:** R$ ${finalAmount.toLocaleString('pt-BR')}${vipText}`)
                 .setImage('attachment://daily.png');
 
             await interaction.editReply({ 
@@ -117,8 +129,8 @@ module.exports = {
             }).catch(() => {});
 
         } catch (error) {
-            console.error('❌ Erro no Daily Heist:', error);
-            await interaction.editReply({ content: '❌ Erro ao tentar assaltar o cofre.' }).catch(() => {});
+            console.error('❌ Erro no Daily Heist VIP:', error);
+            await interaction.editReply({ content: '❌ Erro ao tentar assaltar o cofre VIP.' }).catch(() => {});
         }
     }
 };

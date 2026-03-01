@@ -42,7 +42,32 @@ client.components = new Collection();
 console.log('🔄 [Core] Carregando módulos e componentes...');
 loadModules(client);
 vipChecker(client);
+// ==========================================
+// 🛡️ SISTEMA ANTI-CRASH SUPREMO
+// ==========================================
+process.on('unhandledRejection', (reason, promise) => {
+    console.log('🚨 [ANTI-CRASH] Uma Promessa foi rejeitada sem tratamento (Unhandled Rejection):');
+    console.log(reason);
+});
 
+process.on('uncaughtException', (error, origin) => {
+    console.log('🚨 [ANTI-CRASH] Erro crítico detetado (Uncaught Exception):');
+    console.log(error);
+});
+
+process.on('uncaughtExceptionMonitor', (error, origin) => {
+    console.log('🚨 [ANTI-CRASH] Erro crítico no Monitor (Uncaught Exception Monitor):');
+    console.log(error);
+});
+
+client.on('error', (error) => {
+    console.log('🔌 [ANTI-CRASH] Erro na conexão do Discord (Websocket Error):');
+    console.log(error);
+});
+
+client.on('warn', (info) => {
+    console.log('⚠️ [AVISO DO DISCORD]:', info);
+});
 // Liga o motor!
 client.login(process.env.DISCORD_TOKEN).then(() => {
     console.log('🚀 [Koda Studios] Nave online e pronta para escalar!');

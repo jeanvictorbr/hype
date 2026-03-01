@@ -18,11 +18,28 @@ module.exports = {
                 return interaction.editReply({ content: '❌ Este jogador não tem perfil na base de dados.', embeds: [], components: [] });
             }
 
-            // 1. Zera todos os timers do utilizador
+            // 1. Zera TODOS os timers do utilizador (Salários, Social, Jogos e VIP)
             await prisma.hypeUser.update({
                 where: { id: targetUserId },
                 data: {
+                    // Economia Base
                     lastDaily: null,
+                    lastSemanal: null,
+                    lastMensal: null,
+                    lastRob: null,
+                    lastGame: null,
+                    
+                    // Comandos Sociais
+                    lastBeijar: null,
+                    lastTapa: null,
+                    lastAbracar: null,
+                    lastMorder: null,
+                    lastPat: null,
+                    lastSocar: null,
+                    lastCafune: null,
+                    lastVipDaily: null,
+
+                    // VIP & Moderação
                     lastAnnounce: null,
                     lastTimeout: null,
                     lastBlackout: null,
@@ -42,7 +59,7 @@ module.exports = {
             }
 
             await interaction.editReply({ 
-                content: `✅ **Sucesso Absoluto!**\nOs cooldowns de <@${targetUserId}> foram expurgados da Matrix. Ele já pode voltar a usar as habilidades VIP.`, 
+                content: `✅ **Sucesso Absoluto!**\nTodos os cooldowns de <@${targetUserId}> (Salários, Ações Sociais, Jogos e VIP) foram purificados da Matrix! 💥`, 
                 embeds: [], 
                 components: [] 
             });

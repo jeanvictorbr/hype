@@ -48,7 +48,12 @@ model HypeUser {
   carteira   Int      @default(0) // 👈 ADICIONA ISTO: Dinheiro na mão
   createdAt     DateTime @default(now())
   // Cooldowns Sociais (Independentes)
+  // Cooldowns de Jogos
+  lastGame     DateTime?
+  wins         Int      @default(0)
+  losses       Int      @default(0)
   lastBeijar   DateTime?
+  lastVipDaily DateTime?
   lastTapa     DateTime?
   lastRob DateTime?
   lastAbracar  DateTime?
