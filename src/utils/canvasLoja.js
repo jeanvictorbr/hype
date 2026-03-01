@@ -2,36 +2,30 @@ const { createCanvas, loadImage } = require('canvas');
 const path = require('path');
 
 async function generateShopCatalog() {
-    // 🌃 Formato Quadrado Robusto (700x700)
     const canvas = createCanvas(700, 700);
     const ctx = canvas.getContext('2d');
 
-    // Fundo: Beco Noturno Dark
+    // Fundo Beco Noturno
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Gradiente Central para dar profundidade
     const grad = ctx.createRadialGradient(350, 350, 100, 350, 350, 450);
     grad.addColorStop(0, '#11112b'); 
     grad.addColorStop(1, '#000000');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Borda Neon Roxo Profundo
+    // Borda Neon
     ctx.strokeStyle = '#6a0dad';
     ctx.lineWidth = 10;
     ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
 
-    // Título Mercado Negro
+    // Título
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 50px sans-serif';
     ctx.textAlign = 'center';
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#6a0dad';
     ctx.fillText('MERCADO NEGRO', canvas.width / 2, 80);
-    ctx.shadowBlur = 0;
 
-    // Função interna para desenhar retângulos arredondados manualmente (Compatível)
     const drawRoundedRect = (x, y, w, h, r) => {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -46,28 +40,28 @@ async function generateShopCatalog() {
         ctx.closePath();
     };
 
-    // Função para desenhar os itens
-    const drawItem = (name, price, desc, y, emoji) => {
-        // Fundo do card
+    const drawItem = async (name, price, desc, y, imgUrl) => {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         drawRoundedRect(50, y, 600, 140, 15);
         ctx.fill();
-        
         ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Emoji (Aumentado para visualização clara)
-        ctx.font = '60px serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(emoji, 80, y + 90);
+        // Desenhar Imagem PNG (Ícone)
+        try {
+            const icon = await loadImage(imgUrl);
+            ctx.drawImage(icon, 70, y + 25, 90, 90);
+        } catch (e) {
+            ctx.fillStyle = '#fff';
+            ctx.font = '40px serif';
+            ctx.fillText('?', 110, y + 80);
+        }
 
-        // Título do Produto
+        ctx.textAlign = 'left';
         ctx.font = 'bold 24px sans-serif';
         ctx.fillStyle = '#9b59b6';
-        ctx.fillText(name, 170, y + 45);
+        ctx.fillText(name, 180, y + 45);
 
-        // Descrição com quebra de linha simples
         ctx.font = '18px sans-serif';
         ctx.fillStyle = '#cccccc';
         const words = desc.split(' ');
@@ -75,24 +69,23 @@ async function generateShopCatalog() {
         let ty = y + 75;
         for(let word of words) {
             if ((line + word).length > 40) {
-                ctx.fillText(line, 170, ty);
+                ctx.fillText(line, 180, ty);
                 line = word + ' ';
                 ty += 25;
             } else { line += word + ' '; }
         }
-        ctx.fillText(line, 170, ty);
+        ctx.fillText(line, 180, ty);
 
-        // Preço em Destaque
         ctx.font = 'bold 26px sans-serif';
         ctx.fillStyle = '#57F287';
         ctx.textAlign = 'right';
         ctx.fillText(`R$ ${price.toLocaleString('pt-BR')}`, 630, y + 120);
     };
 
-    // Lista de Produtos no Beco
-    drawItem('COLETE BALÍSTICO', 200000, 'Proteção total contra o próximo assalto. Uso único.', 150, '🛡️');
-    drawItem('PÉ DE CABRA', 100000, 'Aumenta em 15% a chance de roubo por 24 horas.', 320, '🔨');
-    drawItem('KIT DISFARCE', 150000, 'Corta 50% do valor de 3 multas policiais.', 490, '🎭');
+    // Usando links de ícones estáveis (PNG)
+    await drawItem('COLETE BALÍSTICO', 200000, 'Proteção total contra o próximo assalto. Uso único.', 150, 'https://cdn-icons-png.flaticon.com/512/3233/3233514.png');
+    await drawItem('PÉ DE CABRA', 100000, 'Aumenta em 15% a chance de roubo por 24 horas.', 320, 'https://cdn-icons-png.flaticon.com/512/3596/3596045.png');
+    await drawItem('KIT DISFARCE', 150000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png');
 
     return canvas.toBuffer();
 }

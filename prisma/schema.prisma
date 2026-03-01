@@ -52,7 +52,10 @@ model HypeUser {
   lastGame     DateTime?
   wins         Int      @default(0)
   losses       Int      @default(0)
-  disfarceUses   Int       @default(0)
+  // Colunas do Mercado Negro
+  hasColete         Boolean   @default(false)
+  peDeCabraExp      DateTime?
+  disfarceUses      Int       @default(0)
   lastChutar   DateTime?
   lastTocaaqui DateTime?
   lastDancar   DateTime?
