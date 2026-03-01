@@ -18,22 +18,29 @@ module.exports = {
             // ==========================================
             else if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
                 
+                // 👇 LISTA DE BLOQUEIO (IGNORAR COMPONENTES PROCESSADOS INLINE) 👇
+                // Se o ID do botão for da ajuda ou das apostas, este roteador ignora e sai.
+                // Isso evita o erro de "Unknown interaction" e conflitos com o messageCreate.
+                if (interaction.customId) {
+                    const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator'];
+                    if (inlineIds.some(id => interaction.customId.startsWith(id))) {
+                        return; // Aborta silenciosamente e deixa o messageCreate trabalhar
+                    }
+                }
+
                 // Tenta achar o arquivo do componente pelo ID exato
                 let component = client.components.get(interaction.customId);
                 
                 // Se não achar um ID exato, procura por componentes dinâmicos (Prefixos)
                 if (!component) {
-                    // 👇 A MÁGICA ESTÁ AQUI 👇
-                    // Pega TODOS os componentes cujo prefixo bate com o ID do botão
                     const matchingComponents = Array.from(client.components.values()).filter(c => 
                         c.customIdPrefix && interaction.customId.startsWith(c.customIdPrefix)
                     );
 
                     if (matchingComponents.length > 0) {
                         // Ordena pelo tamanho do prefixo (do MAIOR para o MENOR)
-                        // Assim, 'dev_config_vip_finance_' vence de 'dev_'
                         matchingComponents.sort((a, b) => b.customIdPrefix.length - a.customIdPrefix.length);
-                        component = matchingComponents[0]; // Pega o mais específico!
+                        component = matchingComponents[0]; 
                     }
                 }
 
@@ -41,7 +48,7 @@ module.exports = {
                 if (component) {
                     await component.execute(interaction, client);
                 } else {
-                    // ⚠️ SE NÃO ACHAR O ARQUIVO, AGORA ELE AVISA VOCÊ E O LOG!
+                    // Log apenas para IDs que realmente deveriam ter um arquivo e não têm
                     console.warn(`⚠️ [Roteador] Nenhum arquivo foi encontrado para processar o ID: ${interaction.customId}`);
                     
                     if (!interaction.replied && !interaction.deferred) {
