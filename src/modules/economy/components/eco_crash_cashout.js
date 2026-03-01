@@ -24,15 +24,15 @@ module.exports = {
         // Calcula os ganhos baseados no multiplicador do exato momento em que clicou
         const profit = Math.floor(game.bet * game.multiplier);
 
-        // Paga o jogador
+        // Paga o jogador na CARTEIRA
         await prisma.hypeUser.update({
             where: { id: ownerId },
-            data: { hypeCash: { increment: profit } }
+            data: { carteira: { increment: profit } }
         });
 
         // Dá uma resposta efémera a confirmar (O ecrã principal vai atualizar no loop)
         await interaction.reply({ 
-            content: `🪂 **Você saltou com segurança!** Garantiu um prémio de **${profit} HC**! O painel vai atualizar em instantes...`, 
+            content: `🪂 **Você saltou com segurança!** Garantiu um prémio de **R$ ${profit.toLocaleString('pt-BR')}**! O painel vai atualizar em instantes...`, 
             flags: [MessageFlags.Ephemeral] 
         });
     }

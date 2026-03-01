@@ -59,20 +59,21 @@ module.exports = {
             finalPrize = 0;
         }
 
+        // Paga na CARTEIRA (se houver prémio)
         if (finalPrize > 0) {
             await prisma.hypeUser.update({
                 where: { id: ownerId },
-                data: { hypeCash: { increment: finalPrize } }
+                data: { carteira: { increment: finalPrize } }
             });
         }
 
         const imageBuffer = await generateBlackjackTable(game.playerHand, game.dealerHand, true);
         const attachment = new AttachmentBuilder(imageBuffer, { name: 'table.png' });
 
-        let receiptText = `**Aposta:** ${game.bet} HC\n`;
-        if (finalPrize > game.bet) receiptText += `**Lucro:** 💰 +${finalPrize - game.bet} HC`;
-        else if (finalPrize === game.bet) receiptText += `**Devolvido:** ${game.bet} HC`;
-        else receiptText += `**Perdeu:** 💸 -${game.bet} HC`;
+        let receiptText = `**Aposta:** R$ ${game.bet.toLocaleString('pt-BR')}\n`;
+        if (finalPrize > game.bet) receiptText += `**Lucro:** 💰 +R$ ${(finalPrize - game.bet).toLocaleString('pt-BR')}`;
+        else if (finalPrize === game.bet) receiptText += `**Devolvido:** R$ ${game.bet.toLocaleString('pt-BR')}`;
+        else receiptText += `**Perdeu:** 💸 -R$ ${game.bet.toLocaleString('pt-BR')}`;
 
         const embed = new EmbedBuilder()
             .setColor(color)

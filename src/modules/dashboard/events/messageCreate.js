@@ -2,6 +2,7 @@ const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, Button
 const { prisma } = require('../../../core/database');
 const { generateProfileImage } = require('../../../utils/canvasProfile');
 
+
 module.exports = {
     name: 'messageCreate',
     async execute(message, client) {
@@ -205,55 +206,186 @@ module.exports = {
             return message.reply({ embeds: [embed] });
         }
 
-        // ==========================================
+  // ==========================================
         // 🃏 GAME: Blackjack (zblackjack / zbj)
         // ==========================================
         if (command === 'blackjack' || command === 'bj') {
             const args = message.content.split(' ');
-            const betInput = args[1]; // Ex: zbj 5000
+            const betInput = args[1];
 
             if (!betInput) return message.reply('❌ **Uso correto:** `zbj <valor>` ou `zbj all`.');
 
-            // 1. Busca perfil e verifica saldo na CARTEIRA
-            let userProfile = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            if (!userProfile) userProfile = await prisma.hypeUser.create({ data: { id: message.author.id } });
+            const userId = message.author.id;
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado. Usa o `zdiario` para começar!');
 
-            let betAmount;
-            if (betInput.toLowerCase() === 'all') {
-                betAmount = userProfile.carteira;
-            } else {
-                betAmount = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            // Sistema Inteligente de Apostas (Lê 'all' ou 'k')
+            let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
+            if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira! (Vai ao banco sacar)`);
+
+            // Cooldown
+            if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
+                return message.reply('⏳ Calma! O Agiota ainda está a baralhar as cartas. Aguarda 5 segundos.');
             }
 
+            // Desconta o dinheiro da CARTEIRA
+            await prisma.hypeUser.update({
+                where: { id: userId },
+                data: { carteira: { decrement: betAmount }, lastGame: new Date() }
+            });
+
+            // Lógica do Deck
+            function createDeck() {
+                const suits = ['♠', '♥', '♦', '♣'];
+                const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+                let deck = [];
+                for (let s of suits) for (let v of values) deck.push({ suit: s, value: v });
+                for (let i = deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [deck[i], deck[j]] = [deck[j], deck[i]];
+                }
+                return deck;
+            }
+
+            function calculateScore(hand) {
+                let score = 0; let aces = 0;
+                for (let card of hand) {
+                    if (['J', 'Q', 'K'].includes(card.value)) score += 10;
+                    else if (card.value === 'A') { score += 11; aces += 1; }
+                    else score += parseInt(card.value);
+                }
+                while (score > 21 && aces > 0) { score -= 10; aces -= 1; }
+                return score;
+            }
+
+            let deck = createDeck();
+            let playerHand = [deck.pop(), deck.pop()];
+            let dealerHand = [deck.pop(), deck.pop()];
+
+            if (!client.activeBlackjack) client.activeBlackjack = new Map();
+            client.activeBlackjack.set(userId, { bet: betAmount, deck, playerHand, dealerHand });
+
+            const playerScore = calculateScore(playerHand);
+
+            // Gera a Imagem
+            const imageBuffer = await generateBlackjackTable(playerHand, dealerHand, false);
+            const attachment = new AttachmentBuilder(imageBuffer, { name: 'table.png' });
+
+            const embed = new EmbedBuilder()
+                .setColor('#2b2d31')
+                .setTitle('🃏 BLACKJACK HYPE')
+                .setDescription(`**Jogador:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Seus Pontos:** ${playerScore}`)
+                .setImage('attachment://table.png');
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`eco_bj_hit_${userId}`).setLabel('Pedir Carta').setStyle(ButtonStyle.Primary).setEmoji('🃏'),
+                new ButtonBuilder().setCustomId(`eco_bj_stand_${userId}`).setLabel('Parar Mão').setStyle(ButtonStyle.Success).setEmoji('✋')
+            );
+
+            return message.reply({ embeds: [embed], components: [row], files: [attachment] });
+        }
+
+        // ==========================================
+        // 🚀 GAME: Crash (zcrash)
+        // ==========================================
+        if (command === 'crash') {
+            const args = message.content.split(' ');
+            const betInput = args[1];
+
+            if (!betInput) return message.reply('❌ **Uso correto:** `zcrash <valor>` ou `zcrash all`.');
+
+            const userId = message.author.id;
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado.');
+
+            let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
             if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
 
-            // 2. Cooldown de Proteção (5 segundos entre jogos)
-            const gameCD = 5000;
-            if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < gameCD)) {
-                return message.reply('⏳ Calma! Não jogues tão rápido, deixa as cartas serem baralhadas.');
+            if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
+                return message.reply('⏳ O foguetão ainda está a abastecer! Aguarda 5 segundos.');
             }
 
-            // 3. Integração com a lógica existente
-            // Importamos o executor do teu slash command original
-            // O caminho correto saindo de dashboard/events para economy/commands
-const bjFile = require('../../economy/commands/blackjack.js');
-            
-            // Criamos um objeto "Fake Interaction" para reaproveitar o código do /blackjack
-            const fakeInteraction = {
-                user: message.author,
-                guild: message.guild,
-                options: { getInteger: () => betAmount, getString: () => null },
-                reply: (data) => message.reply(data),
-                editReply: (data) => message.reply(data), // Ajuste conforme a necessidade do teu bj
-                deferReply: () => {},
-                followUp: (data) => message.channel.send(data)
-            };
+            // Desconta o dinheiro
+            await prisma.hypeUser.update({
+                where: { id: userId },
+                data: { carteira: { decrement: betAmount }, lastGame: new Date() }
+            });
 
-            await bjFile.execute(fakeInteraction, client);
+            // Lógica de Explosão
+            function getCrashPoint() {
+                const r = Math.random();
+                if (r < 0.05) return 1.00;
+                const multiplier = 1.00 / (1.00 - r * 0.95);
+                return parseFloat(multiplier.toFixed(2));
+            }
+
+            const crashPoint = getCrashPoint();
+            const gameState = { status: 'flying', multiplier: 1.00, crashPoint, bet: betAmount };
             
-            // Atualiza o tempo do último jogo no DB
-            await prisma.hypeUser.update({ where: { id: message.author.id }, data: { lastGame: new Date() } });
+            if (!client.activeCrash) client.activeCrash = new Map();
+            client.activeCrash.set(userId, gameState);
+
+            let imageBuffer = await generateCrashImage(gameState.multiplier, gameState.status);
+            let attachment = new AttachmentBuilder(imageBuffer, { name: 'crash.png' });
+
+            const embed = new EmbedBuilder()
+                .setColor('#FEE75C')
+                .setTitle('🚀 CRASH HYPE')
+                .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n\n🟢 O foguetão está a subir! Pule antes que exploda!`)
+                .setImage('attachment://crash.png');
+
+            const cashoutBtn = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`eco_crash_cashout_${userId}`).setLabel('💰 PULAR DO FOGUETE').setStyle(ButtonStyle.Success)
+            );
+
+            const gameMessage = await message.reply({ embeds: [embed], components: [cashoutBtn], files: [attachment] });
+
+            // O LOOP DO FOGUETÃO
+            let stepRate = 0.15;
+            while (true) {
+                await new Promise(r => setTimeout(r, 1800));
+                
+                const currentGameState = client.activeCrash.get(userId);
+                if (!currentGameState || currentGameState.status !== 'flying') break;
+
+                gameState.multiplier += stepRate;
+                stepRate *= 1.3; 
+                let currentMult = parseFloat(gameState.multiplier.toFixed(2));
+
+                if (currentMult >= gameState.crashPoint) {
+                    gameState.multiplier = gameState.crashPoint;
+                    gameState.status = 'crashed';
+                    client.activeCrash.set(userId, gameState);
+                    break; 
+                }
+
+                imageBuffer = await generateCrashImage(gameState.multiplier, gameState.status);
+                attachment = new AttachmentBuilder(imageBuffer, { name: 'crash.png' });
+
+                embed.setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n\n🟢 O foguetão está a subir! Pule antes que exploda!`);
+                await gameMessage.edit({ embeds: [embed], components: [cashoutBtn], files: [attachment], attachments: [] }).catch(() => {});
+            }
+
+            const finalState = client.activeCrash.get(userId) || gameState;
+            client.activeCrash.delete(userId);
+
+            imageBuffer = await generateCrashImage(finalState.multiplier, finalState.status);
+            attachment = new AttachmentBuilder(imageBuffer, { name: 'crash.png' });
+
+            if (finalState.status === 'crashed') {
+                embed.setColor('#ED4245')
+                     .setTitle('💥 FOGUETÃO DESTRUÍDO')
+                     .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Perdeu:** 💸 -R$ ${betAmount.toLocaleString('pt-BR')}\n\nDemorou muito tempo! O foguetão explodiu em **${finalState.crashPoint}x**.`);
+            } else if (finalState.status === 'cashed_out') {
+                const profit = Math.floor(betAmount * finalState.multiplier);
+                embed.setColor('#57F287')
+                     .setTitle('💸 RETIRADA SEGURA!')
+                     .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Lucro Total:** 💰 +R$ ${profit.toLocaleString('pt-BR')}\n\nSaltou do foguetão em **${finalState.multiplier.toFixed(2)}x** em segurança!`);
+            }
+
+            await gameMessage.edit({ embeds: [embed], components: [], files: [attachment], attachments: [] }).catch(() => {});
         }
         // ==========================================
         // 🏆 COMANDOS: zrank / ztop / zrankglobal (Soma Total)
