@@ -417,36 +417,49 @@ module.exports = {
             return message.reply({ embeds: [embed] });
         }
 
-// ==========================================
-        // 🛒 COMANDO: hloja / hmercado (Visual Canvas)
-        // ==========================================
-        if (command === 'loja' || command === 'mercado') {
-            const userId = message.author.id;
-            const loadingMsg = await message.reply('🔄 A aceder aos servidores encriptados do Mercado Negro...');
+if (command === 'loja' || command === 'mercado') {
+            const { StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
+            const { generateShopCatalog } = require('../../../utils/canvasLoja');
+            
+            const loadingMsg = await message.reply('🔍 Entrando na Deep Web...');
 
             try {
-                // Importa o gerador de arte visual
-                const { generateShopCatalog } = require('../../../utils/canvasLoja');
-                const { AttachmentBuilder } = require('discord.js');
-                
-                // Gera a imagem do catálogo
                 const imageBuffer = await generateShopCatalog();
-                const attachment = new AttachmentBuilder(imageBuffer, { name: 'catalogo.png' });
+                const attachment = new AttachmentBuilder(imageBuffer, { name: 'loja.png' });
 
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId(`eco_shop_colete_${userId}`).setLabel('Comprar Colete').setStyle(ButtonStyle.Secondary).setEmoji('🛡️'),
-                    new ButtonBuilder().setCustomId(`eco_shop_pecabra_${userId}`).setLabel('Comprar Pé de Cabra').setStyle(ButtonStyle.Secondary).setEmoji('🪓')
-                    // Adiciona o botão do Kit de Disfarce quando implementares a lógica dele!
-                    //new ButtonBuilder().setCustomId(`eco_shop_disfarce_${userId}`).setLabel('Comprar Kit Disfarce').setStyle(ButtonStyle.Secondary).setEmoji('👀')
-                );
+                const select = new StringSelectMenuBuilder()
+                    .setCustomId(`eco_shop_buy_${message.author.id}`)
+                    .setPlaceholder('Escolha o item que deseja comprar...')
+                    .addOptions(
+                        new StringSelectMenuOptionBuilder()
+                            .setLabel('Colete Balístico')
+                            .setDescription('R$ 200.000 - Proteção contra 1 roubo')
+                            .setEmoji('🛡️')
+                            .setValue('colete'),
+                        new StringSelectMenuOptionBuilder()
+                            .setLabel('Pé de Cabra')
+                            .setDescription('R$ 100.000 - Buff de roubo (24h)')
+                            .setEmoji('🔨')
+                            .setValue('pecabra'),
+                        new StringSelectMenuOptionBuilder()
+                            .setLabel('Kit de Disfarce')
+                            .setDescription('R$ 150.000 - 50% de desconto em 3 multas')
+                            .setEmoji('🎭')
+                            .setValue('disfarce')
+                    );
 
-                // Apaga a mensagem antiga e envia o catálogo visual
+                const row = new ActionRowBuilder().addComponents(select);
+
                 await loadingMsg.delete().catch(() => {});
-                return message.channel.send({ content: `<@${userId}>, confirma o catálogo ilegal do Hype Bot:`, files: [attachment], components: [row] });
+                return message.channel.send({ 
+                    content: `📦 **Mercado Negro aberto para <@${message.author.id}>**`, 
+                    files: [attachment], 
+                    components: [row] 
+                });
 
             } catch (error) {
-                console.error('❌ Erro a gerar Catálogo Visual:', error);
-                await loadingMsg.edit('❌ Ocorreu um erro ao abrir a loja. O traficante fugiu!');
+                console.error(error);
+                await loadingMsg.edit('❌ O fornecedor desapareceu nas sombras.');
             }
         }
         // ==========================================

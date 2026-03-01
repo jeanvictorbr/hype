@@ -2,133 +2,85 @@ const { createCanvas, loadImage } = require('canvas');
 const path = require('path');
 
 async function generateShopCatalog() {
-    // 📱 Tamanho do catálogo (Estilo Mobile / Vertical)
-    const canvas = createCanvas(450, 750);
+    // 🌃 Formato Quadrado e Robusto
+    const canvas = createCanvas(700, 700);
     const ctx = canvas.getContext('2d');
 
-    // ==========================================
-    // Fundo e Estilização Geral
-    // ==========================================
-    // Fundo Escuro Metalizado
-    ctx.fillStyle = '#0a0a0c';
+    // Fundo: Beco Noturno Dark
+    ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Borda Neon (PURPLE / GREEN)
-    ctx.strokeStyle = '#9b59b6'; // Roxo Hype
-    ctx.lineWidth = 4;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-
-    // Gradiente de Fundo sutil
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#1a1a1e');
-    gradient.addColorStop(0.5, '#0a0a0c');
-    gradient.addColorStop(1, '#1a1a1e');
-    ctx.fillStyle = gradient;
+    // Textura de "Parede de Tijolos" ou Vinheta
+    const grad = ctx.createRadialGradient(350, 350, 100, 350, 350, 450);
+    grad.addColorStop(0, '#1a1a2e'); // Centro levemente azulado
+    grad.addColorStop(1, '#000000'); // Bordas pretas
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // ==========================================
-    // Cabeçalho (Header)
-    // ==========================================
-    // Logo Hype (Usa o logo.png que já tens no src/utils/)
-    try {
-        const logoPath = path.join(__dirname, 'logo.png');
-        const logo = await loadImage(logoPath);
-        const logoWidth = 100;
-        const logoHeight = (logo.height / logo.width) * logoWidth;
-        ctx.drawImage(logo, (canvas.width / 2) - (logoWidth / 2), 20, logoWidth, logoHeight);
-    } catch (e) {
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 30px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('HYPE', canvas.width / 2, 70);
-    }
+    // Borda Neon Roxo Profundo
+    ctx.strokeStyle = '#6a0dad';
+    ctx.lineWidth = 10;
+    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
 
-    // Título do Catálogo
+    // Título Estilo Grafite
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 26px sans-serif';
+    ctx.font = 'bold 50px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('CATÁLOGO ILEGAL', canvas.width / 2, 130);
-    
-    // Subtítulo
-    ctx.fillStyle = '#9b59b6';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText('MERCADO NEGRO', canvas.width / 2, 160);
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#6a0dad';
+    ctx.fillText('MERCADO NEGRO', canvas.width / 2, 80);
+    ctx.shadowBlur = 0; // Reset sombra
 
-    // ==========================================
-    // SISTEMA DE PRODUTOS
-    // ==========================================
-    // Função para desenhar cada card de produto
-    const drawProductCard = (title, desc, price, y, iconEmoji) => {
-        // Retângulo de Fundo do Card
-        ctx.fillStyle = '#1a1a1e';
-        ctx.strokeStyle = '#34495e';
+    // Logo Hype pequena no canto
+    try {
+        const logo = await loadImage(path.join(__dirname, 'logo.png'));
+        ctx.drawImage(logo, 20, 20, 60, 60);
+    } catch (e) {}
+
+    // Função para desenhar Itens no Beco
+    const drawItem = (name, price, desc, y, emoji) => {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.roundRect ? ctx.fillRoundedRect(50, y, 600, 140, 15) : ctx.fillRect(50, y, 600, 140);
+        
+        ctx.strokeStyle = '#333';
         ctx.lineWidth = 2;
-        ctx.fillRect(30, y, canvas.width - 60, 160);
-        ctx.strokeRect(30, y, canvas.width - 60, 160);
+        ctx.strokeRect(50, y, 600, 140);
 
-        // Ícone/Emoji Gigante
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '50px serif';
+        // Emoji/Ícone (Aumentado para não bugar)
+        ctx.font = '60px Arial';
         ctx.textAlign = 'left';
-        ctx.fillText(iconEmoji, 50, y + 80);
+        ctx.fillText(emoji, 80, y + 90);
 
-        // Título e Descrição (Mais para a direita)
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillText(title, 130, y + 35);
-        
-        ctx.fillStyle = '#a1a1aa';
-        ctx.font = '16px sans-serif';
-        
-        // Wrap de Texto Manual para a descrição
-        const wrapText = (text, x, startY, maxWidth) => {
-            const words = text.split(' ');
-            let line = '';
-            for(let n = 0; n < words.length; n++) {
-                let testLine = line + words[n] + ' ';
-                let metrics = ctx.measureText(testLine);
-                if (metrics.width > maxWidth && n > 0) {
-                    ctx.fillText(line, x, startY);
-                    line = words[n] + ' ';
-                    startY += 20; 
-                } else { line = testLine; }
-            }
-            ctx.fillText(line, x, startY);
+        // Textos
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillStyle = '#9b59b6';
+        ctx.fillText(name, 170, y + 45);
+
+        ctx.font = '18px sans-serif';
+        ctx.fillStyle = '#cccccc';
+        // Wrap simples
+        const words = desc.split(' ');
+        let line = '';
+        let ty = y + 75;
+        for(let word of words) {
+            if ((line + word).length > 45) {
+                ctx.fillText(line, 170, ty);
+                line = word + ' ';
+                ty += 25;
+            } else { line += word + ' '; }
         }
-        wrapText(desc, 130, y + 65, canvas.width - 200);
+        ctx.fillText(line, 170, ty);
 
-        // Preço (Destaque Neon Verde)
+        // Preço Neon
+        ctx.font = 'bold 26px sans-serif';
         ctx.fillStyle = '#57F287';
-        ctx.font = 'bold 22px sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`R$ ${price.toLocaleString('pt-BR')}`, canvas.width - 50, y + 140);
-    }
+        ctx.fillText(`R$ ${price.toLocaleString('pt-BR')}`, 630, y + 120);
+    };
 
-    // DESENHAR OS PRODUTOS
-    drawProductCard(
-        'COLETE BALÍSTICO VIP', 
-        'Proteção total contra o próximo assalto. Quebra após 1 uso. Segurança para magnatas.',
-        200000, 200, '🛡️'
-    );
-    drawProductCard(
-        'PÉ DE CABRA DE TITÂNIO', 
-        'Facilita o acesso a carteiras trancadas. +15% de chance de sucesso por 24 horas.',
-        100000, 380, '🪓'
-    );
-    drawProductCard(
-        'KIT DE DISFARCE HYPE', 
-        'Diminui o valor da multa ao ser pego pela polícia em 50%. Válido por 3 roubos.',
-        150000, 560, '👀'
-    );
-
-    // ==========================================
-    // Rodapé (Footer)
-    // ==========================================
-    ctx.fillStyle = '#a1a1aa';
-    ctx.font = '14px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Compras cobradas diretamente do seu Cartão Hype. Koda Studios.', canvas.width / 2, 730);
+    drawItem('COLETE BALÍSTICO', 200000, 'Proteção total contra o próximo assalto. Uso único.', 150, '🛡️');
+    drawItem('PÉ DE CABRA', 100000, 'Aumenta em 15% a chance de roubo por 24 horas.', 320, '🔨');
+    drawItem('KIT DISFARCE', 150000, 'Corta 50% do valor de 3 multas policiais.', 490, '🎭');
 
     return canvas.toBuffer();
 }

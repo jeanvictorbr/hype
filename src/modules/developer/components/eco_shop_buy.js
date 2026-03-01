@@ -2,74 +2,49 @@ const { MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
 
 module.exports = {
-    // Captura qualquer botão que comece com eco_shop_
-    customIdPrefix: 'eco_shop_',
+    customIdPrefix: 'eco_shop_buy_', // Note que agora o ID termina no ID do usuário
 
     async execute(interaction) {
-        const parts = interaction.customId.replace('eco_shop_', '').split('_');
-        const item = parts[0]; // 'colete' ou 'pecabra'
-        const ownerId = parts[1];
+        const ownerId = interaction.customId.replace('eco_shop_buy_', '');
+        const item = interaction.values[0]; // Pega o valor selecionado no menu
 
-        // Trava de segurança para impedir terceiros de clicarem
         if (interaction.user.id !== ownerId) {
-            return interaction.reply({ content: '❌ Usa o comando `hloja` para abrires o teu próprio balcão de compras!', flags: [MessageFlags.Ephemeral] });
+            return interaction.reply({ content: '❌ Esta loja não é tua!', flags: [MessageFlags.Ephemeral] });
         }
 
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
         try {
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: ownerId } });
-            if (!userProfile) return interaction.editReply('❌ Não tens registo na economia.');
-
-            // Preços e Regras
-            const prices = {
-                'colete': 300000,
-                'pecabra': 250000
-            };
+            
+            const prices = { 'colete': 200000, 'pecabra': 100000, 'disfarce': 150000 };
             const itemPrice = prices[item];
 
-            // Verifica se tem dinheiro no Banco
             if (userProfile.hypeCash < itemPrice) {
-                return interaction.editReply(`❌ O traficante recusa-se a vender. Precisas de **R$ ${itemPrice.toLocaleString('pt-BR')}** no **Banco (Cartão)** para comprar isto.`);
+                return interaction.editReply(`❌ Precisas de **R$ ${itemPrice.toLocaleString('pt-BR')}** no Banco.`);
             }
 
-            // Lógica Específica do Colete
             if (item === 'colete') {
-                if (userProfile.hasColete) {
-                    return interaction.editReply('🛡️ Tu já tens um Colete à Prova de Balas equipado debaixo da roupa! Vai usá-lo primeiro.');
-                }
-                
-                await prisma.hypeUser.update({
-                    where: { id: ownerId },
-                    data: { hypeCash: { decrement: itemPrice }, hasColete: true }
-                });
-
-                return interaction.editReply('✅ **Compra Secreta Concluída!**\nVestiste o `🛡️ Colete à Prova de Balas`. O próximo jogador que tentar assaltar a tua carteira vai falhar automaticamente!');
+                if (userProfile.hasColete) return interaction.editReply('🛡️ Já tens um colete equipado.');
+                await prisma.hypeUser.update({ where: { id: ownerId }, data: { hypeCash: { decrement: itemPrice }, hasColete: true } });
+                return interaction.editReply('✅ Colete equipado! O próximo assalto contra ti vai falhar.');
             }
 
-            // Lógica Específica do Pé de Cabra
             if (item === 'pecabra') {
-                const now = new Date();
-                // Se já tem um ativo, não deixa comprar outro para não sobrepor
-                if (userProfile.peDeCabraExp && new Date(userProfile.peDeCabraExp).getTime() > now.getTime()) {
-                    const expireUnix = Math.floor(new Date(userProfile.peDeCabraExp).getTime() / 1000);
-                    return interaction.editReply(`🪓 O teu Pé de Cabra ainda está afiado! Ele só perde a validade em <t:${expireUnix}:f>.`);
-                }
-
-                // Dá o buff de 24 horas (86400000 ms)
-                const expireDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-                await prisma.hypeUser.update({
-                    where: { id: ownerId },
-                    data: { hypeCash: { decrement: itemPrice }, peDeCabraExp: expireDate }
-                });
-
-                return interaction.editReply('✅ **Equipamento Comprado!**\nEscondeste o `🪓 Pé de Cabra` no casaco. As tuas chances de sucesso em assaltos aumentaram em **15%** durante as próximas 24 horas!');
+                const expireDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                await prisma.hypeUser.update({ where: { id: ownerId }, data: { hypeCash: { decrement: itemPrice }, peDeCabraExp: expireDate } });
+                return interaction.editReply('✅ Pé de Cabra comprado! +15% de chance de roubo por 24h.');
             }
 
-        } catch (error) {
-            console.error('❌ Erro na Loja do Mercado Negro:', error);
-            await interaction.editReply('❌ Ocorreu um erro ao processar o pagamento no submundo.');
+            if (item === 'disfarce') {
+                if (userProfile.disfarceUses > 0) return interaction.editReply('🎭 Já tens um disfarce ativo.');
+                await prisma.hypeUser.update({ where: { id: ownerId }, data: { hypeCash: { decrement: itemPrice }, disfarceUses: 3 } });
+                return interaction.editReply('✅ Kit Disfarce comprado! As tuas próximas 3 multas serão reduzidas em 50%.');
+            }
+
+        } catch (e) {
+            console.error(e);
+            interaction.editReply('❌ Erro no processamento.');
         }
     }
 };
