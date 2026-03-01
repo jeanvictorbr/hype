@@ -21,7 +21,7 @@ module.exports = {
 
             // 🔥 AGORA ENVIA A IMAGEM PURA SEM EMBED!
             await interaction.editReply({ 
-                content: `Carteira de <@${targetUser.id}>`, 
+                content: `***💸 Carteira de*** <@${targetUser.id}>`, 
                 files: [attachment] 
             });
         } catch (error) {
