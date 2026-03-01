@@ -462,6 +462,197 @@ if (command === 'loja' || command === 'mercado') {
                 await loadingMsg.edit('❌ O fornecedor desapareceu nas sombras.');
             }
         }
+ // ==========================================
+        // 🎲 COMANDO: hap / hapostar (Sistema de Apostas)
+        // ==========================================
+        if (command === 'ap' || command === 'apostar') {
+            const betValueStr = args[0]?.toLowerCase();
+            
+            // 1. Tenta pegar a menção normal (@usuario)
+            let targetUser = message.mentions.users.first();
+
+            // 2. Se não mencionou ninguém, verifica se está a RESPONDER a uma mensagem (A Mágica da UX)
+            if (!targetUser && message.reference) {
+                try {
+                    const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
+                    if (repliedMsg) targetUser = repliedMsg.author;
+                } catch (e) {
+                    // Ignora o erro se a mensagem original foi apagada
+                }
+            }
+
+            if (!betValueStr) {
+                return message.reply('❌ **Como usar:**\n1️⃣ `hap <valor>` - Cria uma aposta global no chat.\n2️⃣ `hap <valor> @usuario` (Ou responda à mensagem dele) - Desafia para 1v1.');
+            }
+
+            const userProfile = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
+            if (!userProfile || userProfile.carteira <= 0) {
+                return message.reply('❌ Você não tem dinheiro na carteira para apostar!');
+            }
+
+            let amount = 0;
+            if (betValueStr === 'all' || betValueStr === 'tudo') {
+                amount = userProfile.carteira;
+            } else {
+                // Converte "1k" para 1000, e filtra apenas números
+                amount = parseInt(betValueStr.replace(/k/g, '000').replace(/[^\d]/g, ''));
+            }
+
+            if (isNaN(amount) || amount <= 0) return message.reply('❌ Valor de aposta inválido!');
+            if (amount > userProfile.carteira) return message.reply(`❌ Você só tem **R$ ${userProfile.carteira.toLocaleString('pt-BR')}** na mão! Vá ao banco sacar mais se quiser apostar isso.`);
+
+            // ==========================================
+            // ⚔️ MODO 1: APOSTA 1v1 (Menção ou Resposta)
+            // ==========================================
+            if (targetUser) {
+                if (targetUser.id === message.author.id) return message.reply('❌ Você não pode apostar contra si mesmo! Tá maluco?');
+                if (targetUser.bot) return message.reply('🤖 Eu sou a banca, não um jogador. Tente outro.');
+
+                const targetProfile = await prisma.hypeUser.findUnique({ where: { id: targetUser.id } });
+                if (!targetProfile || targetProfile.carteira < amount) {
+                    return message.reply(`❌ O <@${targetUser.id}> está falido! Ele não tem **R$ ${amount.toLocaleString('pt-BR')}** na carteira para cobrir a aposta.`);
+                }
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('hap_accept').setLabel('Aceitar').setStyle(ButtonStyle.Success).setEmoji('✅'),
+                    new ButtonBuilder().setCustomId('hap_deny').setLabel('Recusar').setStyle(ButtonStyle.Danger).setEmoji('✖️')
+                );
+
+                const msg = await message.reply({
+                    content: `⚔️ **DESAFIO MORTAL!**\n<@${targetUser.id}>, o magnata <@${message.author.id}> te desafiou para um "Cara ou Coroa" apostando **R$ ${amount.toLocaleString('pt-BR')}** da carteira!\n\n⏳ Você tem **15 segundos** para aceitar ou correr.`,
+                    components: [row]
+                });
+
+                // Filtro para garantir que só o alvo pode clicar nos botões
+                const filter = i => i.user.id === targetUser.id;
+                const collector = msg.createMessageComponentCollector({ filter, time: 15000 });
+
+                collector.on('collect', async i => {
+                    // Checagem anti-fraude: Verifica o saldo na hora exata do clique
+                    const [p1, p2] = await Promise.all([
+                        prisma.hypeUser.findUnique({ where: { id: message.author.id } }),
+                        prisma.hypeUser.findUnique({ where: { id: targetUser.id } })
+                    ]);
+
+                    if (p1.carteira < amount) return i.reply({ content: `❌ <@${message.author.id}> gastou o dinheiro antes da aposta começar! Aposta anulada.`, flags: [MessageFlags.Ephemeral] });
+                    if (p2.carteira < amount) return i.reply({ content: `❌ Você não tem mais esse dinheiro na carteira!`, flags: [MessageFlags.Ephemeral] });
+
+                    if (i.customId === 'hap_deny') {
+                        collector.stop('denied');
+                        return i.update({ content: `💨 <@${targetUser.id}> amarelou e recusou a aposta de **R$ ${amount.toLocaleString('pt-BR')}**! A carteira dele está a salvo (mas o orgulho não).`, components: [] });
+                    }
+
+                    if (i.customId === 'hap_accept') {
+                        collector.stop('accepted');
+                        await i.deferUpdate();
+
+                        // Desconta o dinheiro de ambos (Usando Transaction para ser à prova de falhas)
+                        await prisma.$transaction([
+                            prisma.hypeUser.update({ where: { id: message.author.id }, data: { carteira: { decrement: amount } } }),
+                            prisma.hypeUser.update({ where: { id: targetUser.id }, data: { carteira: { decrement: amount } } })
+                        ]);
+
+                        const pot = amount * 2;
+                        const winnerId = Math.random() < 0.5 ? message.author.id : targetUser.id;
+                        const loserId = winnerId === message.author.id ? targetUser.id : message.author.id;
+
+                        // Entrega o prêmio (pote completo) ao vencedor
+                        await prisma.hypeUser.update({ where: { id: winnerId }, data: { carteira: { increment: pot } } });
+
+                        const embed = new EmbedBuilder()
+                            .setColor('#FEE75C')
+                            .setTitle('🎲 RESULTADO: CARA OU COROA')
+                            .setDescription(`A moeda girou no ar...\n\n🏆 **VENCEDOR:** <@${winnerId}>\n💸 **LEVOU:** R$ ${pot.toLocaleString('pt-BR')}\n\n💀 *<@${loserId}> perdeu R$ ${amount.toLocaleString('pt-BR')} nessa brincadeira.*`)
+                            .setThumbnail('https://media.giphy.com/media/26n6WgBtzm9n5W1oY/giphy.gif');
+
+                        await msg.edit({ content: '', embeds: [embed], components: [] });
+                    }
+                });
+
+                collector.on('end', (collected, reason) => {
+                    if (reason === 'time') {
+                        // Remove os botões se o tempo passar e avisa
+                        msg.edit({ content: `⏳ O tempo esgotou! <@${targetUser.id}> não respondeu a tempo e o desafio expirou.`, components: [] }).catch(()=>{});
+                    }
+                });
+
+                return;
+            }
+
+            // ==========================================
+            // 🌐 MODO 2: LOBBY GLOBAL (Sem Menção/Sem Resposta)
+            // ==========================================
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('hap_join').setLabel('Entrar na Aposta').setStyle(ButtonStyle.Primary).setEmoji('🎲')
+            );
+
+            let participants = [message.author.id];
+            let totalPot = amount;
+
+            // Já tira o dinheiro inicial do criador para segurança
+            await prisma.hypeUser.update({ where: { id: message.author.id }, data: { carteira: { decrement: amount } } });
+
+            const embedLobby = new EmbedBuilder()
+                .setColor('#2b2d31')
+                .setTitle('🎲 MESA DE APOSTAS ABERTA!')
+                .setDescription(`<@${message.author.id}> abriu um pote!\n\n💰 **Entrada:** R$ ${amount.toLocaleString('pt-BR')}\n🔥 **Prêmio Acumulado:** R$ ${totalPot.toLocaleString('pt-BR')}\n👥 **Jogadores:** ${participants.length}\n\n⏳ *A roleta roda em 30 segundos!*`)
+                .setFooter({ text: 'Clique no botão abaixo para entrar e dobrar o prêmio!' });
+
+            const msg = await message.reply({ embeds: [embedLobby], components: [row] });
+
+            // Coletor de 30 segundos para o pessoal entrar
+            const collector = msg.createMessageComponentCollector({ time: 30000 });
+
+            collector.on('collect', async i => {
+                if (i.customId === 'hap_join') {
+                    if (participants.includes(i.user.id)) {
+                        return i.reply({ content: '❌ Você já colocou seu dinheiro nesta mesa!', flags: [MessageFlags.Ephemeral] });
+                    }
+
+                    let pProfile = await prisma.hypeUser.findUnique({ where: { id: i.user.id } });
+                    if (!pProfile || pProfile.carteira < amount) {
+                        return i.reply({ content: `❌ Você não tem **R$ ${amount.toLocaleString('pt-BR')}** na carteira!`, flags: [MessageFlags.Ephemeral] });
+                    }
+
+                    // Desconta e adiciona o jogador ao lobby
+                    await prisma.hypeUser.update({ where: { id: i.user.id }, data: { carteira: { decrement: amount } } });
+                    
+                    participants.push(i.user.id);
+                    totalPot += amount;
+
+                    embedLobby.setDescription(`<@${message.author.id}> abriu um pote!\n\n💰 **Entrada:** R$ ${amount.toLocaleString('pt-BR')}\n🔥 **Prêmio Acumulado:** R$ ${totalPot.toLocaleString('pt-BR')}\n👥 **Jogadores:** ${participants.length}\n\n⏳ *A roleta roda em breve!*`);
+                    
+                    await i.update({ embeds: [embedLobby] });
+                }
+            });
+
+            collector.on('end', async () => {
+                if (participants.length === 1) {
+                    // Ninguém entrou, devolve o dinheiro ao criador da mesa
+                    await prisma.hypeUser.update({ where: { id: message.author.id }, data: { carteira: { increment: amount } } });
+                    return msg.edit({ content: '😔 A mesa fechou. Ninguém quis apostar e o seu dinheiro foi devolvido para a carteira.', embeds: [], components: [] }).catch(()=>{});
+                }
+
+                // Sorteia o Vencedor
+                const winnerId = participants[Math.floor(Math.random() * participants.length)];
+                const losers = participants.filter(id => id !== winnerId);
+                
+                // Entrega o Pote Gigante à carteira do vencedor
+                await prisma.hypeUser.update({ where: { id: winnerId }, data: { carteira: { increment: totalPot } } });
+
+                const losersText = losers.map(p => `<@${p}>`).join(', ');
+
+                const winnerEmbed = new EmbedBuilder()
+                    .setColor('#57F287')
+                    .setTitle('🎰 APOSTA ENCERRADA!')
+                    .setDescription(`A roleta parou!\n\n🏆 **O GRANDE VENCEDOR:** <@${winnerId}>\n💸 **FATUROU:** R$ ${totalPot.toLocaleString('pt-BR')}\n\n💀 **Perdedores (ficaram sem nada):**\n${losersText}`)
+                    .setThumbnail('https://media.giphy.com/media/l41lZxzroU33typuU/giphy.gif');
+
+                await msg.edit({ content: '', embeds: [winnerEmbed], components: [] }).catch(()=>{});
+            });
+            
+            return;
+        }
         // ==========================================
         // 💰 COMANDOS: hdiario / hsemanal / hmensal
         // ==========================================
