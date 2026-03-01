@@ -75,6 +75,7 @@ module.exports = {
             new ButtonBuilder().setCustomId(`eco_hypecash_add_${guildId}`).setLabel('Dar Saldo').setStyle(ButtonStyle.Success).setEmoji('➕'),
             new ButtonBuilder().setCustomId(`eco_hypecash_rem_${guildId}`).setLabel('Tirar Saldo').setStyle(ButtonStyle.Danger).setEmoji('➖'),
             new ButtonBuilder().setCustomId(`eco_store_add_${guildId}`).setLabel('Criar Item').setStyle(ButtonStyle.Primary).setEmoji('📦'),
+            new ButtonBuilder().setCustomId(`eco_store_rem_${guildId}`).setLabel('Remover Item').setStyle(ButtonStyle.Danger).setEmoji('🗑️'), //
             new ButtonBuilder().setCustomId(`eco_store_list_${guildId}`).setLabel('Ver Itens').setStyle(ButtonStyle.Secondary).setEmoji('📋')
         );
 
