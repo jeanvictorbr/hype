@@ -361,7 +361,7 @@ module.exports = {
             });
         }
 
-        // ==========================================
+// ==========================================
         // 📋 COMANDO: htempo / hcd (Painel Completo)
         // ==========================================
         if (command === 'tempo' || command === 'cd' || command === 'cooldowns') {
@@ -386,16 +386,26 @@ module.exports = {
             };
 
             let desc = `Confira os **cooldown's** abaixo:\n\n`;
+            
+            // Bloco de Economia / Salários
             desc += makeLine('Diário', userProfile.lastDaily, dailyCD) + '\n';
             desc += makeLine('Semanal', userProfile.lastSemanal, semanalCD) + '\n';
             desc += makeLine('Mensal', userProfile.lastMensal, mensalCD) + '\n\n';
             desc += makeLine('Roubar', userProfile.lastRob, 10 * 60 * 1000) + '\n';
+            
+            // Bloco de Interações RP Antigas
             desc += makeLine('Beijar', userProfile.lastBeijar, socialCD) + '\n';
             desc += makeLine('Abraçar', userProfile.lastAbracar, socialCD) + '\n';
             desc += makeLine('Cafuné', userProfile.lastCafune, socialCD) + '\n';
             desc += makeLine('Socar', userProfile.lastSocar, socialCD) + '\n';
             desc += makeLine('Morder', userProfile.lastMorder, socialCD) + '\n';
             desc += makeLine('Tapa', userProfile.lastTapa, socialCD) + '\n';
+            
+            // 👇 NOVAS INTERAÇÕES ADICIONADAS AQUI
+            desc += makeLine('Chutar', userProfile.lastChutar, socialCD) + '\n';
+            desc += makeLine('Toca Aqui', userProfile.lastTocaaqui, socialCD) + '\n';
+            desc += makeLine('Dançar', userProfile.lastDancar, socialCD) + '\n';
+            desc += makeLine('Brindar', userProfile.lastBrindar, socialCD) + '\n';
 
             const embed = new EmbedBuilder()
                 .setColor('#9b59b6')
