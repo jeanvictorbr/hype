@@ -1,100 +1,90 @@
 const { createCanvas, loadImage } = require('canvas');
 const path = require('path');
 
-// Mapeamento de imagens reais para o recibo (as mesmas da loja)
-const ITEM_IMAGES = {
-    'colete': 'https://cdn-icons-png.flaticon.com/512/3233/3233514.png',
-    'pecabra': 'https://cdn-icons-png.flaticon.com/512/3596/3596045.png',
-    'disfarce': 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png'
-};
-
-async function generatePurchaseReceipt(userName, itemName, itemKey, price, feedback) {
-    // 🧾 Formato Retangular Horizontal (Estilo Cheque/Recibo)
-    const canvas = createCanvas(600, 350);
+async function generatePurchaseReceipt(user, itemName, price, benefit, duration) {
+    const canvas = createCanvas(600, 300);
     const ctx = canvas.getContext('2d');
 
-    // Fundo Beco Dark (Mesmo estilo da loja)
-    ctx.fillStyle = '#050505';
+    // Fundo Dark Clean
+    ctx.fillStyle = '#121214';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const grad = ctx.createRadialGradient(300, 175, 50, 300, 175, 300);
-    grad.addColorStop(0, '#1a1a2e'); 
-    grad.addColorStop(1, '#000000');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Detalhe lateral Roxo (Marca Hype)
+    ctx.fillStyle = '#9b59b6';
+    ctx.fillRect(0, 0, 10, canvas.height);
 
-    // Borda Neon VERDE (Sucesso)
-    ctx.strokeStyle = '#57F287';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
-
-    // Título em PT-BR
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 35px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#57F287';
-    ctx.fillText('COMPRA CONCLUÍDA', canvas.width / 2, 60);
-    ctx.shadowBlur = 0;
-
-    // Linha divisória
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 2;
+    // --- AVATAR DO USUÁRIO ---
+    ctx.save();
+    const avatarSize = 100;
+    const xAvatar = 40;
+    const yAvatar = 50;
+    
     ctx.beginPath();
-    ctx.moveTo(50, 80);
-    ctx.lineTo(550, 80);
+    ctx.arc(xAvatar + avatarSize / 2, yAvatar + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    try {
+        const avatarImg = await loadImage(user.displayAvatarURL({ extension: 'png', size: 256 }));
+        ctx.drawImage(avatarImg, xAvatar, yAvatar, avatarSize, avatarSize);
+    } catch (e) {
+        ctx.fillStyle = '#333';
+        ctx.fillRect(xAvatar, yAvatar, avatarSize, avatarSize);
+    }
+    ctx.restore();
+
+    // Borda do Avatar
+    ctx.strokeStyle = '#9b59b6';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(xAvatar + avatarSize / 2, yAvatar + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
     ctx.stroke();
 
-    // --- LADO ESQUERDO: Ícone do Item ---
-    try {
-        const imgUrl = ITEM_IMAGES[itemKey];
-        const icon = await loadImage(imgUrl);
-        ctx.drawImage(icon, 50, 110, 120, 120);
-    } catch (e) {
-        ctx.fillStyle = '#fff';
-        ctx.font = '60px serif';
-        ctx.fillText('📦', 110, 180);
-    }
-
-    // --- LADO DIREITO: Detalhes ---
+    // --- TEXTOS INFORMATIVOS ---
     ctx.textAlign = 'left';
     
-    // Nome do Usuário
+    // Título Principal
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.fillText(`Comprador: ${userName}`, 200, 130);
-
-    // Nome do Item
-    ctx.fillStyle = '#9b59b6'; // Roxo Hype
     ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(itemName, 200, 170);
+    ctx.fillText('PEDIDO PROCESSADO', 170, 75);
 
-    // Valor Pago (Verde Neon)
-    ctx.fillStyle = '#57F287';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText(`Pago: R$ ${price.toLocaleString('pt-BR')}`, 200, 210);
+    // Linha de Divisão
+    ctx.strokeStyle = '#29292e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(170, 95);
+    ctx.lineTo(550, 95);
+    ctx.stroke();
 
-    // Feedback (Texto PT-BR quebrado)
-    ctx.fillStyle = '#cccccc';
-    ctx.font = '16px sans-serif';
-    
-    const words = feedback.split(' ');
-    let line = '';
-    let ty = 240;
-    for(let word of words) {
-        if ((line + word).length > 45) {
-            ctx.fillText(line, 200, ty);
-            line = word + ' ';
-            ty += 20;
-        } else { line += word + ' '; }
-    }
-    ctx.fillText(line, 200, ty);
-
-    // Rodapé
+    // Item Comprado
     ctx.fillStyle = '#a1a1aa';
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Recibo oficial do Mercado Negro - Hype Bot.', canvas.width / 2, 335);
+    ctx.font = '16px sans-serif';
+    ctx.fillText('Produto:', 170, 125);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText(itemName, 170, 150);
+
+    // Benefício
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '16px sans-serif';
+    ctx.fillText('Vantagem:', 170, 185);
+    ctx.fillStyle = '#57F287'; // Verde Sucesso
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(benefit, 170, 210);
+
+    // Duração / Expiração
+    ctx.fillStyle = '#a1a1aa';
+    ctx.font = '16px sans-serif';
+    ctx.fillText('Validade:', 170, 245);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(duration, 170, 270);
+
+    // Valor no Canto Inferior Direito
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#9b59b6';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.fillText(`- R$ ${price.toLocaleString('pt-BR')}`, 560, 270);
 
     return canvas.toBuffer();
 }
