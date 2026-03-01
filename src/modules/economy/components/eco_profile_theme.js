@@ -1,36 +1,62 @@
-const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require('discord.js');
+const { StringSelectMenuBuilder, ActionRowBuilder, MessageFlags } = require('discord.js');
+const { prisma } = require('../../../core/database');
 
 module.exports = {
     customId: 'eco_profile_theme',
 
     async execute(interaction) {
-        // 🔒 SEGURANÇA: Previne crashes e verifica se quem clicou é o dono do perfil
-        const isOwner = interaction.message.interaction ? (interaction.user.id === interaction.message.interaction.user.id) : true;
-        
-        if (!isOwner) {
+        // Verifica se é VIP para segurança extra
+        const userData = await prisma.hypeUser.findUnique({ where: { id: interaction.user.id } });
+        if (!userData || userData.vipLevel === 0) {
             return interaction.reply({ 
-                content: '❌ **Acesso Negado!** Você só pode alterar o tema do seu próprio perfil.', 
+                content: '❌ **Acesso Negado.** Temas de perfil são benefícios exclusivos para membros **VIP**!', 
                 flags: [MessageFlags.Ephemeral] 
             });
         }
 
-        // Criamos o menu usando os emojis nativos do Discord (que não bugam na UI)
+        // Constrói o menu com os novos temas
         const select = new StringSelectMenuBuilder()
             .setCustomId('eco_profile_theme_select')
-            .setPlaceholder('🎨 Selecione seu novo Fundo Premium...')
-            .addOptions(
-                { label: 'Padrão Escuro', description: 'Tech limpo e moderno.', value: 'default', emoji: '🌑' },
-                { label: 'Matrix Hacker', description: 'Domina o código.', value: 'hacker', emoji: '💻' },
-                { label: 'Galáxia Profunda', description: 'Viaja pelo espaço.', value: 'galaxy', emoji: '🌌' },
-                { label: 'Ouro Maciço', description: 'Luxo puro para magnatas.', value: 'gold', emoji: '👑' },
-                { label: 'Carmesim Agiota', description: 'Sangue e negócios.', value: 'blood', emoji: '🩸' }
-            );
+            .setPlaceholder('Escolha o seu novo tema lendário...')
+            .addOptions([
+                { 
+                    label: 'Padrão Hype', 
+                    description: 'O clássico e minimalista', 
+                    value: 'default', 
+                    emoji: '🌑' 
+                },
+                { 
+                    label: 'Magnata do Ouro', 
+                    description: 'Brilho dourado, luxo e partículas de ouro', 
+                    value: 'gold', 
+                    emoji: '👑' 
+                },
+                { 
+                    label: 'Cyberpunk Neon', 
+                    description: 'Luzes neon vibrantes e grade digital', 
+                    value: 'cyberpunk', 
+                    emoji: '🤖' 
+                },
+                { 
+                    label: 'Máfia Sanguinária', 
+                    description: 'Neblina vermelha profunda e sombras', 
+                    value: 'blood', 
+                    emoji: '🩸' 
+                },
+                { 
+                    label: 'Galáxia Profunda', 
+                    description: 'Estrelas em HD e nebulosas cósmicas', 
+                    value: 'galaxy', 
+                    emoji: '🌌' 
+                }
+            ]);
 
         const row = new ActionRowBuilder().addComponents(select);
 
-        // Dá update na própria mensagem, transformando os botões no Menu Dropdown!
-        await interaction.update({ components: [row] }).catch(err => {
-            console.error('Erro ao abrir o menu de temas:', err);
+        await interaction.reply({ 
+            content: '🎨 **Galeria VIP:**\nSelecione um dos temas abaixo. O seu perfil será atualizado instantaneamente em alta qualidade!', 
+            components: [row], 
+            flags: [MessageFlags.Ephemeral] 
         });
     }
 };
