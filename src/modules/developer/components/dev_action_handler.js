@@ -15,7 +15,15 @@ module.exports = {
     customIdPrefix: 'dev_', 
 
     async execute(interaction, client) {
-        if (interaction.user.id !== process.env.OWNER_ID) return;
+        // 🔒 CORREÇÃO DA SEGURANÇA: Usa o split para ler múltiplos Donos
+        const ownerIds = process.env.OWNER_ID ? process.env.OWNER_ID.split(',') : [];
+        
+        if (!ownerIds.includes(interaction.user.id)) {
+            return interaction.reply({ 
+                content: '🚫 Acesso restrito.', 
+                flags: [MessageFlags.Ephemeral] 
+            });
+        }
 
         // 👇 TRAVAS SALVADORAS AQUI 👇
         // Se a interação for para ABRIR o painel financeiro, ignora!
@@ -43,7 +51,7 @@ module.exports = {
         // Se já venceu, reseta para hoje antes de adicionar
         if (newExpireDate < new Date()) newExpireDate = new Date();
 
-        // Inicializamos com um texto padrão para nunca dar erro de 'mensagem vazia'
+        // Inicializamos com um texto padrão
         let feedbackMsg = 'Ação de sistema concluída com sucesso.';
 
         // --- LÓGICA VIP (DATAS) ---
@@ -77,7 +85,6 @@ module.exports = {
 
         // --- LÓGICA FEATURES (TOGGLE) ---
         else if (actionType === 'feat') {
-            // 👇 A MÁGICA FOI AQUI: Converte "cassino" para "CASSINO" (Exigido pelo comando)
             const featureName = value.toUpperCase(); 
             let feats = guildData.features || [];
 
@@ -103,7 +110,7 @@ module.exports = {
         const managePanel = require('./dev_guild_manage');
         await managePanel.execute(interaction, client);
         
-        // Confirmação invisível
+        // Confirmação invisível do que aconteceu
         await interaction.followUp({ 
             content: feedbackMsg, 
             flags: [MessageFlags.Ephemeral] 
