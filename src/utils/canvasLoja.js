@@ -5,7 +5,7 @@ async function generateShopCatalog() {
     const canvas = createCanvas(700, 700);
     const ctx = canvas.getContext('2d');
 
-    // Fundo Beco Noturno
+    // Fundo Beco Noturno Dark
     ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -15,7 +15,7 @@ async function generateShopCatalog() {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Borda Neon
+    // Borda Neon Roxo Hype
     ctx.strokeStyle = '#6a0dad';
     ctx.lineWidth = 10;
     ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
@@ -47,7 +47,7 @@ async function generateShopCatalog() {
         ctx.strokeStyle = '#333';
         ctx.stroke();
 
-        // Desenhar Imagem PNG (Ícone)
+        // Desenhar Imagem Real (PNG)
         try {
             const icon = await loadImage(imgUrl);
             ctx.drawImage(icon, 70, y + 25, 90, 90);
@@ -76,16 +76,17 @@ async function generateShopCatalog() {
         }
         ctx.fillText(line, 180, ty);
 
+        // Preço Atualizado
         ctx.font = 'bold 26px sans-serif';
         ctx.fillStyle = '#57F287';
         ctx.textAlign = 'right';
         ctx.fillText(`R$ ${price.toLocaleString('pt-BR')}`, 630, y + 120);
     };
 
-    // Usando links de ícones estáveis (PNG)
-    await drawItem('COLETE BALÍSTICO', 200000, 'Proteção total contra o próximo assalto. Uso único.', 150, 'https://cdn-icons-png.flaticon.com/512/3233/3233514.png');
-    await drawItem('PÉ DE CABRA', 100000, 'Aumenta em 15% a chance de roubo por 24 horas.', 320, 'https://cdn-icons-png.flaticon.com/512/3596/3596045.png');
-    await drawItem('KIT DISFARCE', 150000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png');
+    // LINKS DE IMAGENS REAIS
+    await drawItem('COLETE BALÍSTICO', 300000, 'Proteção total contra o próximo assalto. Uso único.', 150, 'https://cdn-icons-png.flaticon.com/512/3233/3233514.png');
+    await drawItem('PÉ DE CABRA', 200000, 'Aumenta em 15% a chance de roubo por 24 horas.', 320, 'https://cdn-icons-png.flaticon.com/512/3596/3596045.png');
+    await drawItem('KIT DISFARCE', 250000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png');
 
     return canvas.toBuffer();
 }

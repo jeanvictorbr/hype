@@ -1,50 +1,65 @@
-const { MessageFlags } = require('discord.js');
+const { MessageFlags, EmbedBuilder } = require('discord.js');
 const { prisma } = require('../../../core/database');
 
 module.exports = {
-    customIdPrefix: 'eco_shop_buy_', // Note que agora o ID termina no ID do usuário
+    customIdPrefix: 'eco_shop_buy_',
 
     async execute(interaction) {
         const ownerId = interaction.customId.replace('eco_shop_buy_', '');
-        const item = interaction.values[0]; // Pega o valor selecionado no menu
+        const item = interaction.values[0];
 
         if (interaction.user.id !== ownerId) {
             return interaction.reply({ content: '❌ Esta loja não é tua!', flags: [MessageFlags.Ephemeral] });
         }
 
-        await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
+        // Busca o perfil para verificar saldo
+        const userProfile = await prisma.hypeUser.findUnique({ where: { id: ownerId } });
+        
+        // NOVOS PREÇOS ACORDADOS
+        const prices = { 'colete': 300000, 'pecabra': 200000, 'disfarce': 250000 };
+        const itemNames = { 'colete': 'Colete Balístico', 'pecabra': 'Pé de Cabra', 'disfarce': 'Kit de Disfarce' };
+        const itemPrice = prices[item];
+
+        if (userProfile.hypeCash < itemPrice) {
+            return interaction.reply({ content: `❌ Saldo insuficiente no banco! Precisas de **R$ ${itemPrice.toLocaleString('pt-BR')}**.`, flags: [MessageFlags.Ephemeral] });
+        }
 
         try {
-            const userProfile = await prisma.hypeUser.findUnique({ where: { id: ownerId } });
-            
-            const prices = { 'colete': 200000, 'pecabra': 100000, 'disfarce': 150000 };
-            const itemPrice = prices[item];
-
-            if (userProfile.hypeCash < itemPrice) {
-                return interaction.editReply(`❌ Precisas de **R$ ${itemPrice.toLocaleString('pt-BR')}** no Banco.`);
-            }
+            let updateData = { hypeCash: { decrement: itemPrice } };
+            let feedback = "";
 
             if (item === 'colete') {
-                if (userProfile.hasColete) return interaction.editReply('🛡️ Já tens um colete equipado.');
-                await prisma.hypeUser.update({ where: { id: ownerId }, data: { hypeCash: { decrement: itemPrice }, hasColete: true } });
-                return interaction.editReply('✅ Colete equipado! O próximo assalto contra ti vai falhar.');
+                if (userProfile.hasColete) return interaction.reply({ content: '🛡️ Já tens um colete equipado.', flags: [MessageFlags.Ephemeral] });
+                updateData.hasColete = true;
+                feedback = "🛡️ **Colete Balístico equipado!** Estás protegido contra o próximo assalto.";
+            } else if (item === 'pecabra') {
+                updateData.peDeCabraExp = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                feedback = "🔨 **Pé de Cabra adquirido!** As tuas chances de roubo subiram em 15% por 24h.";
+            } else if (item === 'disfarce') {
+                if (userProfile.disfarceUses > 0) return interaction.reply({ content: '🎭 Já tens um disfarce ativo.', flags: [MessageFlags.Ephemeral] });
+                updateData.disfarceUses = 3;
+                feedback = "🎭 **Kit Disfarce pronto!** As tuas próximas 3 multas serão reduzidas em 50%.";
             }
 
-            if (item === 'pecabra') {
-                const expireDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-                await prisma.hypeUser.update({ where: { id: ownerId }, data: { hypeCash: { decrement: itemPrice }, peDeCabraExp: expireDate } });
-                return interaction.editReply('✅ Pé de Cabra comprado! +15% de chance de roubo por 24h.');
-            }
+            await prisma.hypeUser.update({ where: { id: ownerId }, data: updateData });
 
-            if (item === 'disfarce') {
-                if (userProfile.disfarceUses > 0) return interaction.editReply('🎭 Já tens um disfarce ativo.');
-                await prisma.hypeUser.update({ where: { id: ownerId }, data: { hypeCash: { decrement: itemPrice }, disfarceUses: 3 } });
-                return interaction.editReply('✅ Kit Disfarce comprado! As tuas próximas 3 multas serão reduzidas em 50%.');
-            }
+            // ATUALIZA A MENSAGEM NA HORA PARA O SELECT NÃO FICAR TRAVADO
+            const successEmbed = new EmbedBuilder()
+                .setColor('#57F287')
+                .setTitle('📦 COMPRA CONCLUÍDA NO BECO')
+                .setDescription(`<@${ownerId}>, compraste **${itemNames[item]}** com sucesso!\n\n${feedback}`)
+                .setFooter({ text: 'O Mercado Negro agradece a tua preferência.' });
+
+            return interaction.update({ 
+                content: '', 
+                embeds: [successEmbed], 
+                components: [], // Remove o select para indicar que acabou
+                files: [] // Remove a imagem grande da loja para limpar o chat
+            });
 
         } catch (e) {
             console.error(e);
-            interaction.editReply('❌ Erro no processamento.');
+            interaction.reply({ content: '❌ Erro ao processar a compra.', flags: [MessageFlags.Ephemeral] });
         }
     }
 };

@@ -430,20 +430,20 @@ if (command === 'loja' || command === 'mercado') {
                 const select = new StringSelectMenuBuilder()
                     .setCustomId(`eco_shop_buy_${message.author.id}`)
                     .setPlaceholder('Escolha o item que deseja comprar...')
-                    .addOptions(
+.addOptions(
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Colete Balístico')
-                            .setDescription('R$ 200.000 - Proteção contra 1 roubo')
+                            .setDescription('R$ 300.000 - Proteção contra 1 roubo')
                             .setEmoji('🛡️')
                             .setValue('colete'),
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Pé de Cabra')
-                            .setDescription('R$ 100.000 - Buff de roubo (24h)')
+                            .setDescription('R$ 200.000 - Buff de roubo (24h)')
                             .setEmoji('🔨')
                             .setValue('pecabra'),
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Kit de Disfarce')
-                            .setDescription('R$ 150.000 - 50% de desconto em 3 multas')
+                            .setDescription('R$ 250.000 - 50% de desconto em 3 multas')
                             .setEmoji('🎭')
                             .setValue('disfarce')
                     );
