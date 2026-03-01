@@ -52,6 +52,10 @@ model HypeUser {
   lastGame     DateTime?
   wins         Int      @default(0)
   losses       Int      @default(0)
+  lastChutar   DateTime?
+  lastTocaaqui DateTime?
+  lastDancar   DateTime?
+  lastBrindar  DateTime?
   lastBeijar   DateTime?
   lastVipDaily DateTime?
   lastTapa     DateTime?

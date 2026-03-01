@@ -224,6 +224,26 @@ module.exports = {
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZzB4eGVleW9kOG53NzZsOTBsNWJtdHlta2V2NXdiMGRvZzJzY3F2aiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/lrMUMn9lnpaJDsvP0u/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZzB4eGVleW9kOG53NzZsOTBsNWJtdHlta2V2NXdiMGRvZzJzY3F2aiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/APdrBsVpWQmv6/giphy.gif'
             ],
+            // 👇 NOVAS INTERAÇÕES ADICIONADAS
+            chutar: [
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bXNtNHo4c2pkcmV0YTZhaHdmZGp0dGNubGszcGFzNmNsajI1NXd3cSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/u2LJ0n4lx6jF6/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eXg4bzEwa3Q1NmJlbnFlYzlrbXJlM2g4cm55dm1xbjJkMW44cWcwMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3IRa7BlrVTK1BBFWtx/giphy.gif'
+            ],
+            tocaaqui: [
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3b2ZsOGxicTAzZWtnNHBjZzhzNzhyYzJrZHk0b3dtdzgwcmw3NGZnbCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/luWqg8s0jQ8oeV26Nw/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3b2ZsOGxicTAzZWtnNHBjZzhzNzhyYzJrZHk0b3dtdzgwcmw3NGZnbCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/s4VoCsFz8prlhSFCeS/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3b2ZsOGxicTAzZWtnNHBjZzhzNzhyYzJrZHk0b3dtdzgwcmw3NGZnbCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/b5L1Lt3k4hGNDZWVIw/giphy.gif'
+            ],
+            dancar: [
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYTZ4YXBnOGw4czRhdXQwYmc3ZzlkeG5vdmdzdG1ldzZ6Mnc0dWZrYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/j93ycvEyWlSIIg8AEl/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYTZ4YXBnOGw4czRhdXQwYmc3ZzlkeG5vdmdzdG1ldzZ6Mnc0dWZrYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/Ut0KxC3gnIwcEpmTZW/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYTZ4YXBnOGw4czRhdXQwYmc3ZzlkeG5vdmdzdG1ldzZ6Mnc0dWZrYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/NtxYZwjMr0HOYbbfeG/giphy.gif'
+            ],
+            brindar: [
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3ZWdjZzVubXc1YWFrbjBxdG5pcHhqd2JhbjZjNHQ5Z3kyMWk0dXM5cCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3o8doUgvKWu2JP0hvG/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bXdvcWgyN3NzYzBnd243Zmo1Ymdpd2pmenA4emZhZHRtYWtkOTZkNSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/wy63WPXSamvFC/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3d3EzMTY1OXdiYXpxZ3Q2cGZ2aHgybmIwcmczaGJia3MyaXV6N29pciZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YZjHGZdwdBMfS/giphy.gif'
+            ],
             pat: [
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjYzYWx1bDFuampvb3NxMXllYXQ0OHVjOG5pbDZlZWJvZG9obTZuaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/5tmRHwTlHAA9WkVxTU/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjYzYWx1bDFuampvb3NxMXllYXQ0OHVjOG5pbDZlZWJvZG9obTZuaCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/u9BxQbM5bxvwY/giphy.gif',
@@ -247,7 +267,13 @@ module.exports = {
             'morder': { verb: 'deu uma mordida em', type: 'morder', emoji: '🧛' },
             'pat': { verb: 'fez um carinho fofo na cabeça de', type: 'pat', emoji: '🥰' },
             'socar': { verb: 'deu um soco com toda a força na cara de', type: 'socar', emoji: '🥊' },
-            'cafune': { verb: 'fez um cafuné gostoso em', type: 'cafune', emoji: '💆' }
+            'cafune': { verb: 'fez um cafuné gostoso em', type: 'cafune', emoji: '💆' },
+            'chutar': { verb: 'deu um chute bem dado na canela de', type: 'chutar', emoji: '🥾' },
+            'chute': { verb: 'deu um chute bem dado na canela de', type: 'chutar', emoji: '🥾' },
+            'tocaaqui': { verb: 'deu um high-five estrondoso em', type: 'tocaaqui', emoji: '🤝' },
+            'highfive': { verb: 'deu um high-five estrondoso em', type: 'tocaaqui', emoji: '🤝' },
+            'dancar': { verb: 'puxou para dançar com muito estilo', type: 'dancar', emoji: '💃' },
+            'brindar': { verb: 'brindou uma taça de champanhe com', type: 'brindar', emoji: '🥂' }
         };
 
         if (socialCommands[command]) {
@@ -814,7 +840,120 @@ module.exports = {
 
             return message.reply({ embeds: [embed] });
         }
+// ==========================================
+        // 📖 COMANDO: hajuda / hhelp (Menu Paginado)
+        // ==========================================
+        if (command === 'ajuda' || command === 'help') {
+            const pages = [
+                new EmbedBuilder()
+                    .setColor('#2b2d31')
+                    .setTitle('📖 Ajuda - 🏦 Economia Básica')
+                    .setDescription('**Prefixo Oficial:** `h`\nA base da economia. O teu dinheiro da mão fica na **Carteira**, o dinheiro seguro fica no **Banco**.')
+                    .addFields(
+                        { name: '💼 Gerenciamento', value: '`hcarteira (hc)` - Vê o saldo que tens em mãos.\n`hperfil` - Vê o teu nível VIP e status.\n`htempo (hcd)` - Verifica todos os teus tempos de recarga.' },
+                        { name: '🏦 O Banco', value: '`hdepositar (hdep) <valor>` - Guarda no banco.\n`hdepall` - Guarda TUDO no banco rápido.\n`hsacar <valor>` - Tira dinheiro do banco.\n`hsacarall` - Tira TUDO do banco.\n`hpix @user <valor/all>` - Transfere dinheiro seguro para um amigo.' },
+                        { name: '💰 Salários Fixos', value: '`hdiario` - Recolhe a tua mesada a cada 24h.\n`hsemanal` - Recolhe o teu salário a cada 7 dias.\n`hmensal` - O teu bónus massivo a cada 30 dias.' }
+                    )
+                    .setThumbnail(client.user.displayAvatarURL()),
+                
+                new EmbedBuilder()
+                    .setColor('#FEE75C')
+                    .setTitle('📖 Ajuda - 🎰 Cassino & Jogos')
+                    .setDescription('Apostas arriscadas! Todos os jogos cobram o valor diretamente da tua **CARTEIRA** (dinheiro na mão).')
+                    .addFields(
+                        { name: '🐯 Máquinas', value: '`htigrinho <valor/all>` - Gira a slot machine do tigre.\n`hmines <valor/all>` - Campo minado. Retira o dinheiro antes de pisar na bomba!' },
+                        { name: '🚀 Multiplicadores & Cartas', value: '`hcrash <valor/all>` - O foguetão sobe! Pula antes de explodir.\n`hbj <valor/all>` - Joga Blackjack (21) contra o Agiota do servidor.' },
+                        { name: '🔫 Multiplayer', value: '`hroleta <valor>` - Abre uma mesa de Roleta Russa no chat (Mín. 2 a 6 jogadores).' }
+                    )
+                    .setThumbnail(client.user.displayAvatarURL()),
 
+                new EmbedBuilder()
+                    .setColor('#ED4245')
+                    .setTitle('📖 Ajuda - 🎭 Social & Crime')
+                    .setDescription('Movimenta o chat para ganhares pequenas quantias. Se tiveres VIP, ganhas com multiplicador!')
+                    .addFields(
+                        { name: '❤️ Amor & Carinho', value: '`hbeijar @user`\n`habracar @user`\n`hpat @user`\n`hcafune @user`' },
+                        { name: '🥊 Porrada & Ódio', value: '`htapa @user`\n`hsocar @user`\n`hmorder @user`' },
+                        { name: '🥷 Submundo', value: '`hroubar @user` - Tenta passar a mão na carteira de alguém. Se a polícia te apanhar, pagas multa alta!' }
+                    )
+                    .setThumbnail(client.user.displayAvatarURL()),
+
+                new EmbedBuilder()
+                    .setColor('#9b59b6')
+                    .setTitle('📖 Ajuda - 🏆 Rankings & VIP')
+                    .setDescription('Os comandos de ostentação. Vê quem domina a economia!')
+                    .addFields(
+                        { name: '📊 Pódio dos Ricos', value: '`hrank` - Ranking com os mais ricos **deste servidor**.\n`hrankglobal` - Ranking dos mais ricos de **todos os servidores**.' },
+                        { name: '💎 Hype VIP', value: '`hvip` - Abre o teu painel VIP para pegar prêmios secretos e Lojinha.\n`/comprarvip` *(Comando Barra)* - Loja oficial para comprar VIP e Moedas com Pix real.' },
+                        { name: '🧾 Outros', value: '`/extrato` *(Comando Barra)* - Vê o teu histórico de logs.' }
+                    )
+                    .setThumbnail(client.user.displayAvatarURL()),
+
+                new EmbedBuilder()
+                    .setColor('#000000')
+                    .setTitle('📖 Ajuda - 👑 Staff & Developer')
+                    .setDescription('Comandos Barra (`/`) de uso restrito à administração.')
+                    .addFields(
+                        { name: '⚙️ Sistemas Base', value: '`/hype` - Dashboard Principal do Bot.\n`/massrole` - Dá cargo em massa.\n`/locticket` - Envia o painel de Tickets.' },
+                        { name: '🛠️ Economia Local (Staff)', value: '`/resetcooldowns` - Seta os cooldowns de alguém a 0.\n`/ranking` - Ranking de quem mais atendeu tickets.' },
+                        { name: '💻 Modo Deus (Só Dono)', value: '`/devpanel` - Injeta dinheiro e gere a loja base.\n`/wipecooldowns` - Zera os tempos de TODO o servidor.\n`/wipeeconomy` - Deleta o saldo de TODO o servidor.' }
+                    )
+                    .setThumbnail(client.user.displayAvatarURL())
+            ];
+
+            let currentPage = 0;
+
+            const getRow = (page) => {
+                return new ActionRowBuilder().addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('prev_help')
+                        .setLabel('◀ Anterior')
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(page === 0), // Desativa se estiver na primeira página
+                    new ButtonBuilder()
+                        .setCustomId('page_indicator')
+                        .setLabel(`Página ${page + 1} de ${pages.length}`)
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(true), // Apenas decorativo
+                    new ButtonBuilder()
+                        .setCustomId('next_help')
+                        .setLabel('Próxima ▶')
+                        .setStyle(ButtonStyle.Primary)
+                        .setDisabled(page === pages.length - 1) // Desativa se estiver na última
+                );
+            };
+
+            const helpMessage = await message.reply({
+                embeds: [pages[currentPage]],
+                components: [getRow(currentPage)]
+            });
+
+            // Cria um coletor que dura 2 minutos (120000ms)
+            const collector = helpMessage.createMessageComponentCollector({
+                filter: i => i.user.id === message.author.id, // Só quem executou o comando pode trocar de página
+                time: 120000 
+            });
+
+            collector.on('collect', async i => {
+                if (i.customId === 'prev_help') currentPage--;
+                if (i.customId === 'next_help') currentPage++;
+
+                await i.update({
+                    embeds: [pages[currentPage]],
+                    components: [getRow(currentPage)]
+                });
+            });
+
+            // Quando o tempo acabar, remove os botões para limpar o servidor
+            collector.on('end', () => {
+                const disabledRow = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('timeout').setLabel('Tempo Esgotado').setStyle(ButtonStyle.Secondary).setDisabled(true)
+                );
+                helpMessage.edit({ components: [disabledRow] }).catch(() => {});
+            });
+
+            return;
+        }
         // ==========================================
         // 🚀 COMANDO: hperfil
         // ==========================================
