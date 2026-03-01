@@ -417,27 +417,37 @@ module.exports = {
             return message.reply({ embeds: [embed] });
         }
 
-        // ==========================================
-        // 🛒 COMANDO: hloja / hmercado (Mercado Negro)
+// ==========================================
+        // 🛒 COMANDO: hloja / hmercado (Visual Canvas)
         // ==========================================
         if (command === 'loja' || command === 'mercado') {
-            const embed = new EmbedBuilder()
-                .setColor('#121214')
-                .setTitle('🛒 Mercado Negro do Submundo')
-                .setDescription('Bem-vindo à viela escura. Usa o dinheiro do teu **Banco** para comprares vantagens ilegais nas ruas.')
-                .addFields(
-                    { name: '🛡️ Colete à Prova de Balas — R$ 200.000', value: 'Garante 100% de proteção contra o próximo assalto que sofreres. O colete quebra após 1 uso.' },
-                    { name: '🪓 Pé de Cabra — R$ 100.000', value: 'Aumenta a tua chance de sucesso nos assaltos em **+15%** durante 24 horas!' }
-                )
-                .setThumbnail('https://cdn-icons-png.flaticon.com/512/2838/2838894.png')
-                .setFooter({ text: 'As compras são cobradas diretamente do teu Cartão (Banco).' });
+            const userId = message.author.id;
+            const loadingMsg = await message.reply('🔄 A aceder aos servidores encriptados do Mercado Negro...');
 
-            const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId(`eco_shop_colete_${message.author.id}`).setLabel('Comprar Colete').setStyle(ButtonStyle.Secondary).setEmoji('🛡️'),
-                new ButtonBuilder().setCustomId(`eco_shop_pecabra_${message.author.id}`).setLabel('Comprar Pé de Cabra').setStyle(ButtonStyle.Secondary).setEmoji('🪓')
-            );
+            try {
+                // Importa o gerador de arte visual
+                const { generateShopCatalog } = require('../../../utils/canvasLoja');
+                const { AttachmentBuilder } = require('discord.js');
+                
+                // Gera a imagem do catálogo
+                const imageBuffer = await generateShopCatalog();
+                const attachment = new AttachmentBuilder(imageBuffer, { name: 'catalogo.png' });
 
-            return message.reply({ embeds: [embed], components: [row] });
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId(`eco_shop_colete_${userId}`).setLabel('Comprar Colete').setStyle(ButtonStyle.Secondary).setEmoji('🛡️'),
+                    new ButtonBuilder().setCustomId(`eco_shop_pecabra_${userId}`).setLabel('Comprar Pé de Cabra').setStyle(ButtonStyle.Secondary).setEmoji('🪓')
+                    // Adiciona o botão do Kit de Disfarce quando implementares a lógica dele!
+                    //new ButtonBuilder().setCustomId(`eco_shop_disfarce_${userId}`).setLabel('Comprar Kit Disfarce').setStyle(ButtonStyle.Secondary).setEmoji('👀')
+                );
+
+                // Apaga a mensagem antiga e envia o catálogo visual
+                await loadingMsg.delete().catch(() => {});
+                return message.channel.send({ content: `<@${userId}>, confirma o catálogo ilegal do Hype Bot:`, files: [attachment], components: [row] });
+
+            } catch (error) {
+                console.error('❌ Erro a gerar Catálogo Visual:', error);
+                await loadingMsg.edit('❌ Ocorreu um erro ao abrir a loja. O traficante fugiu!');
+            }
         }
         // ==========================================
         // 💰 COMANDOS: hdiario / hsemanal / hmensal
@@ -658,11 +668,30 @@ module.exports = {
 
                 return message.reply({ embeds: [embed] });
 
-            } else {
+} else {
+                // ==========================================
+                // 🚨 SISTEMA DE MULTA & DISFARCE
+                // ==========================================
                 const multaBase = 50000;
                 const multaPorcentagem = Math.floor(ladrao.carteira * 0.10);
-                const multaFinal = Math.max(multaBase, multaPorcentagem);
+                let multaFinal = Math.max(multaBase, multaPorcentagem);
+                let msgDisfarce = '';
 
+                // Verifica se o ladrão está disfarçado
+                if (ladrao.disfarceUses > 0) {
+                    multaFinal = Math.floor(multaFinal * 0.50); // Reduz 50%
+                    const novosUsos = ladrao.disfarceUses - 1;
+
+                    // Consome 1 uso do disfarce no banco de dados
+                    await prisma.hypeUser.update({
+                        where: { id: authorId },
+                        data: { disfarceUses: novosUsos }
+                    });
+
+                    msgDisfarce = `\n\n🎭 **DISFARCE UTILIZADO:** Graças ao teu Kit de Disfarce, a polícia não te reconheceu totalmente! A multa foi reduzida em **50%**. (Usos restantes: **${novosUsos}**)`;
+                }
+
+                // Aplica o débito da multa e o cooldown
                 await prisma.hypeUser.update({ 
                     where: { id: authorId }, 
                     data: { 
@@ -671,7 +700,7 @@ module.exports = {
                     } 
                 });
 
-                return message.reply(`🚨 **TE PEGARAM!** O alarme disparou e a polícia chegou a tempo. <@${targetUser.id}> conseguiu fugir e tu tiveste de pagar **R$ ${multaFinal.toLocaleString('pt-BR')}** de fiança para sair da esquadra!`);
+                return message.reply(`🚨 **TE PEGARAM!** O alarme disparou e a polícia cercou o local. <@${targetUser.id}> fugiu e tiveste de pagar **R$ ${multaFinal.toLocaleString('pt-BR')}** de fiança para não seres preso!${msgDisfarce}`);
             }
         }
 
