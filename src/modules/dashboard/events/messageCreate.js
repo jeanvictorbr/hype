@@ -418,6 +418,28 @@ module.exports = {
         }
 
         // ==========================================
+        // 🛒 COMANDO: hloja / hmercado (Mercado Negro)
+        // ==========================================
+        if (command === 'loja' || command === 'mercado') {
+            const embed = new EmbedBuilder()
+                .setColor('#121214')
+                .setTitle('🛒 Mercado Negro do Submundo')
+                .setDescription('Bem-vindo à viela escura. Usa o dinheiro do teu **Banco** para comprares vantagens ilegais nas ruas.')
+                .addFields(
+                    { name: '🛡️ Colete à Prova de Balas — R$ 200.000', value: 'Garante 100% de proteção contra o próximo assalto que sofreres. O colete quebra após 1 uso.' },
+                    { name: '🪓 Pé de Cabra — R$ 100.000', value: 'Aumenta a tua chance de sucesso nos assaltos em **+15%** durante 24 horas!' }
+                )
+                .setThumbnail('https://cdn-icons-png.flaticon.com/512/2838/2838894.png')
+                .setFooter({ text: 'As compras são cobradas diretamente do teu Cartão (Banco).' });
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`eco_shop_colete_${message.author.id}`).setLabel('Comprar Colete').setStyle(ButtonStyle.Secondary).setEmoji('🛡️'),
+                new ButtonBuilder().setCustomId(`eco_shop_pecabra_${message.author.id}`).setLabel('Comprar Pé de Cabra').setStyle(ButtonStyle.Secondary).setEmoji('🪓')
+            );
+
+            return message.reply({ embeds: [embed], components: [row] });
+        }
+        // ==========================================
         // 💰 COMANDOS: hdiario / hsemanal / hmensal
         // ==========================================
         if (command === 'diario' || command === 'semanal' || command === 'mensal') {
@@ -567,8 +589,8 @@ module.exports = {
             }
         }
 
-        // ==========================================
-        // 🔫 COMANDO: hroubar (Assalto a Jogadores)
+// ==========================================
+        // 🔫 COMANDO: hroubar (Assalto com Mercado Negro)
         // ==========================================
         if (command === 'roubar' || command === 'assaltar') {
             const authorId = message.author.id;
@@ -597,8 +619,27 @@ module.exports = {
                 }
             }
 
+            // 🛡️ VERIFICAÇÃO DO COLETE À PROVA DE BALAS
+            if (vitima.hasColete) {
+                // Quebra o colete da vítima e aplica o cooldown ao ladrão
+                await prisma.$transaction([
+                    prisma.hypeUser.update({ where: { id: targetUser.id }, data: { hasColete: false } }),
+                    prisma.hypeUser.update({ where: { id: authorId }, data: { lastRob: new Date() } })
+                ]);
+                return message.reply(`🛡️ **ASSALTO BLOQUEADO!** Tu tentaste roubar <@${targetUser.id}>, mas ele estava a usar um **Colete à Prova de Balas**!\nO assalto falhou e o colete da vítima foi destruído no confronto. Foge antes que a polícia chegue!`);
+            }
+
+            // 🪓 VERIFICAÇÃO DO PÉ DE CABRA
+            let chanceSucesso = 0.45; // 45% Padrão
+            let msgPeCabra = '';
+            
+            if (ladrao.peDeCabraExp && new Date(ladrao.peDeCabraExp).getTime() > Date.now()) {
+                chanceSucesso += 0.15; // Sobe para 60%
+                msgPeCabra = '\n🪓 *(Usaste o teu Pé de Cabra para facilitar o roubo!)*';
+            }
+
             const sorteio = Math.random();
-            const sucesso = sorteio <= 0.45;
+            const sucesso = sorteio <= chanceSucesso;
 
             if (sucesso) {
                 const porcentagemRoubada = Math.random() * (1.0 - 0.2) + 0.2;
@@ -612,7 +653,7 @@ module.exports = {
                 const embed = new EmbedBuilder()
                     .setColor('#57F287')
                     .setTitle('🥷 ASSALTO BEM SUCEDIDO!')
-                    .setDescription(`***Você passou a mão na carteira*** de <@${targetUser.id}> e fugiu num carro de fuga!\n\n💸 **Levou:** R$ ${valorFinal.toLocaleString('pt-BR')}\n*(Dinheiro adicionado à tua carteira)*`)
+                    .setDescription(`Passaste a mão na carteira de <@${targetUser.id}> e fugiste num carro de fuga!${msgPeCabra}\n\n💸 **Levaste:** R$ ${valorFinal.toLocaleString('pt-BR')}\n*(Dinheiro adicionado à tua carteira)*`)
                     .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nn/3o7TKMGpxS5O7E6pW0/giphy.gif');
 
                 return message.reply({ embeds: [embed] });

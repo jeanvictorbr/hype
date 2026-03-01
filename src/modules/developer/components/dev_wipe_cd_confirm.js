@@ -33,6 +33,10 @@ module.exports = {
                     lastTimeout: null,
                     lastBlackout: null,
                     lastMoneyRain: null,
+                    lastChutar: null,
+lastTocaaqui: null,
+lastDancar: null,
+lastBrindar: null,
                     banRequestsCount: 0,
                     banRequestReset: null
                 }
