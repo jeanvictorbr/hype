@@ -769,27 +769,32 @@ module.exports = {
 
             await gameMessage.edit({ embeds: [embed], components: [], files: [attachment], attachments: [] }).catch(() => {});
         }
-
-        // ==========================================
+// ==========================================
         // 🏆 COMANDOS: hrank / htop / hrankglobal
         // ==========================================
         if (command === 'rank' || command === 'top' || command === 'rankglobal') {
             const isGlobal = command === 'rankglobal';
             
-            const allUsersRaw = await prisma.hypeUser.findMany({ take: isGlobal ? 100 : 500 });
+            // Busca os utilizadores diretamente ordenados pela riqueza no BANCO (hypeCash)
+            const allUsersRaw = await prisma.hypeUser.findMany({ 
+                where: { hypeCash: { gt: 0 } },
+                orderBy: { hypeCash: 'desc' }, // O Prisma já ordena do mais rico para o mais pobre
+                take: isGlobal ? 100 : 500 
+            });
 
             let sortedUsers = allUsersRaw.map(u => ({
                 id: u.id,
-                total: (u.carteira || 0) + (u.banco || 0)
-            })).sort((a, b) => b.total - a.total);
+                total: u.hypeCash || 0 // Pega EXCLUSIVAMENTE o valor do Banco!
+            }));
 
             if (!isGlobal) {
+                // Filtra apenas quem está no servidor atual
                 sortedUsers = sortedUsers.filter(u => message.guild.members.cache.has(u.id)).slice(0, 10);
             } else {
                 sortedUsers = sortedUsers.slice(0, 10);
             }
 
-            if (sortedUsers.length === 0) return message.reply('❌ Ninguém tem moedas por aqui ainda...');
+            if (sortedUsers.length === 0) return message.reply('❌ Ninguém tem moedas depositadas no banco por aqui ainda...');
 
             let description = '';
             for (let i = 0; i < sortedUsers.length; i++) {
@@ -802,8 +807,8 @@ module.exports = {
 
             const embed = new EmbedBuilder()
                 .setColor(isGlobal ? '#f1c40f' : '#3498db')
-                .setTitle(isGlobal ? '🌎 Ranking Global de Riqueza' : `🏆 Top Ricos — ${message.guild.name}`)
-                .setDescription(`Confira os jogadores mais poderosos (Carteira + Banco):\n\n${description}`)
+                .setTitle(isGlobal ? '🌎 Ranking Global do Banco' : `🏆 Top Ricos (Banco) — ${message.guild.name}`)
+                .setDescription(`Confira os jogadores com as maiores fortunas no Hype Bank:\n\n${description}`)
                 .setThumbnail(isGlobal ? 'https://cdn-icons-png.flaticon.com/512/2947/2947656.png' : null)
                 .setFooter({ text: `Consultado por ${message.author.username}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
 
