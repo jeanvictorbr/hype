@@ -1,4 +1,4 @@
-const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
 const { generateProfileImage } = require('../../../utils/canvasProfile');
 const { generateBlackjackTable } = require('../../../utils/canvasBlackjack');
@@ -578,8 +578,11 @@ if (command === 'loja' || command === 'mercado') {
 
                 return;
             }
-
-            // ==========================================
+            // 👇 NOVA TRAVA: Ignora os botões que são processados ao vivo (Coletores Inline)
+                if (interaction.customId) {
+                    const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator'];
+                    if (inlineIds.some(id => interaction.customId.startsWith(id))) return;
+                }            // ==========================================
             // 🌐 MODO 2: LOBBY GLOBAL (Sem Menção/Sem Resposta)
             // ==========================================
             const row = new ActionRowBuilder().addComponents(

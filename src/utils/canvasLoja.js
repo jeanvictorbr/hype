@@ -84,9 +84,9 @@ async function generateShopCatalog() {
     };
 
     // LINKS DE IMAGENS REAIS
-    await drawItem('COLETE BALÍSTICO', 300000, 'Proteção total contra o próximo assalto. Uso único.', 150, 'https://cdn-icons-png.flaticon.com/512/3233/3233514.png');
-    await drawItem('PÉ DE CABRA', 200000, 'Aumenta em 15% a chance de roubo por 24 horas.', 320, 'https://cdn-icons-png.flaticon.com/512/3596/3596045.png');
-    await drawItem('KIT DISFARCE', 250000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png');
+    await drawItem('COLETE BALÍSTICO', 10000, 'Proteção total contra os próximos assaltos, durante 15 minutos.', 150, 'https://cdn-icons-png.flaticon.com/512/3233/3233514.png');
+    await drawItem('PÉ DE CABRA', 10000, 'Aumenta em 15% a chance de roubo por 15 minutos.', 320, 'https://cdn-icons-png.flaticon.com/512/3596/3596045.png');
+    await drawItem('KIT DISFARCE', 15000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png');
 
     return canvas.toBuffer();
 }
