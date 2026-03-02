@@ -53,7 +53,7 @@ module.exports = {
             } else {
                 // Se for o perfil de um amigo: Botão de Dar Fama
                 const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('eco_rep_btn').setLabel('Dar +Reputação').setStyle(ButtonStyle.Success).setEmoji('⭐')
+                    new ButtonBuilder().setCustomId('eco_rep_btn').setLabel('Dar +Curtida').setStyle(ButtonStyle.Success).setEmoji('⭐')
                 );
                 components.push(row);
             }

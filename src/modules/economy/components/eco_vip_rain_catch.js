@@ -19,7 +19,7 @@ module.exports = {
         // 2. Impede o jogador de pegar duas vezes na mesma chuva
         if (rain.participants.has(interaction.user.id)) {
             return interaction.reply({ 
-                content: '⚠️ Tu já agarraste a tua nota! Deixa um pouco para os outros malandros.', 
+                content: '⚠️ Você ja pegou a tua nota! Deixa um pouco para os outros malandros.', 
                 flags: [MessageFlags.Ephemeral] 
             });
         }

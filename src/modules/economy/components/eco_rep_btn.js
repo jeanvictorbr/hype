@@ -15,7 +15,7 @@ module.exports = {
 
         // Previne que a pessoa dê rep a si mesma
         if (targetId === callerId) {
-            return interaction.reply({ content: '❌ Seu egocêntrico! Não pode dar reputação a si mesmo!', flags: [MessageFlags.Ephemeral] });
+            return interaction.reply({ content: '❌ Seu egocêntrico! Não pode dar curtida a si mesmo!', flags: [MessageFlags.Ephemeral] });
         }
 
         // Segura o click (Ephemeral = só a pessoa que clicou vê o carregamento e o aviso)
@@ -37,7 +37,7 @@ module.exports = {
                     const tempoRestante = hours24 - diff;
                     const horas = Math.floor(tempoRestante / (1000 * 60 * 60));
                     const minutos = Math.floor((tempoRestante % (1000 * 60 * 60)) / (1000 * 60));
-                    return interaction.editReply({ content: `⏳ Opa, calma aí! Só podes dar Reputação a cada 24 horas. Volte em **${horas}h e ${minutos}m**.` });
+                    return interaction.editReply({ content: `⏳ Opa, calma aí! Só podes dar Curtida a cada 24 horas. Volte em **${horas}h e ${minutos}m**.` });
                 }
             }
 
@@ -71,18 +71,18 @@ module.exports = {
             const attachment = new AttachmentBuilder(imageBuffer, { name: 'profile.png' });
             const embed = new EmbedBuilder().setColor('#2b2d31').setImage('attachment://profile.png');
             const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('eco_rep_btn').setLabel('Dar +Reputação').setStyle(ButtonStyle.Success).setEmoji('⭐')
+                new ButtonBuilder().setCustomId('eco_rep_btn').setLabel('Dar +Curtida').setStyle(ButtonStyle.Success).setEmoji('⭐')
             );
 
             // Atualiza o Banner lá em cima à frente de toda a gente!
             await interaction.message.edit({ embeds: [embed], files: [attachment], attachments: [], components: [row] });
 
             // Mostra o Sucesso a quem clicou
-            await interaction.editReply({ content: `⭐ Sucesso! Foste um bacano e deste **+1 de Reputação** para o(a) **${targetUserDiscord.username}**!` });
+            await interaction.editReply({ content: `⭐ Sucesso! Foste um bacano e deste **+1 de curtida** para o(a) **${targetUserDiscord.username}**!` });
 
         } catch (error) {
             console.error('Erro ao dar rep:', error);
-            await interaction.editReply({ content: '❌ Ocorreu um erro ao processar a reputação.' });
+            await interaction.editReply({ content: '❌ Ocorreu um erro ao processar a curtida.' });
         }
     }
 };

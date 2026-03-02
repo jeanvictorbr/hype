@@ -59,7 +59,7 @@ module.exports = {
 
             await interaction.message.edit({ embeds: [embed], files: [attachment], attachments: [] });
 
-            await interaction.editReply(`✅ Pagaste **R$ ${mesa.valorAposta.toLocaleString('pt-BR')}** e sentaste-te na mesa. Boa sorte...`);
+            await interaction.editReply(`✅ Pagou **R$ ${mesa.valorAposta.toLocaleString('pt-BR')}** e sentou-se na mesa. Boa sorte...`);
 
         } catch (error) {
             console.error('❌ Erro a entrar na mesa:', error);

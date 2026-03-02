@@ -404,7 +404,7 @@ module.exports = {
             desc += makeLine('Brindar', userProfile.lastBrindar, socialCD) + '\n';
 
             const embed = new EmbedBuilder()
-                .setColor('#9b59b6')
+                .setColor('#0000FF')
                 .setAuthor({ name: `⏰ Cooldown's de ${message.author.username}` })
                 .setDescription(desc)
                 .setThumbnail('https://cdn-icons-png.flaticon.com/512/3103/3103306.png')
@@ -723,7 +723,7 @@ if (command === 'loja' || command === 'mercado') {
             const embed = new EmbedBuilder()
                 .setColor(embedColor)
                 .setTitle(`💰 ${nomePremio} Recolhido!`)
-                .setDescription(`Foste ao banco e levantaste a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}${extraMsg}\n\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
+                .setDescription(`FFoi ao banco e levou a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}${extraMsg}\n\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
                 .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
 
             return message.reply({ embeds: [embed] });
@@ -844,7 +844,7 @@ if (command === 'loja' || command === 'mercado') {
             
             if (ladrao.peDeCabraExp && new Date(ladrao.peDeCabraExp).getTime() > Date.now()) {
                 chanceSucesso += 0.15; // Sobe para 60%
-                msgPeCabra = '\n🪓 *(Usaste o teu Pé de Cabra para facilitar o roubo!)*';
+                msgPeCabra = '\n🪓 *(Usou o teu Pé de Cabra para facilitar o roubo!)*';
             }
 
             const sorteio = Math.random();
@@ -862,7 +862,7 @@ if (command === 'loja' || command === 'mercado') {
                 const embed = new EmbedBuilder()
                     .setColor('#57F287')
                     .setTitle('🥷 ASSALTO BEM SUCEDIDO!')
-                    .setDescription(`Passaste a mão na carteira de <@${targetUser.id}> e fugiste num carro de fuga!${msgPeCabra}\n\n💸 **Levaste:** R$ ${valorFinal.toLocaleString('pt-BR')}\n*(Dinheiro adicionado à tua carteira)*`)
+                    .setDescription(`Passou a mão na carteira de <@${targetUser.id}> e fugiu num carro de fuga!${msgPeCabra}\n\n💸 **Levou:** R$ ${valorFinal.toLocaleString('pt-BR')}\n*(Dinheiro adicionado à tua carteira)*`)
                     .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nn/3o7TKMGpxS5O7E6pW0/giphy.gif');
 
                 return message.reply({ embeds: [embed] });
@@ -1266,7 +1266,7 @@ if (command === 'loja' || command === 'mercado') {
                     components.push(row);
                 } else {
                     const row = new ActionRowBuilder().addComponents(
-                        new ButtonBuilder().setCustomId('eco_rep_btn').setLabel('Dar +Reputação').setStyle(ButtonStyle.Success).setEmoji('⭐')
+                        new ButtonBuilder().setCustomId('eco_rep_btn').setLabel('Dar +Curtida').setStyle(ButtonStyle.Success).setEmoji('⭐')
                     );
                     components.push(row);
                 }
@@ -1283,7 +1283,7 @@ if (command === 'loja' || command === 'mercado') {
         // ==========================================
         if (command === 'depositar' || command === 'dep') {
             let valorStr = args[0];
-            if (!valorStr) return message.reply('❌ Tu precisas de dizer o valor! Exemplo: `hdepositar 100` ou `hdepositar tudo`');
+            if (!valorStr) return message.reply('❌ Você precisa dizer o valor! Exemplo: `hdepositar 100` ou `hdepositar tudo`');
 
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
             if (!user || user.carteira <= 0) return message.reply('❌ Não tens dinheiro na carteira para depositar.');
@@ -1292,44 +1292,44 @@ if (command === 'loja' || command === 'mercado') {
             if (valorStr.toLowerCase() === 'tudo' || valorStr.toLowerCase() === 'all') valor = user.carteira;
 
             if (isNaN(valor) || valor <= 0) return message.reply('❌ Valor inválido!');
-            if (user.carteira < valor) return message.reply(`❌ Só tens **R$ ${user.carteira.toLocaleString('pt-BR')}** na carteira.`);
+            if (user.carteira < valor) return message.reply(`❌ Só tem **R$ ${user.carteira.toLocaleString('pt-BR')}** na carteira.`);
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { carteira: { decrement: valor }, hypeCash: { increment: valor } } });
-            return message.reply(`✅ **Sucesso!** Tu depositaste **R$ ${valor.toLocaleString('pt-BR')}** no teu Cartão Hype! 🏦`);
+            return message.reply(`✅ **Sucesso!** Você depositou **R$ ${valor.toLocaleString('pt-BR')}** no teu Cartão Hype! 🏦`);
         }
 
         if (command === 'depall') {
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            if (!user || user.carteira <= 0) return message.reply('❌ Não tens nenhum dinheiro na carteira para depositar.');
+            if (!user || user.carteira <= 0) return message.reply('❌ Não tem nenhum dinheiro na carteira para depositar.');
             const valorTotal = user.carteira;
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { carteira: { decrement: valorTotal }, hypeCash: { increment: valorTotal } } });
-            return message.reply(`✅ **Segurança Máxima!** Tu depositaste todo o teu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) no teu Cartão Hype! 🏦`);
+            return message.reply(`✅ **Segurança Máxima!** Você depositou todo o teu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) no teu Cartão Hype! 🏦`);
         }
 
         if (command === 'sacar' || command === 'saque') {
             let valorStr = args[0];
-            if (!valorStr) return message.reply('❌ Tu precisas de dizer o valor! Exemplo: `hsacar 100`');
+            if (!valorStr) return message.reply('❌ Você precisa dizer o valor! Exemplo: `hsacar 100`');
 
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
             let valor = parseInt(valorStr);
             if (valorStr.toLowerCase() === 'tudo') valor = user?.hypeCash || 0;
 
             if (!user || isNaN(valor) || valor <= 0 || user.hypeCash < valor) {
-                return message.reply(`❌ Saldo insuficiente no banco. Tens **R$ ${(user?.hypeCash || 0).toLocaleString('pt-BR')}**.`);
+                return message.reply(`❌ Saldo insuficiente no banco. Tem apenas **R$ ${(user?.hypeCash || 0).toLocaleString('pt-BR')}**.`);
             }
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { hypeCash: { decrement: valor }, carteira: { increment: valor } } });
-            return message.reply(`✅ **Saque feito!** Retiraste **R$ ${valor.toLocaleString('pt-BR')}** do banco. O dinheiro está na tua carteira. Cuidado nas ruas! 🔫`);
+            return message.reply(`✅ **Saque feito!** Retirou **R$ ${valor.toLocaleString('pt-BR')}** do banco. O dinheiro está na tua carteira. Cuidado nas ruas! 🔫`);
         }
 
         if (command === 'sacarall') {
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            if (!user || user.hypeCash <= 0) return message.reply('❌ O teu banco está a zeros. Não tens nada para sacar.');
+            if (!user || user.hypeCash <= 0) return message.reply('❌ O seu banco está a zero. Não tem nada para sacar.');
             const valorTotal = user.hypeCash;
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { hypeCash: { decrement: valorTotal }, carteira: { increment: valorTotal } } });
-            return message.reply(`✅ **Saque Total!** Retiraste todo o teu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) do banco. Cuidado nas ruas! 🔫`);
+            return message.reply(`✅ **Saque Total!** Retirou todo o seu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) do banco. Cuidado nas ruas! 🔫`);
         }
 
         // ==========================================
