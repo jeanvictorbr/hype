@@ -1083,26 +1083,33 @@ if (command === 'loja' || command === 'mercado') {
             const axios = require('axios');
             const { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
             
-            // Busca os utilizadores diretamente ordenados pela riqueza no BANCO (hypeCash)
+            // 1. Avisa o utilizador que está a processar (porque agora vamos forçar a leitura do servidor todo)
+            const msg = await message.reply({ content: '⏳ `Lendo a lista de habitantes e desenhando a galeria de Magnatas...`' });
+
+            // 2. Busca os utilizadores diretamente ordenados pela riqueza no BANCO (hypeCash)
             const allUsersRaw = await prisma.hypeUser.findMany({ 
                 where: { hypeCash: { gt: 0 } },
-                orderBy: { hypeCash: 'desc' }, // O Prisma já ordena do mais rico para o mais pobre
-                take: isGlobal ? 30 : 500 // Se não for global, pega mais para garantir que achamos 30 do servidor
+                orderBy: { hypeCash: 'desc' }, 
+                take: isGlobal ? 30 : 500 
             });
 
             let sortedUsers = allUsersRaw.map(u => ({
                 id: u.id,
-                total: u.hypeCash || 0 // Pega EXCLUSIVAMENTE o valor do Banco!
+                total: u.hypeCash || 0 
             }));
 
             if (!isGlobal) {
-                // Filtra apenas quem está no servidor atual e corta no máximo 30 magnatas
+                // 👇 A CORREÇÃO DE OURO ESTÁ AQUI 👇
+                // Força o bot a baixar todos os membros reais do servidor para a memória cache dele
+                try { await message.guild.members.fetch(); } catch (e) { console.log('Aviso ao puxar membros no Rank.'); }
+                
+                // Agora sim, ele filtra corretamente sem deixar ninguém de fora
                 sortedUsers = sortedUsers.filter(u => message.guild.members.cache.has(u.id)).slice(0, 30);
             } else {
                 sortedUsers = sortedUsers.slice(0, 30);
             }
 
-            if (sortedUsers.length === 0) return message.reply('❌ Ninguém tem moedas depositadas no banco por aqui ainda...');
+            if (sortedUsers.length === 0) return msg.edit({ content: '❌ Ninguém tem moedas depositadas no banco por aqui ainda...' });
 
             // Divide os 30 jogadores em páginas de 10
             const chunks = [];
@@ -1137,8 +1144,6 @@ if (command === 'loja' || command === 'mercado') {
                 const buffer = await generateRankingImage(players, pageIndex + 1, chunks.length, rankTitle);
                 return new AttachmentBuilder(buffer, { name: 'ranking.png' });
             };
-
-            const msg = await message.reply({ content: '⏳ `Calculando fortunas e desenhando a galeria de Magnatas...`' });
 
             const getRow = (page) => {
                 return new ActionRowBuilder().addComponents(
