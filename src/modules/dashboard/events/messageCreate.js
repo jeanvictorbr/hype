@@ -400,7 +400,6 @@ module.exports = {
             
             // 👇 NOVAS INTERAÇÕES ADICIONADAS AQUI
             desc += makeLine('Chutar', userProfile.lastChutar, socialCD) + '\n';
-            desc += makeLine('Toca Aqui', userProfile.lastTocaaqui, socialCD) + '\n';
             desc += makeLine('Dançar', userProfile.lastDancar, socialCD) + '\n';
             desc += makeLine('Brindar', userProfile.lastBrindar, socialCD) + '\n';
 
