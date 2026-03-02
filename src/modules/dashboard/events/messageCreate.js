@@ -229,11 +229,7 @@ module.exports = {
                 'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3bXNtNHo4c2pkcmV0YTZhaHdmZGp0dGNubGszcGFzNmNsajI1NXd3cSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/u2LJ0n4lx6jF6/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3eXg4bzEwa3Q1NmJlbnFlYzlrbXJlM2g4cm55dm1xbjJkMW44cWcwMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3IRa7BlrVTK1BBFWtx/giphy.gif'
             ],
-            tocaaqui: [
-                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3b2ZsOGxicTAzZWtnNHBjZzhzNzhyYzJrZHk0b3dtdzgwcmw3NGZnbCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/luWqg8s0jQ8oeV26Nw/giphy.gif',
-                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3b2ZsOGxicTAzZWtnNHBjZzhzNzhyYzJrZHk0b3dtdzgwcmw3NGZnbCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/s4VoCsFz8prlhSFCeS/giphy.gif',
-                'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3b2ZsOGxicTAzZWtnNHBjZzhzNzhyYzJrZHk0b3dtdzgwcmw3NGZnbCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/b5L1Lt3k4hGNDZWVIw/giphy.gif'
-            ],
+
             dancar: [
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYTZ4YXBnOGw4czRhdXQwYmc3ZzlkeG5vdmdzdG1ldzZ6Mnc0dWZrYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/j93ycvEyWlSIIg8AEl/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYTZ4YXBnOGw4czRhdXQwYmc3ZzlkeG5vdmdzdG1ldzZ6Mnc0dWZrYSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/Ut0KxC3gnIwcEpmTZW/giphy.gif',
@@ -264,15 +260,16 @@ module.exports = {
             'beijar': { verb: 'deu um beijo apaixonado em', type: 'beijar', emoji: '💋' },
             'tapa': { verb: 'deu um tapa bem dado na cara de', type: 'tapa', emoji: '🖐️' },
             'abracar': { verb: 'deu um abraço bem apertado em', type: 'abracar', emoji: '🫂' },
+            'abraçar': { verb: 'deu um abraço bem apertado em', type: 'abracar', emoji: '🫂' },
             'morder': { verb: 'deu uma mordida em', type: 'morder', emoji: '🧛' },
             'pat': { verb: 'fez um carinho fofo na cabeça de', type: 'pat', emoji: '🥰' },
             'socar': { verb: 'deu um soco com toda a força na cara de', type: 'socar', emoji: '🥊' },
             'cafune': { verb: 'fez um cafuné gostoso em', type: 'cafune', emoji: '💆' },
+            'cafuné': { verb: 'fez um cafuné gostoso em', type: 'cafune', emoji: '💆' },
             'chutar': { verb: 'deu um chute bem dado na canela de', type: 'chutar', emoji: '🥾' },
             'chute': { verb: 'deu um chute bem dado na canela de', type: 'chutar', emoji: '🥾' },
-            'tocaaqui': { verb: 'deu um high-five estrondoso em', type: 'tocaaqui', emoji: '🤝' },
-            'highfive': { verb: 'deu um high-five estrondoso em', type: 'tocaaqui', emoji: '🤝' },
             'dancar': { verb: 'puxou para dançar com muito estilo', type: 'dancar', emoji: '💃' },
+            'dançar': { verb: 'puxou para dançar com muito estilo', type: 'dancar', emoji: '💃' },
             'brindar': { verb: 'brindou uma taça de champanhe com', type: 'brindar', emoji: '🥂' }
         };
 
@@ -282,9 +279,9 @@ module.exports = {
             const targetUser = message.mentions.users.first();
 
             // 1. Verificações Básicas
-            if (!targetUser) return message.reply(`❌ Tens de mencionar alguém! Exemplo: \`h${command} @usuario\``);
-            if (targetUser.id === authorId) return message.reply(`❌ Não podes fazer isso a ti mesmo(a)! Dá isso a outra pessoa!`);
-            if (targetUser.bot) return message.reply(`😳 Eh lá... eu sou apenas um bot de sistema! Mas agradeço a intenção.`);
+            if (!targetUser) return message.reply(`❌ Tem de mencionar alguém! Exemplo: \`h${command} @usuario\``);
+            if (targetUser.id === authorId) return message.reply(`❌ Não pode fazer isso a vc mesmo(a)! Tente em outra pessoa!`);
+            if (targetUser.bot) return message.reply(`😳 Eh lá... eu sou apenas um bot ! Mas agradeço a intenção.`);
 
             // 2. Busca o utilizador no Banco de Dados
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: authorId } });
@@ -300,7 +297,7 @@ module.exports = {
                     const timeLeft = Math.ceil((cooldownTime - (now - lastTime)) / 1000);
                     const minutes = Math.floor(timeLeft / 60);
                     const seconds = timeLeft % 60;
-                    return message.reply(`⏳ **Descansa a mão!** Já usaste o \`h${command}\` há pouco tempo.\nPodes usá-lo de novo em **${minutes}m e ${seconds}s**.`);
+                    return message.reply(`⏳ **Descansa a mão!** Já usou o \`h${command}\` há pouco tempo.\nPode usá-lo de novo em **${minutes}m e ${seconds}s**.`);
                 }
             }
 
@@ -356,7 +353,7 @@ module.exports = {
             let extraMsg = vipLevel > 0 ? `\n💎 **Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
 
             return message.reply({ 
-                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸 **VOCÊ GANHOU;**  **R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)${extraMsg}`, 
+                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸 **VOCÊ GANHOU:**  **R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)${extraMsg}`, 
                 files: [attachment] 
             });
         }
@@ -433,17 +430,17 @@ if (command === 'loja' || command === 'mercado') {
 .addOptions(
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Colete Balístico')
-                            .setDescription('R$ 300.000 - Proteção contra 1 roubo')
+                            .setDescription('R$ 10.000 - Imunidade a roubos (15min)')
                             .setEmoji('🛡️')
                             .setValue('colete'),
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Pé de Cabra')
-                            .setDescription('R$ 200.000 - Buff de roubo (24h)')
+                            .setDescription('R$ 10.000 - Buff de roubo (15min)')
                             .setEmoji('🔨')
                             .setValue('pecabra'),
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Kit de Disfarce')
-                            .setDescription('R$ 250.000 - 50% de desconto em 3 multas')
+                            .setDescription('R$ 15.000 - 50% de desconto em 3 multas')
                             .setEmoji('🎭')
                             .setValue('disfarce')
                     );
@@ -835,15 +832,11 @@ if (command === 'loja' || command === 'mercado') {
                     return message.reply(`⏳ A polícia está de olho em ti! Espera até <t:${expireUnix}:R> para tentares outro assalto.`);
                 }
             }
-
-            // 🛡️ VERIFICAÇÃO DO COLETE À PROVA DE BALAS
-            if (vitima.hasColete) {
-                // Quebra o colete da vítima e aplica o cooldown ao ladrão
-                await prisma.$transaction([
-                    prisma.hypeUser.update({ where: { id: targetUser.id }, data: { hasColete: false } }),
-                    prisma.hypeUser.update({ where: { id: authorId }, data: { lastRob: new Date() } })
-                ]);
-                return message.reply(`🛡️ **ASSALTO BLOQUEADO!** Tu tentaste roubar <@${targetUser.id}>, mas ele estava a usar um **Colete à Prova de Balas**!\nO assalto falhou e o colete da vítima foi destruído no confronto. Foge antes que a polícia chegue!`);
+// 🛡️ VERIFICAÇÃO DO COLETE À PROVA DE BALAS (15 Minutos)
+            if (vitima.coleteExp && new Date(vitima.coleteExp).getTime() > Date.now()) {
+                // Aplica apenas o cooldown ao ladrão (Colete NÃO quebra, dura os 15 minutos inteiros)
+                await prisma.hypeUser.update({ where: { id: authorId }, data: { lastRob: new Date() } });
+                return message.reply(`🛡️ **ASSALTO BLOQUEADO!** Você tentou roubar <@${targetUser.id}>, mas ele está com um **Colete Balístico** ativo!\nO assalto falhou e a blindagem dele continua intacta. Fuja antes que a polícia chegue!`);
             }
 
             // 🪓 VERIFICAÇÃO DO PÉ DE CABRA

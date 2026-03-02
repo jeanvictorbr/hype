@@ -10,6 +10,65 @@ function drawRoundRect(ctx, x, y, w, h, radius) {
     ctx.quadraticCurveTo(x, y, x + radius, y); ctx.closePath();
 }
 
+// ==========================================
+// 👉 NOVA FUNÇÃO: CALCULAR PONTOS NA IMAGEM
+// ==========================================
+function getHandScore(hand, isHiddenDealer = false) {
+    let score = 0; let aces = 0;
+    // Se for o agiota e o jogo não acabou, só soma a 1ª carta (visível)
+    const visibleHand = isHiddenDealer ? [hand[0]] : hand;
+
+    for (let card of visibleHand) {
+        if (['J', 'Q', 'K'].includes(card.value)) score += 10;
+        else if (card.value === 'A') { score += 11; aces += 1; }
+        else score += parseInt(card.value);
+    }
+    while (score > 21 && aces > 0) { score -= 10; aces -= 1; }
+    return score;
+}
+
+/**
+ * Desenha a Etiqueta Didática com os Pontos
+ */
+function drawScoreBadge(ctx, x, y, name, scoreStr) {
+    ctx.save();
+    // Texto do Nome
+    ctx.font = 'bold 22px Arial';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.fillText(name, x, y);
+
+    const nameW = ctx.measureText(name).width;
+    
+    // Etiqueta de Pontos
+    ctx.font = 'bold 16px "Arial Black"';
+    const text = ` ${scoreStr} PONTOS `;
+    const textW = ctx.measureText(text).width;
+
+    const bx = x + nameW + 15;
+    const by = y - 18;
+    const bw = textW + 10;
+    const bh = 24;
+
+    // Fundo da etiqueta escuro
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    drawRoundRect(ctx, bx, by, bw, bh, 6);
+    ctx.fill();
+
+    // Borda Amarela
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Texto dos Pontos
+    ctx.fillStyle = '#facc15';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, bx + bw / 2, by + bh / 2);
+
+    ctx.restore();
+}
+
 /**
  * Desenha uma única carta
  */
@@ -51,32 +110,26 @@ async function generateBlackjackTable(playerHand, dealerHand, isGameOver = false
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // 1. FUNDO (Pano Verde)
+    // 1. FUNDO (Pano Verde de Cassino)
     const gradient = ctx.createRadialGradient(width/2, height/2, 50, width/2, height/2, width);
     gradient.addColorStop(0, '#1d5e33'); gradient.addColorStop(1, '#0b2614');
     ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, height);
 
-    // ==========================================
-    // 👉 NOVO: MARCA D'ÁGUA (LOGO HYPE)
-    // ==========================================
+    // MARCA D'ÁGUA (LOGO HYPE)
     try {
         const logoPath = path.join(__dirname, 'logo.png');
         const logo = await loadImage(logoPath);
-        const logoW = 300; // Tamanho grande para o centro
+        const logoW = 300; 
         const logoH = logoW * (logo.height / logo.width);
         const logoX = (width - logoW) / 2;
-        const logoY = (height - logoH) / 2 + 30; // Ligeiramente abaixo do centro
+        const logoY = (height - logoH) / 2 + 30; 
 
         ctx.save();
-        ctx.globalAlpha = 0.12; // Muito transparente (efeito fantasma)
-        // Modo de mistura para parecer impresso no tecido
+        ctx.globalAlpha = 0.12; 
         ctx.globalCompositeOperation = 'overlay'; 
         ctx.drawImage(logo, logoX, logoY, logoW, logoH);
         ctx.restore();
-    } catch (e) {
-        // Se não achar a logo, segue o jogo sem ela
-    }
-    // ==========================================
+    } catch (e) {}
 
     // Linha curva da mesa
     ctx.beginPath(); ctx.arc(width/2, height + 400, 700, Math.PI, 0);
@@ -86,26 +139,36 @@ async function generateBlackjackTable(playerHand, dealerHand, isGameOver = false
     ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
     ctx.font = 'bold 30px "Arial Black"'; ctx.textAlign = 'center';
     ctx.fillText('BLACKJACK HYPE', width/2, height/2 + 20);
-    ctx.font = 'italic 16px Arial'; ctx.fillText('O Agiota paga 3 para 2', width/2, height/2 + 50);
+    ctx.font = 'italic 16px Arial'; ctx.fillText('O Agiota bate aos 17', width/2, height/2 + 50);
 
-    // 2. MÃO DO DEALER
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 20px Arial'; ctx.textAlign = 'left';
-    ctx.fillText('Agiota', 50, 40);
+    // ==========================================
+    // 2. MÃO DO DEALER (AGIOTA)
+    // ==========================================
+    const isHiddenDealer = !isGameOver;
+    const dealerScore = getHandScore(dealerHand, isHiddenDealer);
+    let dScoreStr = dealerScore.toString();
+    if (isHiddenDealer) dScoreStr += ' + ?'; // Suspense da carta escondida!
+
+    drawScoreBadge(ctx, 50, 45, 'Mão do Agiota', dScoreStr);
+
     dealerHand.forEach((card, index) => {
-        drawCard(ctx, card, 50 + (index * 40), 60, !isGameOver && index === 1);
+        drawCard(ctx, card, 50 + (index * 40), 60, isHiddenDealer && index === 1);
     });
 
+    // ==========================================
     // 3. MÃO DO JOGADOR
-    ctx.fillStyle = '#ffffff'; ctx.fillText('Você', 50, height - 150);
+    // ==========================================
+    const playerScore = getHandScore(playerHand, false);
+    drawScoreBadge(ctx, 50, height - 150, 'Sua Mão', playerScore.toString());
+
     playerHand.forEach((card, index) => {
         drawCard(ctx, card, 50 + (index * 40), height - 135, false);
     });
 
     // ==========================================
-    // 👉 NOVO: MOLDURA PREMIUM (Dourada)
+    // 4. MOLDURA PREMIUM (Dourada)
     // ==========================================
     ctx.save();
-    // Gradiente metálico dourado para a borda
     const borderGrad = ctx.createLinearGradient(0, 0, width, height);
     borderGrad.addColorStop(0, '#bf953f');
     borderGrad.addColorStop(0.25, '#fcf6ba');
@@ -113,18 +176,11 @@ async function generateBlackjackTable(playerHand, dealerHand, isGameOver = false
     borderGrad.addColorStop(0.75, '#fbf5b7');
     borderGrad.addColorStop(1, '#aa771c');
     
-    // Borda externa grossa
-    ctx.strokeStyle = borderGrad;
-    ctx.lineWidth = 12; 
-    // Desenhamos 6px para dentro para não cortar a borda
+    ctx.strokeStyle = borderGrad; ctx.lineWidth = 12; 
     ctx.strokeRect(6, 6, width - 12, height - 12);
-
-    // Linha fina interna para detalhe de luxo
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctx.lineWidth = 1;
     ctx.strokeRect(14, 14, width - 28, height - 28);
     ctx.restore();
-    // ==========================================
 
     return canvas.toBuffer('image/png');
 }

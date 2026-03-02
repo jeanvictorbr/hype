@@ -10,7 +10,7 @@ async function generatePurchaseReceipt(user, itemName, price, benefit, duration)
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Detalhe lateral Roxo (Marca Hype)
-    ctx.fillStyle = '#9b59b6';
+    ctx.fillStyle = '#001aff';
     ctx.fillRect(0, 0, 10, canvas.height);
 
     // --- AVATAR DO USUÁRIO ---
@@ -34,7 +34,7 @@ async function generatePurchaseReceipt(user, itemName, price, benefit, duration)
     ctx.restore();
 
     // Borda do Avatar
-    ctx.strokeStyle = '#9b59b6';
+    ctx.strokeStyle = '#001aff';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(xAvatar + avatarSize / 2, yAvatar + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
@@ -82,7 +82,7 @@ async function generatePurchaseReceipt(user, itemName, price, benefit, duration)
 
     // Valor no Canto Inferior Direito
     ctx.textAlign = 'right';
-    ctx.fillStyle = '#9b59b6';
+    ctx.fillStyle = '#001aff';
     ctx.font = 'bold 24px sans-serif';
     ctx.fillText(`- R$ ${price.toLocaleString('pt-BR')}`, 560, 270);
 

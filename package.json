@@ -4,16 +4,15 @@
   "description": "Bot multi-guild escalável com dashboard in-app.",
   "main": "src/index.js",
   "scripts": {
-    "start": "npx prisma db push --accept-data-loss && node src/index.js",
+    "start": "npx prisma generate && npx prisma db push --accept-data-loss && node src/index.js",
     "dev": "node --watch src/index.js"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
+    "axios": "^1.6.7",
     "canvas": "^2.11.2",
     "discord.js": "^14.14.0",
-    "dotenv": "^16.4.0"
-  },
-  "devDependencies": {
+    "dotenv": "^16.4.0",
     "prisma": "^5.10.0"
   }
 }

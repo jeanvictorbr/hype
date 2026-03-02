@@ -82,7 +82,7 @@ async function generatePixReceipt(sender, receiver, amount, txId) {
         ctx.beginPath();
         ctx.arc(x + avatarSize / 2, y + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2, true);
         ctx.lineWidth = 4;
-        ctx.strokeStyle = '#9b59b6'; // Roxo Hype
+        ctx.strokeStyle = '#0011ff'; // Roxo Hype
         ctx.stroke();
     }
 
