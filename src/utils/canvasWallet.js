@@ -73,8 +73,8 @@ async function generateWalletImage(userDiscord, userData) {
     ctx.save();
     ctx.beginPath(); ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
     ctx.lineWidth = 4;
-    ctx.strokeStyle = '#38bdf8'; // Azul Néon
-    ctx.shadowColor = '#38bdf8'; 
+    ctx.strokeStyle = '#0000FF'; // Azul Néon
+    ctx.shadowColor = '#0000FF'; 
     ctx.shadowBlur = 15; // Brilho em volta da foto
     ctx.stroke();
     ctx.restore();
@@ -143,7 +143,7 @@ async function generateWalletImage(userDiscord, userData) {
     drawRoundRectPath(ctx, cardX + cardW - 100, cardY + 197, 70, 24, 6);
     ctx.fillStyle = 'rgba(56, 189, 248, 0.15)'; ctx.fill();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#0000FF'; ctx.font = 'bold 12px Arial';
     ctx.fillText('SEGURO', cardX + cardW - 65, cardY + 209);
 
     // 6. RODAPÉ

@@ -22,7 +22,7 @@ module.exports = {
                 // Se o ID do botão for da ajuda ou das apostas, este roteador ignora e sai.
                 // Isso evita o erro de "Unknown interaction" e conflitos com o messageCreate.
                 if (interaction.customId) {
-                    const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator'];
+                    const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator','roleta_', 'rank_'];
                     if (inlineIds.some(id => interaction.customId.startsWith(id))) {
                         return; // Aborta silenciosamente e deixa o messageCreate trabalhar
                     }

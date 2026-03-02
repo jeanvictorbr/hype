@@ -1079,12 +1079,15 @@ if (command === 'loja' || command === 'mercado') {
         // ==========================================
         if (command === 'rank' || command === 'top' || command === 'rankglobal') {
             const isGlobal = command === 'rankglobal';
+            const { generateRankingImage } = require('../../../utils/canvasRanking');
+            const axios = require('axios');
+            const { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
             
             // Busca os utilizadores diretamente ordenados pela riqueza no BANCO (hypeCash)
             const allUsersRaw = await prisma.hypeUser.findMany({ 
                 where: { hypeCash: { gt: 0 } },
                 orderBy: { hypeCash: 'desc' }, // O Prisma já ordena do mais rico para o mais pobre
-                take: isGlobal ? 100 : 500 
+                take: isGlobal ? 30 : 500 // Se não for global, pega mais para garantir que achamos 30 do servidor
             });
 
             let sortedUsers = allUsersRaw.map(u => ({
@@ -1093,31 +1096,87 @@ if (command === 'loja' || command === 'mercado') {
             }));
 
             if (!isGlobal) {
-                // Filtra apenas quem está no servidor atual
-                sortedUsers = sortedUsers.filter(u => message.guild.members.cache.has(u.id)).slice(0, 10);
+                // Filtra apenas quem está no servidor atual e corta no máximo 30 magnatas
+                sortedUsers = sortedUsers.filter(u => message.guild.members.cache.has(u.id)).slice(0, 30);
             } else {
-                sortedUsers = sortedUsers.slice(0, 10);
+                sortedUsers = sortedUsers.slice(0, 30);
             }
 
             if (sortedUsers.length === 0) return message.reply('❌ Ninguém tem moedas depositadas no banco por aqui ainda...');
 
-            let description = '';
-            for (let i = 0; i < sortedUsers.length; i++) {
-                const u = sortedUsers[i];
-                const userObj = client.users.cache.get(u.id);
-                const userTag = userObj ? userObj.username : `Usuário (${u.id})`;
-                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `**${i + 1}.**`;
-                description += `${medal} **${userTag}** — \`R$ ${u.total.toLocaleString('pt-BR')}\`\n`;
+            // Divide os 30 jogadores em páginas de 10
+            const chunks = [];
+            for (let i = 0; i < sortedUsers.length; i += 10) {
+                chunks.push(sortedUsers.slice(i, i + 10));
             }
 
-            const embed = new EmbedBuilder()
-                .setColor(isGlobal ? '#f1c40f' : '#3498db')
-                .setTitle(isGlobal ? '🌎 Ranking Global do Banco' : `🏆 Top Ricos (Banco) — ${message.guild.name}`)
-                .setDescription(`Confira os jogadores com as maiores fortunas no Hype Bank:\n\n${description}`)
-                .setThumbnail(isGlobal ? 'https://cdn-icons-png.flaticon.com/512/2947/2947656.png' : null)
-                .setFooter({ text: `Consultado por ${message.author.username}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
+            let currentPage = 0;
+            const rankTitle = isGlobal ? 'GLOBAL' : message.guild.name;
 
-            return message.reply({ embeds: [embed] });
+            // Função para renderizar a página específica ao vivo
+            const renderPage = async (pageIndex) => {
+                const pageData = chunks[pageIndex];
+                const players = await Promise.all(pageData.map(async (u, idx) => {
+                    const globalRank = (pageIndex * 10) + idx + 1;
+                    
+                    let username = 'Membro Desconhecido';
+                    let avatarBuffer = null;
+                    try {
+                        const discordUser = await client.users.fetch(u.id);
+                        if (discordUser) {
+                            username = discordUser.username;
+                            const url = discordUser.displayAvatarURL({ extension: 'png', size: 64 });
+                            const res = await axios.get(url, { responseType: 'arraybuffer' });
+                            avatarBuffer = Buffer.from(res.data);
+                        }
+                    } catch(e) {}
+
+                    return { rank: globalRank, username, score: u.total, avatarBuffer };
+                }));
+
+                const buffer = await generateRankingImage(players, pageIndex + 1, chunks.length, rankTitle);
+                return new AttachmentBuilder(buffer, { name: 'ranking.png' });
+            };
+
+            const msg = await message.reply({ content: '⏳ `Calculando fortunas e desenhando a galeria de Magnatas...`' });
+
+            const getRow = (page) => {
+                return new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('rank_prev').setLabel('Anterior').setStyle(ButtonStyle.Primary).setEmoji('⬅️').setDisabled(page === 0),
+                    new ButtonBuilder().setCustomId('rank_next').setLabel('Próxima').setStyle(ButtonStyle.Primary).setEmoji('➡️').setDisabled(page === chunks.length - 1)
+                );
+            };
+
+            try {
+                // 3. Envia a Primeira Página
+                const firstAttachment = await renderPage(0);
+                await msg.edit({ content: '', files: [firstAttachment], components: chunks.length > 1 ? [getRow(0)] : [] });
+
+                // 4. Paginação (Avançar e Voltar)
+                if (chunks.length > 1) {
+                    const collector = msg.createMessageComponentCollector({ time: 60000 });
+                    collector.on('collect', async i => {
+                        if (i.user.id !== message.author.id) {
+                            return i.reply({ content: '❌ Você não pode trocar a página deste ranking.', flags: [MessageFlags.Ephemeral] });
+                        }
+
+                        if (i.customId === 'rank_prev' && currentPage > 0) currentPage--;
+                        if (i.customId === 'rank_next' && currentPage < chunks.length - 1) currentPage++;
+
+                        await i.update({ content: '⏳ `Desenhando a nova página...`', files: [], components: [] });
+                        
+                        const newAttachment = await renderPage(currentPage);
+                        await msg.edit({ content: '', files: [newAttachment], components: [getRow(currentPage)] });
+                    });
+
+                    collector.on('end', () => { msg.edit({ components: [] }).catch(()=>{}); });
+                }
+            } catch (error) {
+                console.error(error);
+                msg.edit({ content: '❌ Ocorreu um erro ao gerar o ranking visual.' }).catch(()=>{});
+            }
+
+            return;
         }
 // ==========================================
         // 📖 COMANDO: hajuda / hhelp (Menu Paginado)
