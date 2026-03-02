@@ -764,7 +764,7 @@ if (command === 'loja' || command === 'mercado') {
 
             // Verifica se o dinheiro está no Cartão (Banco)
             if (!senderProfile || senderProfile.hypeCash < amount) {
-                return message.reply(`❌ **Saldo Insuficiente!** Tu não tens **R$ ${amount.toLocaleString('pt-BR')}** no teu Cartão Hype.\nO teu saldo atual é **R$ ${(senderProfile?.hypeCash || 0).toLocaleString('pt-BR')}**.\n*(Usa o \`hdep\` para depositar o dinheiro da mão)*`);
+                return message.reply(`❌ **Saldo Insuficiente!** Tu não tens **R$ ${amount.toLocaleString('pt-BR')}** no teu Cartão Hype.\nO seu saldo atual é **R$ ${(senderProfile?.hypeCash || 0).toLocaleString('pt-BR')}**.\n*(Usa o \`hdep\` para depositar o dinheiro da mão)*`);
             }
 
             const loadingMsg = await message.reply('🔄 A contactar o Banco Central e a verificar dados...');
@@ -1359,7 +1359,7 @@ if (command === 'loja' || command === 'mercado') {
             if (user.carteira < valor) return message.reply(`❌ Só tem **R$ ${user.carteira.toLocaleString('pt-BR')}** na carteira.`);
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { carteira: { decrement: valor }, hypeCash: { increment: valor } } });
-            return message.reply(`✅ **Sucesso!** Você depositou **R$ ${valor.toLocaleString('pt-BR')}** no teu Cartão Hype! 🏦`);
+            return message.reply(`✅ **Sucesso!** Você depositou **R$ ${valor.toLocaleString('pt-BR')}** no seu Cartão Hype! 🏦`);
         }
 
         if (command === 'depall') {
@@ -1368,7 +1368,7 @@ if (command === 'loja' || command === 'mercado') {
             const valorTotal = user.carteira;
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { carteira: { decrement: valorTotal }, hypeCash: { increment: valorTotal } } });
-            return message.reply(`✅ **Segurança Máxima!** Você depositou todo o teu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) no teu Cartão Hype! 🏦`);
+            return message.reply(`✅ **Segurança Máxima!** Você depositou todo o seu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) no seu Cartão Hype! 🏦`);
         }
 
         if (command === 'sacar' || command === 'saque') {
@@ -1411,7 +1411,7 @@ if (command === 'loja' || command === 'mercado') {
                 const imageBuffer = await generateWalletImage(targetUser, userData);
                 const attachment = new AttachmentBuilder(imageBuffer, { name: 'wallet.png' });
 
-                await loadingMsg.edit({ content: `Carteira de <@${targetUser.id}>`, files: [attachment] });
+                await loadingMsg.edit({ content: `**💸Carteira de** <@${targetUser.id}>`, files: [attachment] });
             } catch (err) {
                 console.error(err);
                 await loadingMsg.edit('❌ Erro ao gerar a carteira.');
