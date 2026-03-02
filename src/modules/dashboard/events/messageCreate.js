@@ -1184,6 +1184,132 @@ if (command === 'loja' || command === 'mercado') {
             return;
         }
 // ==========================================
+        // 💼 COMANDO: hmala (Evento Exclusivo para Admins)
+        // ==========================================
+        if (command === 'mala' || command === 'maleta' || command === 'hmala') {
+            const { AttachmentBuilder, EmbedBuilder } = require('discord.js');
+            
+            // 🛡️ TRAVA: Apenas Administradores
+            if (!message.member.permissions.has('Administrator')) {
+                return message.reply('❌ Apenas a **Alta Cúpula (Admins)** pode iniciar o evento da Mala Criptografada!');
+            }
+
+            const prize = parseInt(args[0]?.replace(/k/g, '000'));
+            const cost = parseInt(args[1]?.replace(/k/g, '000'));
+
+            if (!prize || !cost || isNaN(prize) || isNaN(cost)) {
+                return message.reply('📝 **Uso correto:** `hmala <premio> <custo_por_tentativa>`\nExemplo: `hmala 50k 1k`');
+            }
+
+            // Senha de 3 DÍGITOS
+            const password = Math.floor(100 + Math.random() * 900).toString(); 
+            const passNum = parseInt(password);
+            const p0 = parseInt(password[0]);
+            const p1 = parseInt(password[1]);
+            const p2 = parseInt(password[2]);
+            
+            // 🎨 Gera a Imagem Inicial (A Mala Trancada)
+            const { generateMalaImage } = require('../../../utils/canvasMala');
+            const malaBuffer = await generateMalaImage(prize, cost);
+            const attachment = new AttachmentBuilder(malaBuffer, { name: 'mala.png' });
+
+            const msg = await message.channel.send({
+                content: `🚨 **ALERTA NO SUBMUNDO!** A Alta Cúpula soltou uma maleta trancada!\nValendo **R$ ${prize.toLocaleString('pt-BR')}**! Mandem senhas de **3 DÍGITOS** (Ex: 418) no chat para tentar abrir.`,
+                files: [attachment]
+            });
+
+            // 👇 SISTEMA DE DICAS PROGRESSIVAS (Nunca repete, fica cada vez mais fácil) 👇
+            const hintsProgressive = [
+                `A soma de todos os 3 dígitos é **${p0 + p1 + p2}**.`,
+                `A senha está **entre ${Math.max(100, passNum - 300)} e ${Math.min(999, passNum + 300)}**.`,
+                `O primeiro dígito é **${p0 % 2 === 0 ? 'Par' : 'Ímpar'}**.`,
+                `O último dígito é **${p2 % 2 === 0 ? 'Par' : 'Ímpar'}**.`,
+                `A senha está **entre ${Math.max(100, passNum - 150)} e ${Math.min(999, passNum + 150)}**.`,
+                `A soma do primeiro com o último dígito é **${p0 + p2}**.`,
+                `O dígito do meio é **${p1 > 5 ? 'maior que 5' : 'menor ou igual a 5'}**.`,
+                `A senha está mais fechada: **entre ${Math.max(100, passNum - 80)} e ${Math.min(999, passNum + 80)}**.`,
+                `O primeiro dígito é exatamente **${p0}**.`,
+                `A área de busca diminuiu: **entre ${Math.max(100, passNum - 30)} e ${Math.min(999, passNum + 30)}**.`,
+                `O último dígito é exatamente **${p2}**.`,
+                `Muito perto! A senha está **entre ${Math.max(100, passNum - 10)} e ${Math.min(999, passNum + 10)}**.`,
+                `A soma dos dois últimos dígitos é **${p1 + p2}**.`,
+                `O segundo dígito é exatamente **${p1}**. (Isso é um presente!)`,
+                `SÉRIO? A senha está **entre ${Math.max(100, passNum - 3)} e ${Math.min(999, passNum + 3)}**.`,
+                `A senha começa com **${p0}${p1}**. Falta literalmente só 1 número!`,
+                `💻 **ÚLTIMA DICA:** A senha inteira é **${password}**. Alguém digita isso logo pelo amor de Deus!`
+            ];
+
+            let currentHintIndex = 0;
+
+            // Envia uma dica nova e mais apelona a cada 15 segundos
+            const hintInterval = setInterval(() => {
+                if (currentHintIndex < hintsProgressive.length) {
+                    message.channel.send(`💡 **Dica do Hacker [${currentHintIndex + 1}/${hintsProgressive.length}]:** ${hintsProgressive[currentHintIndex]}`);
+                    currentHintIndex++;
+                }
+            }, 15000); // 👈 15 segundos
+
+            // Coletor: Filtra mensagens com EXATAMENTE 3 números
+            const filter = m => /^\d{3}$/.test(m.content);
+            const collector = message.channel.createMessageCollector({ filter, time: 5 * 60 * 1000 }); 
+
+            collector.on('collect', async m => {
+                const guess = m.content;
+                const userId = m.author.id;
+
+                const userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+                
+                if (!userProfile || userProfile.hypeCash < cost) {
+                    m.react('🏦').catch(()=>{}); 
+                    return;
+                }
+
+                // Cobra do banco silenciosamente
+                await prisma.hypeUser.update({
+                    where: { id: userId },
+                    data: { hypeCash: { decrement: cost } }
+                });
+
+                if (guess === password) {
+                    // 🎉 ACERTOU! Para o evento e o tempo
+                    collector.stop('won');
+                    clearInterval(hintInterval);
+
+                    // Paga o prêmio no banco do ganhador
+                    await prisma.hypeUser.update({
+                        where: { id: userId },
+                        data: { hypeCash: { increment: prize } }
+                    });
+
+                    // 👇 A MÁGICA VISUAL DA VITÓRIA 👇
+                    const winMsg = await m.reply('🔐 `Criptografia quebrada! Autenticando e gerando o recibo de Magnata... Aguarde.`');
+                    
+                    const { generateMalaWinImage } = require('../../../utils/canvasMalaWin');
+                    const winBuffer = await generateMalaWinImage(m.author, prize, password);
+                    const winAttachment = new AttachmentBuilder(winBuffer, { name: 'vitoria.png' });
+
+                    await winMsg.delete().catch(()=>{});
+                    m.channel.send({
+                        content: `🎉 <@${userId}> acabou de HACKEAR o sistema da Mala e levou a bolada para casa!`,
+                        files: [winAttachment]
+                    });
+
+                } else {
+                    // Errou: React silencioso para o chat não virar spam
+                    m.react('❌').catch(()=>{});
+                }
+            });
+
+            collector.on('end', (collected, reason) => {
+                clearInterval(hintInterval);
+                if (reason !== 'won') {
+                    message.channel.send(`🚨 **SISTEMA TRAVADO!**\nO tempo de hacking esgotou e a maleta bloqueou. A senha correta era **${password}**.`);
+                }
+            });
+
+            return;
+        }
+// ==========================================
         // 📖 COMANDO: hajuda / hhelp (Menu Paginado)
         // ==========================================
         if (command === 'ajuda' || command === 'help') {
