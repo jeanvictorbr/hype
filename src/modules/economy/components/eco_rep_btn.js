@@ -78,7 +78,7 @@ module.exports = {
             await interaction.message.edit({ embeds: [embed], files: [attachment], attachments: [], components: [row] });
 
             // Mostra o Sucesso a quem clicou
-            await interaction.editReply({ content: `⭐ Sucesso! Foste um bacano e deste **+1 de curtida** para o(a) **${targetUserDiscord.username}**!` });
+            await interaction.editReply({ content: `⭐ Sucesso! Foi um amigo e deu **+1 de curtida** para o(a) **${targetUserDiscord.username}**!` });
 
         } catch (error) {
             console.error('Erro ao dar rep:', error);

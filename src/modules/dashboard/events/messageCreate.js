@@ -1473,7 +1473,7 @@ if (command === 'loja' || command === 'mercado') {
                     components.push(row);
                 }
 
-                await loadingMsg.edit({ content: `Perfil de <@${targetUser.id}>`, embeds: [embed], files: [attachment], components: components });
+                await loadingMsg.edit({ content: `✨╺╸**Perfil de** <@${targetUser.id}>`, embeds: [embed], files: [attachment], components: components });
             } catch (err) {
                 console.error(err);
                 await loadingMsg.edit('❌ Erro ao gerar o perfil.');
