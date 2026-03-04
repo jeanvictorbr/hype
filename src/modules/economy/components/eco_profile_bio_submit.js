@@ -9,6 +9,7 @@ module.exports = {
         // Põe o bot a pensar enquanto desenha a nova imagem
         await interaction.deferUpdate();
         
+        // Puxa EXATAMENTE o ID que definimos no modal acima
         const newBio = interaction.fields.getTextInputValue('bioInput');
         const userId = interaction.user.id;
 
@@ -31,13 +32,27 @@ module.exports = {
             const attachment = new AttachmentBuilder(imageBuffer, { name: 'profile.png' });
             const embed = new EmbedBuilder().setColor('#2b2d31').setImage('attachment://profile.png');
 
-            // 4. Recria os botões originais
+            // 4. Recria os botões originais COM A TRANCA DE SEGURANÇA (ID do Dono)
             const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('eco_profile_bio').setLabel('Editar Bio').setStyle(ButtonStyle.Secondary).setEmoji('✏️'),
-                new ButtonBuilder().setCustomId('eco_profile_theme').setLabel('Temas de Perfil').setStyle(userData.vipLevel > 0 ? ButtonStyle.Primary : ButtonStyle.Secondary).setEmoji('🎨').setDisabled(userData.vipLevel === 0)
+                new ButtonBuilder()
+                    .setCustomId(`eco_profile_bio_${userId}`) // 🔒 Tranca aplicada!
+                    .setLabel('Editar Bio')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setEmoji('✏️')
             );
 
-            // Atualiza a mensagem
+            // Re-adiciona o botão de cores se o jogador for VIP
+            if (userData.vipLevel > 0) {
+                row.addComponents(
+                    new ButtonBuilder()
+                        .setCustomId(`btn_perfil_cor_${userId}`) // 🔒 Tranca aplicada!
+                        .setLabel('Cores de Perfil')
+                        .setStyle(ButtonStyle.Primary)
+                        .setEmoji('🎨')
+                );
+            }
+
+            // Atualiza a mensagem na tela
             await interaction.editReply({ embeds: [embed], files: [attachment], components: [row], attachments: [] });
 
         } catch (error) {
