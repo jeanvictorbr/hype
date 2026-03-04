@@ -149,7 +149,7 @@ async function generateWalletImage(userDiscord, userData) {
     // 6. RODAPÉ
     ctx.textAlign = 'center'; ctx.fillStyle = '#52525b'; ctx.font = '600 12px "Arial", sans-serif';
     ctx.letterSpacing = '2px';
-    ctx.fillText('USE ZDEPOSITAR PARA GUARDAR', width / 2, height - 40);
+    ctx.fillText('USE HDEPOSITAR PARA GUARDAR', width / 2, height - 40);
 
     return canvas.toBuffer('image/png');
 }

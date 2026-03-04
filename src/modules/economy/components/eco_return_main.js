@@ -103,14 +103,14 @@ module.exports = {
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('eco_user_store').setLabel('Lojinha Hype').setStyle(ButtonStyle.Primary).setEmoji('🛒'),
                 new ButtonBuilder().setCustomId('eco_user_daily').setLabel('Pegar Daily').setStyle(ButtonStyle.Success).setEmoji('🎁'),
-                new ButtonBuilder().setCustomId('eco_user_config').setLabel('Benefícios VIP').setStyle(ButtonStyle.Secondary).setEmoji('💎')
+                new ButtonBuilder().setCustomId('eco_user_config').setLabel('Poderes VIP').setStyle(ButtonStyle.Secondary).setEmoji('💎')
             );
 
             // 👇 A MÁGICA DA ROBUSTEZ ESTÁ AQUI
             // Como a API não deixa tirar o modo V2, nós DESTRUÍMOS a Lojinha
             // e mandamos o Bot enviar o Cartão por cima!
             
-            await interaction.deleteReply().catch(() => {}); // Apaga a Lojinha/Benefícios/Daily
+            await interaction.deleteReply().catch(() => {}); // Apaga a Lojinha/poderes/Daily
 
             await interaction.followUp({ 
                 embeds: [embed], 

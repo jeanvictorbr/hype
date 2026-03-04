@@ -10,7 +10,7 @@ module.exports = {
         // Verifica se o membro é VIP
         if (!userData || userData.vipLevel === 0) {
             return interaction.reply({ 
-                content: '❌ **Acesso Negado.** Temas de perfil são benefícios exclusivos para membros **VIP**!', 
+                content: '❌ **Acesso Negado.** Temas de perfil são poderes exclusivos para membros **VIP**!', 
                 flags: [MessageFlags.Ephemeral] 
             });
         }

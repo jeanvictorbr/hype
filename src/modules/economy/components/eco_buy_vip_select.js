@@ -8,7 +8,7 @@ module.exports = {
     async execute(interaction, client) {
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
 
-        const level = parseInt(interaction.values[0]);
+        const level = parseInt(interaction.values[0]); // Vai de 1 a 5
         const guildId = interaction.guild.id;
 
         // 1. Busca Configurações no Banco
@@ -17,8 +17,22 @@ module.exports = {
         
         if (!mpToken) return interaction.editReply('❌ O Mercado Pago não está configurado neste servidor. Avise a Administração.');
 
-        const prices = { 1: config?.priceVip1 || 15, 2: config?.priceVip2 || 30, 3: config?.priceVip3 || 50 };
-        const names = { 1: 'Pista Premium', 2: 'Camarote', 3: 'Dono do Baile' };
+        // 5 Preços e 5 Nomes
+        const prices = { 
+            1: config?.priceVip1 || 10.00, 
+            2: config?.priceVip2 || 25.00, 
+            3: config?.priceVip3 || 40.00,
+            4: config?.priceVip4 || 60.00,
+            5: config?.priceVip5 || 100.00 
+        };
+        
+        const names = { 
+            1: 'BOOSTER (Nível 1)', 
+            2: 'PRIME (Nível 2)', 
+            3: 'EXCLUSIVE (Nível 3)',
+            4: 'ELITE (Nível 4)',
+            5: 'SUPREME (Nível 5)'
+        };
 
         const price = prices[level];
         const planName = names[level];
@@ -33,11 +47,10 @@ module.exports = {
 
         const embed = new EmbedBuilder()
             .setTitle('🪙 Pagamento PIX Gerado!')
-            .setDescription(`Você está adquirindo o **VIP ${planName}** por **R$ ${price.toFixed(2)}**.\n\n📱 **1.** Abra o app do seu banco.\n🔍 **2.** Escaneie o QR Code abaixo ou cole o código.\n✅ **3.** Após pagar, clique em **Já Paguei**.\n\n*(Duração do plano: 30 Dias)*`)
+            .setDescription(`Você está adquirindo o **VIP ${planName}** por **R$ ${price.toFixed(2)}**.\n\n📱 **1.** Abra o app do seu banco.\n🔍 **2.** Escaneie o QR Code abaixo ou cole o código Copia e Cola.\n✅ **3.** Após pagar, clique em **Já Paguei**.\n\n*(Duração do plano: 30 Dias)*`)
             .setImage('attachment://qrcode.png')
             .setColor('#00B1EA');
 
-        // 👇 AQUI ENTRAM OS BOTÕES DO NOVO FLUXO
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 // Salvamos o ID do pagamento e o nível escolhido no botão para o arquivo check_pix ler

@@ -31,6 +31,8 @@ model VipConfig {
   priceVip1 Float?
   priceVip2 Float?
   priceVip3 Float?
+  priceVip4 Float? // Elite
+  priceVip5 Float? // Supreme
   mpAccessToken String? // O Token do Mercado Pago para receber a grana
 }
 // ==========================================
@@ -49,6 +51,11 @@ model HypeUser {
   createdAt     DateTime @default(now())
   // Cooldowns Sociais (Independentes)
   // Cooldowns de Jogos
+  // Cores Customizadas do Perfil
+  customColor1 String?
+  customColor2 String?
+  customVipColor1 String?
+  customVipColor2 String?
   lastGame     DateTime?
   wins         Int      @default(0)
   losses       Int      @default(0)

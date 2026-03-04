@@ -2,50 +2,34 @@ const { MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
 
 module.exports = {
-    // 👇 Mudou para eco_
     customIdPrefix: 'eco_submit_vip_finance_',
 
     async execute(interaction, client) {
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
-
         const guildId = interaction.customId.replace('eco_submit_vip_finance_', '');
         
-        const mpToken = interaction.fields.getTextInputValue('mp_token').trim();
-        const priceVip1Str = interaction.fields.getTextInputValue('price_vip1').replace(',', '.');
-        const priceVip2Str = interaction.fields.getTextInputValue('price_vip2').replace(',', '.');
-        const priceVip3Str = interaction.fields.getTextInputValue('price_vip3').replace(',', '.');
+        // Converte as vírgulas para pontos se o cliente errar a digitação
+        const p1 = parseFloat(interaction.fields.getTextInputValue('p1').replace(',', '.'));
+        const p2 = parseFloat(interaction.fields.getTextInputValue('p2').replace(',', '.'));
+        const p3 = parseFloat(interaction.fields.getTextInputValue('p3').replace(',', '.'));
+        const p4 = parseFloat(interaction.fields.getTextInputValue('p4').replace(',', '.'));
+        const p5 = parseFloat(interaction.fields.getTextInputValue('p5').replace(',', '.'));
 
-        const priceVip1 = parseFloat(priceVip1Str);
-        const priceVip2 = parseFloat(priceVip2Str);
-        const priceVip3 = parseFloat(priceVip3Str);
-
-        if (isNaN(priceVip1) || isNaN(priceVip2) || isNaN(priceVip3)) {
-            return interaction.editReply('❌ **Erro:** Pelo menos um dos preços informados não é um número válido. Use pontos ou vírgulas (Ex: 15.50).');
+        if (isNaN(p1) || isNaN(p2) || isNaN(p3) || isNaN(p4) || isNaN(p5)) {
+            return interaction.editReply('❌ **Erro:** Use apenas números e pontos. (Ex: 15.50).');
         }
 
         try {
             await prisma.vipConfig.upsert({
                 where: { guildId: guildId },
-                update: {
-                    mpAccessToken: mpToken,
-                    priceVip1: priceVip1,
-                    priceVip2: priceVip2,
-                    priceVip3: priceVip3
-                },
-                create: {
-                    guildId: guildId,
-                    mpAccessToken: mpToken,
-                    priceVip1: priceVip1,
-                    priceVip2: priceVip2,
-                    priceVip3: priceVip3
-                }
+                update: { priceVip1: p1, priceVip2: p2, priceVip3: p3, priceVip4: p4, priceVip5: p5 },
+                create: { guildId: guildId, priceVip1: p1, priceVip2: p2, priceVip3: p3, priceVip4: p4, priceVip5: p5 }
             });
 
-            await interaction.editReply(`✅ **Sucesso!** Configurações financeiras salvas para este servidor:\n\n🥉 **VIP 1:** R$ ${priceVip1.toFixed(2)}\n🥈 **VIP 2:** R$ ${priceVip2.toFixed(2)}\n🥇 **VIP 3:** R$ ${priceVip3.toFixed(2)}\n\nO token do Mercado Pago foi atualizado!`);
-
+            await interaction.editReply(`✅ **Preços Atualizados!**\n\n🥉 **BOOSTER:** R$ ${p1.toFixed(2)}\n🥈 **PRIME:** R$ ${p2.toFixed(2)}\n🥇 **EXCLUSIVE:** R$ ${p3.toFixed(2)}\n💎 **ELITE:** R$ ${p4.toFixed(2)}\n👑 **SUPREME:** R$ ${p5.toFixed(2)}`);
         } catch (error) {
-            console.error('❌ Erro ao salvar configurações financeiras VIP:', error);
-            await interaction.editReply('❌ Ocorreu um erro interno ao salvar as configurações.');
+            console.error('❌ Erro ao salvar preços:', error);
+            await interaction.editReply('❌ Ocorreu um erro interno.');
         }
     }
 };

@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { execSync } = require('child_process');
+const { startVoiceFarming } = require('./utils/voiceFarm');
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 
 // ==========================================
@@ -45,6 +46,7 @@ client.components = new Collection();
 // Chama o motor inteligente e o cron job
 console.log('🔄 [Core] Carregando módulos e componentes...');
 loadModules(client);
+startVoiceFarming(client);
 vipChecker(client);
 
 // ==========================================

@@ -17,7 +17,7 @@ module.exports = {
         const userProfile = await prisma.hypeUser.findUnique({ where: { id: ownerId } });
         
         // 👇 PREÇOS NOVOS
-        const prices = { 'colete': 10000, 'pecabra': 10000, 'disfarce': 15000 };
+        const prices = { 'colete': 150000, 'pecabra': 50000, 'disfarce': 30000 };
         const itemNames = { 'colete': 'Colete Balístico', 'pecabra': 'Pé de Cabra', 'disfarce': 'Kit de Disfarce' };
         const itemPrice = prices[item];
 

@@ -1,53 +1,28 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 
 module.exports = {
-    // 👇 Mudamos para eco_ para fugir do dev_action_handler
     customIdPrefix: 'eco_config_vip_finance_',
 
     async execute(interaction, client) {
         const guildId = interaction.customId.replace('eco_config_vip_finance_', '');
 
         const modal = new ModalBuilder()
-            .setCustomId(`eco_submit_vip_finance_${guildId}`) // 👇 Submit também mudou para eco_
-            .setTitle('💸 Configurar Vendas VIP');
+            .setCustomId(`eco_submit_vip_finance_${guildId}`)
+            .setTitle('💵 Configurar Preços VIP');
 
-        // Input 1: O Token do Mercado Pago do dono daquele servidor
-        const mpTokenInput = new TextInputBuilder()
-            .setCustomId('mp_token')
-            .setLabel('Mercado Pago Access Token (APP_USR-...)')
-            .setPlaceholder('Ex: APP_USR-123456789...')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
-
-        // Input 2: Preço do Nível 1
-        const priceVip1Input = new TextInputBuilder()
-            .setCustomId('price_vip1')
-            .setLabel('Preço VIP 1 (Pista) - Ex: 15.00')
-            .setPlaceholder('15.00')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
-
-        // Input 3: Preço do Nível 2
-        const priceVip2Input = new TextInputBuilder()
-            .setCustomId('price_vip2')
-            .setLabel('Preço VIP 2 (Camarote) - Ex: 30.00')
-            .setPlaceholder('30.00')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
-
-        // Input 4: Preço do Nível 3
-        const priceVip3Input = new TextInputBuilder()
-            .setCustomId('price_vip3')
-            .setLabel('Preço VIP 3 (Dono do Baile) - Ex: 50.00')
-            .setPlaceholder('50.00')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
+        // As 5 Caixas exatas permitidas pelo Discord
+        const p1 = new TextInputBuilder().setCustomId('p1').setLabel('Preço VIP BOOSTER (Ex: 10.00)').setPlaceholder('10.00').setStyle(TextInputStyle.Short).setRequired(true);
+        const p2 = new TextInputBuilder().setCustomId('p2').setLabel('Preço VIP PRIME (Ex: 25.00)').setPlaceholder('25.00').setStyle(TextInputStyle.Short).setRequired(true);
+        const p3 = new TextInputBuilder().setCustomId('p3').setLabel('Preço VIP EXCLUSIVE (Ex: 40.00)').setPlaceholder('40.00').setStyle(TextInputStyle.Short).setRequired(true);
+        const p4 = new TextInputBuilder().setCustomId('p4').setLabel('Preço VIP ELITE (Ex: 60.00)').setPlaceholder('60.00').setStyle(TextInputStyle.Short).setRequired(true);
+        const p5 = new TextInputBuilder().setCustomId('p5').setLabel('Preço VIP SUPREME (Ex: 100.00)').setPlaceholder('100.00').setStyle(TextInputStyle.Short).setRequired(true);
 
         modal.addComponents(
-            new ActionRowBuilder().addComponents(mpTokenInput),
-            new ActionRowBuilder().addComponents(priceVip1Input),
-            new ActionRowBuilder().addComponents(priceVip2Input),
-            new ActionRowBuilder().addComponents(priceVip3Input)
+            new ActionRowBuilder().addComponents(p1),
+            new ActionRowBuilder().addComponents(p2),
+            new ActionRowBuilder().addComponents(p3),
+            new ActionRowBuilder().addComponents(p4),
+            new ActionRowBuilder().addComponents(p5)
         );
 
         await interaction.showModal(modal);

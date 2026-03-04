@@ -15,75 +15,52 @@ module.exports = {
                 prisma.vipConfig.findUnique({ where: { guildId } })
             ]);
             
+            const userLevel = userProfile ? userProfile.vipLevel : 0;
             const member = interaction.member;
-            const isVip2 = (userProfile?.vipLevel >= 2) || 
+
+            // 🛡️ TRAVA: EXCLUSIVE (3) ou superior
+            const isVip2 = userLevel >= 3 || 
                            (config?.roleVip2 && member.roles.cache.has(config.roleVip2)) ||
                            (config?.roleVip3 && member.roles.cache.has(config.roleVip3));
 
-            const panelColor = isVip2 ? 12632256 : 15548997; // Prata ou Vermelho (bloqueado)
+            const panelColor = isVip2 ? 12632256 : 15548997; // Prata ou Vermelho
 
             const componentsArray = [
                 {
                     "type": 17, 
                     "accent_color": panelColor,
                     "components": [
-                        { "type": 10, "content": `# 🥈 Camarote (VIP 2)\nBem-vindo ao sub-painel Prata. Como Camarote, você tem poderes sobre o chat e privilégios estendidos.` },
+                        { "type": 10, "content": `# 🥈 Camarote (Nível 2)\nAcesso Liberado para: **VIP EXCLUSIVE** e **VIP ELITE**.` },
                         { "type": 14, "divider": true, "spacing": 2 },
                         
-                        // 1. Cargo Exclusivo
+                        // Herdados do VIP 1
                         {
-                            "type": 9, "accessory": { "type": 2, "style": 1, "label": "Configurar", "emoji": { "name": "🎨" }, "custom_id": "eco_vip_action_custom_role" },
-                            "components": [
-                                { "type": 10, "content": "🎨 Seu Cargo Exclusivo (Herdado)" },
-                                { "type": 10, "content": "Crie e personalize um cargo próprio com Nome, Cor e Emoji." }
-                            ]
+                            "type": 9, "accessory": { "type": 2, "style": 1, "label": "Configurar", "emoji": { "name": "🎨" }, "custom_id": "eco_vip_action_custom_role", "disabled": !isVip2 },
+                            "components": [ { "type": 10, "content": "🎨 Seu Cargo Exclusivo (Herdado)" }, { "type": 10, "content": "Crie um cargo com Nome, Emoji e Cor." } ]
+                        },
+                        {
+                            "type": 9, "accessory": { "type": 2, "style": 3, "label": "Gerenciar", "emoji": { "name": "👥" }, "custom_id": "eco_vip_action_manage_role", "disabled": !isVip2 },
+                            "components": [ { "type": 10, "content": "👥 Membros do seu Cargo (Herdado)" }, { "type": 10, "content": "Dê ou remova o seu cargo para os seus amigos." } ]
                         },
                         
-                        // 2. Membros do Cargo
+                        // Novos do VIP 2
                         {
-                            "type": 9, "accessory": { "type": 2, "style": 3, "label": "Gerenciar", "emoji": { "name": "👥" }, "custom_id": "eco_vip_action_manage_role" },
-                            "components": [
-                                { "type": 10, "content": "👥 Membros do seu Cargo (Herdado)" },
-                                { "type": 10, "content": "Dê ou remova o seu cargo exclusivo para os seus parceiros." }
-                            ]
+                            "type": 9, "accessory": { "type": 2, "style": 3, "label": "Anunciar", "emoji": { "name": "📢" }, "custom_id": "eco_vip_action_announce", "disabled": !isVip2 },
+                            "components": [ { "type": 10, "content": "📢 Anúncio Global (@everyone)" }, { "type": 10, "content": "Envie uma mensagem global com Imagem." } ]
+                        },
+                        {
+                            "type": 9, "accessory": { "type": 2, "style": 4, "label": "Pedágio", "emoji": { "name": "💸" }, "custom_id": "eco_vip_action_agiota", "disabled": !isVip2 },
+                            "components": [ { "type": 10, "content": "💸 Modo Agiota (Pedágio)" }, { "type": 10, "content": "Roube 5% dos /daily no servidor (Dura 15 min)." } ]
+                        },
+                        {
+                            "type": 9, "accessory": { "type": 2, "style": 4, "label": "Silenciar", "emoji": { "name": "🤫" }, "custom_id": "eco_vip_action_timeout", "disabled": !isVip2 },
+                            "components": [ { "type": 10, "content": "🤫 Cala a Boca (Mini-Ditador)" }, { "type": 10, "content": "Mutar um membro comum no chat (60s)." } ]
+                        },
+                        {
+                            "type": 9, "accessory": { "type": 2, "style": 1, "label": "Forjar", "emoji": { "name": "💳" }, "custom_id": "btn_vip_cor", "disabled": !isVip2 },
+                            "components": [ { "type": 10, "content": "💳 Forjar Cartão VIP" }, { "type": 10, "content": "Escolha cores exclusivas para o seu cartão Hype." } ]
                         },
 
-                        // 3. Anúncio Global
-                        {
-                            "type": 9, "accessory": { "type": 2, "style": 3, "label": "Anunciar", "emoji": { "name": "📢" }, "custom_id": "eco_vip_action_announce" },
-                            "components": [
-                                { "type": 10, "content": "📢 Anúncio Global (@everyone)" },
-                                { "type": 10, "content": "Envie uma mensagem global com Imagem destacada.\n*⏳ Cooldown: 1 vez a cada 24 horas.*" }
-                            ]
-                        },
-                        
-                        // 4. O Agiota
-                        {
-                            "type": 9, "accessory": { "type": 2, "style": 4, "label": "Pedágio", "emoji": { "name": "💸" }, "custom_id": "eco_vip_action_agiota" },
-                            "components": [
-                                { "type": 10, "content": "💸 Modo Agiota (Pedágio)" },
-                                { "type": 10, "content": "Roube 5% de todos os /daily de membros comuns no servidor.\n*⏳ Duração do Roubo: 15 Minutos diretos.*" }
-                            ]
-                        },
-                        
-                        // 5. Mini-Ditador
-                        {
-                            "type": 9, "accessory": { "type": 2, "style": 4, "label": "Silenciar", "emoji": { "name": "🤫" }, "custom_id": "eco_vip_action_timeout" },
-                            "components": [
-                                { "type": 10, "content": "🤫 Cala a Boca (Mini-Ditador)" },
-                                { "type": 10, "content": "Mutar um membro comum no chat (60 segundos).\n*⏳ Cooldown: 1 vez a cada 12 horas.*" }
-                            ]
-                        },
-
-                        // Bônus Diário
-                        {
-                            "type": 9, "accessory": { "type": 2, "style": 2, "label": "Ativo", "disabled": true, "custom_id": "dummy_2" },
-                            "components": [
-                                { "type": 10, "content": "🎁 Bônus Diário Camarote" },
-                                { "type": 10, "content": "Resgate máximo automático de 500 HC no seu /daily." }
-                            ]
-                        },
-                        
                         { "type": 14, "divider": true, "spacing": 2 },
                         {
                             "type": 1, 
@@ -94,10 +71,8 @@ module.exports = {
             ];
 
             await interaction.editReply({ components: componentsArray, flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral] });
-
         } catch (error) {
             console.error('❌ Erro no painel VIP 2:', error);
-            await interaction.followUp({ content: '❌ Erro ao carregar o painel Camarote.', flags: [MessageFlags.Ephemeral] });
         }
     }
 };

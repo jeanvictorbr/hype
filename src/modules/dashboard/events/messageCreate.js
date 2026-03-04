@@ -22,18 +22,18 @@ module.exports = {
         if (command === 'tigrinho' || command === 'tiger') {
             const betInput = args[0];
 
-            if (!betInput) return message.reply('❌ **Uso correto:** `htigrinho <valor>` ou `htigrinho all`.');
+            if (!betInput) return message.reply('❌╺╸**Uso correto:** `htigrinho <valor>` ou `htigrinho all`.');
 
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
-            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado.');
+            if (!userProfile) return message.reply('❌╺╸**Ainda não tens um perfil registado.**');
 
             let aposta = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
-            if (isNaN(aposta) || aposta <= 0) return message.reply('❌ Valor de aposta inválido.');
+            if (isNaN(aposta) || aposta <= 0) return message.reply('❌ **Valor de aposta inválido.**');
             if (userProfile.carteira < aposta) return message.reply(`❌ Não tens **R$ ${aposta.toLocaleString('pt-BR')}** na carteira!`);
 
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
-                return message.reply('⏳ A máquina está a ser reiniciada! Aguarda 5 segundos.');
+                return message.reply('⏳╺╸ **A máquina está a ser reiniciada! Aguarda 5 segundos.**');
             }
 
             // Desconta o dinheiro da CARTEIRA
@@ -43,7 +43,7 @@ module.exports = {
             });
 
 // Dá uma indicação rápida e APAGA-A de seguida
-            const loadingMsg = await message.reply('🎰 A montar a máquina do Tigrinho...');
+            const loadingMsg = await message.reply('🎰╺╸**A montar a máquina do Tigrinho...**');
 
             try {
                 await loadingMsg.delete().catch(() => {});
@@ -56,7 +56,7 @@ module.exports = {
 
             } catch (error) {
                 console.error('Erro no Tigrinho Prefix:', error);
-                message.channel.send('❌ Ocorreu um erro na máquina.').catch(() => {});
+                message.channel.send('❌╺╸**Ocorreu um erro na máquina.**').catch(() => {});
             }
         }
         // ==========================================
@@ -65,18 +65,18 @@ module.exports = {
         if (command === 'mines') {
             const betInput = args[0];
 
-            if (!betInput) return message.reply('❌ **Uso correto:** `hmines <valor>` ou `hmines all`.');
+            if (!betInput) return message.reply('❌╺╸**Uso correto:** `hmines <valor>` ou `hmines all`.');
 
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
-            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado.');
+            if (!userProfile) return message.reply('❌╺╸**Ainda não tens um perfil registado.**');
 
             let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
-            if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
-            if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
+            if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌╺╸**Valor de aposta inválido.**');
+            if (userProfile.carteira < betAmount) return message.reply(`❌╺╸Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
 
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
-                return message.reply('⏳ Estão a plantar as bombas! Aguarda 5 segundos.');
+                return message.reply('⏳╺╸**Estão a plantar as bombas! Aguarda 5 segundos.**');
             }
 
             // Cobra a Aposta da CARTEIRA
@@ -139,10 +139,10 @@ module.exports = {
             const betInput = args[0];
             const canalId = message.channel.id;
 
-            if (!betInput) return message.reply('❌ **Uso correto:** `hroleta <valor_entrada>` (Ex: `hroleta 5k`)');
+            if (!betInput) return message.reply('❌╺╸**Uso correto:** `hroleta <valor_entrada>` (Ex: `hroleta 5k`)');
 
             if (client.activeRoleta.has(canalId)) {
-                return message.reply('❌ Já existe uma mesa de Roleta Russa aberta neste canal! Esperem o jogo acabar.');
+                return message.reply('❌╺╸Já existe uma mesa de Roleta Russa aberta neste canal! Esperem o jogo acabar.');
             }
 
             let valorAposta = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
@@ -153,7 +153,7 @@ module.exports = {
             // Verifica se o dono tem o valor (embora ele só pague ao clicar)
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
             if (!userProfile || userProfile.carteira < valorAposta) {
-                return message.reply(`❌ Você não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira para garantires a tua cadeira.`);
+                return message.reply(`❌╺╸Você não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira para garantires a tua cadeira.`);
             }
 
             const donoData = {
@@ -172,7 +172,7 @@ module.exports = {
             };
             client.activeRoleta.set(canalId, mesa);
 
-            const loadingMsg = await message.reply('🔫 A montar a mesa do submundo...');
+            const loadingMsg = await message.reply('🔫╺╸**A montar a mesa do submundo...**');
 
             try {
                 const imgBuffer = await generateRoletaImage('lobby', mesa.players, -1, mesa.pot);
@@ -192,9 +192,9 @@ module.exports = {
                 await loadingMsg.edit({ content: '', embeds: [embed], files: [attachment], components: [row] });
 
             } catch (error) {
-                console.error('❌ Erro a gerar Lobby da Roleta:', error);
+                console.error('❌╺╸Erro a gerar Lobby da Roleta:', error);
                 client.activeRoleta.delete(canalId); 
-                await loadingMsg.edit('❌ Erro a montar a mesa.');
+                await loadingMsg.edit('❌╺╸Erro a montar a mesa.');
             }
         }
         // ==========================================
@@ -257,20 +257,23 @@ module.exports = {
         };
 
         const socialCommands = {
-            'beijar': { verb: 'deu um beijo apaixonado em', type: 'beijar', emoji: '💋' },
-            'tapa': { verb: 'deu um tapa bem dado na cara de', type: 'tapa', emoji: '🖐️' },
-            'abracar': { verb: 'deu um abraço bem apertado em', type: 'abracar', emoji: '🫂' },
-            'abraçar': { verb: 'deu um abraço bem apertado em', type: 'abracar', emoji: '🫂' },
-            'morder': { verb: 'deu uma mordida em', type: 'morder', emoji: '🧛' },
-            'pat': { verb: 'fez um carinho fofo na cabeça de', type: 'pat', emoji: '🥰' },
-            'socar': { verb: 'deu um soco com toda a força na cara de', type: 'socar', emoji: '🥊' },
-            'cafune': { verb: 'fez um cafuné gostoso em', type: 'cafune', emoji: '💆' },
-            'cafuné': { verb: 'fez um cafuné gostoso em', type: 'cafune', emoji: '💆' },
-            'chutar': { verb: 'deu um chute bem dado na canela de', type: 'chutar', emoji: '🥾' },
-            'chute': { verb: 'deu um chute bem dado na canela de', type: 'chutar', emoji: '🥾' },
-            'dancar': { verb: 'puxou para dançar com muito estilo', type: 'dancar', emoji: '💃' },
-            'dançar': { verb: 'puxou para dançar com muito estilo', type: 'dancar', emoji: '💃' },
-            'brindar': { verb: 'brindou uma taça de champanhe com', type: 'brindar', emoji: '🥂' }
+            'beijar': { verb: '**deu um beijo apaixonado em**', type: 'beijar', emoji: '💋' },
+            'bj': { verb: '**deu um beijo apaixonado em**', type: 'beijar', emoji: '💋' },
+            'tapa': { verb: '**deu um tapa bem dado na cara de**', type: 'tapa', emoji: '🖐️' },
+            'abracar': { verb: '**deu um abraço bem apertado em**', type: 'abracar', emoji: '🫂' },
+            'abç': { verb: '**deu um abraço bem apertado em**', type: 'abracar', emoji: '🫂' },
+            'abraçar': { verb: '**deu um abraço bem apertado em**', type: 'abracar', emoji: '🫂' },
+            'morder': { verb: '**deu uma mordida em**', type: 'morder', emoji: '🧛' },
+            'pat': { verb: '**fez um carinho fofo na cabeça de**', type: 'pat', emoji: '🥰' },
+            'socar': { verb: '**deu um soco com toda a força na cara de**', type: 'socar', emoji: '🥊' },
+            'cafune': { verb: '**fez um cafuné gostoso em**', type: 'cafune', emoji: '💆' },
+            'cafuné': { verb: '**fez um cafuné gostoso em**', type: 'cafune', emoji: '💆' },
+            'caf': { verb: '**fez um cafuné gostoso em**', type: 'cafune', emoji: '💆' },
+            'chutar': { verb: '**deu um chute bem dado na canela de**', type: 'chutar', emoji: '🥾' },
+            'chute': { verb: '**deu um chute bem dado na canela de**', type: 'chutar', emoji: '🥾' },
+            'dancar': { verb: '**puxou para dançar com muito estilo**', type: 'dancar', emoji: '💃' },
+            'dançar': { verb: '**puxou para dançar com muito estilo**', type: 'dancar', emoji: '💃' },
+            'brindar': { verb: '**brindou uma taça de champanhe com**', type: 'brindar', emoji: '🥂' }
         };
 
         if (socialCommands[command]) {
@@ -279,9 +282,9 @@ module.exports = {
             const targetUser = message.mentions.users.first();
 
             // 1. Verificações Básicas
-            if (!targetUser) return message.reply(`❌ Tem de mencionar alguém! Exemplo: \`h${command} @usuario\``);
-            if (targetUser.id === authorId) return message.reply(`❌ Não pode fazer isso a vc mesmo(a)! Tente em outra pessoa!`);
-            if (targetUser.bot) return message.reply(`😳 Eh lá... eu sou apenas um bot ! Mas agradeço a intenção.`);
+            if (!targetUser) return message.reply(`❌╺╸**Tem de mencionar alguém! Exemplo: \`h${command}** @usuario\``);
+            if (targetUser.id === authorId) return message.reply(`❌╺╸**Não pode fazer isso a vc mesmo(a)! Tente em outra pessoa!**`);
+            if (targetUser.bot) return message.reply(`😳╺╸**Eh lá... eu sou apenas um bot ! Mas agradeço a intenção.**`);
 
             // 2. Busca o utilizador no Banco de Dados
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: authorId } });
@@ -297,7 +300,7 @@ module.exports = {
                     const timeLeft = Math.ceil((cooldownTime - (now - lastTime)) / 1000);
                     const minutes = Math.floor(timeLeft / 60);
                     const seconds = timeLeft % 60;
-                    return message.reply(`⏳ **Descansa a mão!** Já usou o \`h${command}\` há pouco tempo.\nPode usá-lo de novo em **${minutes}m e ${seconds}s**.`);
+                    return message.reply(`⏳╺╸**Descansa a mão!** Já usou o \`h${command}\` há pouco tempo.\nPode usá-lo de novo em **${minutes}m e ${seconds}s**.`);
                 }
             }
 
@@ -343,17 +346,17 @@ module.exports = {
                 else if (action.type === 'socar') failMsg = `UOU! <@${targetUser.id}> fez uma esquiva digna de cinema e o seu soco passou direto! 🥊🎥`;
                 else if (action.type === 'cafune') failMsg = `<@${targetUser.id}> deu uma abaixadinha e você acabou fazendo cafuné no vazio! 💆‍♂️☁️`;
 
-                return message.reply(`✨ **QUASE!**\n${failMsg}\n*(O tempo de descanso foi ativado, tente novamente em breve!)*`);
+                return message.reply(`✨╺╸**QUASE!**\n${failMsg}\n*(O tempo de descanso foi ativado, tente novamente em breve!)*`);
             }
 
             // 6. Sucesso
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
             const attachment = new AttachmentBuilder(randomGif, { name: 'animacao.gif' });
             
-            let extraMsg = vipLevel > 0 ? `\n💎 **Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
+            let extraMsg = vipLevel > 0 ? `\n💎╺╸**Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
 
             return message.reply({ 
-                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸 **VOCÊ GANHOU:**  **R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)${extraMsg}`, 
+                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:****R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)${extraMsg}`, 
                 files: [attachment] 
             });
         }
@@ -366,7 +369,7 @@ module.exports = {
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             
             if (!userProfile) {
-                return message.reply('❌ Ainda não tens um perfil registado. Usa o `hcarteira` para começares a jogar!');
+                return message.reply('❌╺╸**Ainda não tens um perfil registado. Usa o `hcarteira` para começar a jogar!**');
             }
 
             const dailyCD = 24 * 60 * 60 * 1000;
@@ -407,8 +410,8 @@ module.exports = {
                 .setColor('#0000FF')
                 .setAuthor({ name: `⏰ Cooldown's de ${message.author.username}` })
                 .setDescription(desc)
-                .setThumbnail('https://cdn-icons-png.flaticon.com/512/3103/3103306.png')
-                .setFooter({ text: 'O tempo passa devagar, não é? ⏳', iconURL: message.author.displayAvatarURL({ dynamic: true }) });
+                .setThumbnail('https://i.imgur.com/FYqoK6D.png')
+                .setFooter({ text: 'O tempo nunca passou tão lento, concorda? ⏳', iconURL: message.author.displayAvatarURL({ dynamic: true }) });
 
             return message.reply({ embeds: [embed] });
         }
@@ -417,7 +420,7 @@ if (command === 'loja' || command === 'mercado') {
             const { StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
             const { generateShopCatalog } = require('../../../utils/canvasLoja');
             
-            const loadingMsg = await message.reply('🔍 Entrando na Deep Web...');
+            const loadingMsg = await message.reply('🔍╺╸**Entrando na Deep Web...**');
 
             try {
                 const imageBuffer = await generateShopCatalog();
@@ -429,17 +432,17 @@ if (command === 'loja' || command === 'mercado') {
 .addOptions(
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Colete Balístico')
-                            .setDescription('R$ 10.000 - Imunidade a roubos (15min)')
+                            .setDescription('R$ 150.000 - Imunidade a roubos (15min)')
                             .setEmoji('🛡️')
                             .setValue('colete'),
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Pé de Cabra')
-                            .setDescription('R$ 10.000 - Buff de roubo (15min)')
+                            .setDescription('R$ 50.000 - Buff de roubo (15min)')
                             .setEmoji('🔨')
                             .setValue('pecabra'),
                         new StringSelectMenuOptionBuilder()
                             .setLabel('Kit de Disfarce')
-                            .setDescription('R$ 15.000 - 50% de desconto em 3 multas')
+                            .setDescription('R$ 30.000 - 50% de desconto em 3 multas')
                             .setEmoji('🎭')
                             .setValue('disfarce')
                     );
@@ -448,14 +451,14 @@ if (command === 'loja' || command === 'mercado') {
 
                 await loadingMsg.delete().catch(() => {});
                 return message.channel.send({ 
-                    content: `📦 **Mercado Negro aberto para <@${message.author.id}>**`, 
+                    content: `📦╺╸**Mercado Negro aberto para <@${message.author.id}>**`, 
                     files: [attachment], 
                     components: [row] 
                 });
 
             } catch (error) {
                 console.error(error);
-                await loadingMsg.edit('❌ O fornecedor desapareceu nas sombras.');
+                await loadingMsg.edit('❌╺╸**O fornecedor desapareceu nas sombras.**');
             }
         }
  // ==========================================
@@ -478,12 +481,12 @@ if (command === 'loja' || command === 'mercado') {
             }
 
             if (!betValueStr) {
-                return message.reply('❌ **Como usar:**\n1️⃣ `hap <valor>` - Cria uma aposta global no chat.\n2️⃣ `hap <valor> @usuario` (Ou responda à mensagem dele) - Desafia para 1v1.');
+                return message.reply('❌╺╸**Como usar:**\n1️⃣ `hap <valor>` - Cria uma aposta global no chat.\n2️⃣ `hap <valor> @usuario` (Ou responda à mensagem dele) - Desafia para 1v1.');
             }
 
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
             if (!userProfile || userProfile.carteira <= 0) {
-                return message.reply('❌ Você não tem dinheiro na carteira para apostar!');
+                return message.reply('❌╺╸**Você não tem dinheiro na carteira para apostar!**');
             }
 
             let amount = 0;
@@ -494,19 +497,19 @@ if (command === 'loja' || command === 'mercado') {
                 amount = parseInt(betValueStr.replace(/k/g, '000').replace(/[^\d]/g, ''));
             }
 
-            if (isNaN(amount) || amount <= 0) return message.reply('❌ Valor de aposta inválido!');
-            if (amount > userProfile.carteira) return message.reply(`❌ Você só tem **R$ ${userProfile.carteira.toLocaleString('pt-BR')}** na mão! Vá ao banco sacar mais se quiser apostar isso.`);
+            if (isNaN(amount) || amount <= 0) return message.reply('❌╺╸**Valor de aposta inválido!**');
+            if (amount > userProfile.carteira) return message.reply(`❌╺╸Você só tem **R$ ${userProfile.carteira.toLocaleString('pt-BR')}** na mão! Vá ao banco sacar mais se quiser apostar isso.`);
 
             // ==========================================
             // ⚔️ MODO 1: APOSTA 1v1 (Menção ou Resposta)
             // ==========================================
             if (targetUser) {
-                if (targetUser.id === message.author.id) return message.reply('❌ Você não pode apostar contra si mesmo! Tá maluco?');
-                if (targetUser.bot) return message.reply('🤖 Eu sou a banca, não um jogador. Tente outro.');
+                if (targetUser.id === message.author.id) return message.reply('❌╺╸**Você não pode apostar contra si mesmo! Tá maluco?**');
+                if (targetUser.bot) return message.reply('🤖╺╸**Eu sou a banca, não um jogador. Tente outro.**');
 
                 const targetProfile = await prisma.hypeUser.findUnique({ where: { id: targetUser.id } });
                 if (!targetProfile || targetProfile.carteira < amount) {
-                    return message.reply(`❌ O <@${targetUser.id}> está falido! Ele não tem **R$ ${amount.toLocaleString('pt-BR')}** na carteira para cobrir a aposta.`);
+                    return message.reply(`❌╺╸O <@${targetUser.id}> está falido! Ele não tem **R$ ${amount.toLocaleString('pt-BR')}** na carteira para cobrir a aposta.`);
                 }
 
                 const row = new ActionRowBuilder().addComponents(
@@ -530,12 +533,12 @@ if (command === 'loja' || command === 'mercado') {
                         prisma.hypeUser.findUnique({ where: { id: targetUser.id } })
                     ]);
 
-                    if (p1.carteira < amount) return i.reply({ content: `❌ <@${message.author.id}> gastou o dinheiro antes da aposta começar! Aposta anulada.`, flags: [MessageFlags.Ephemeral] });
-                    if (p2.carteira < amount) return i.reply({ content: `❌ Você não tem mais esse dinheiro na carteira!`, flags: [MessageFlags.Ephemeral] });
+                    if (p1.carteira < amount) return i.reply({ content: `❌╺╸<@${message.author.id}> gastou o dinheiro antes da aposta começar! Aposta anulada.`, flags: [MessageFlags.Ephemeral] });
+                    if (p2.carteira < amount) return i.reply({ content: `❌╺╸Você não tem mais esse dinheiro na carteira!`, flags: [MessageFlags.Ephemeral] });
 
                     if (i.customId === 'hap_deny') {
                         collector.stop('denied');
-                        return i.update({ content: `💨 <@${targetUser.id}> amarelou e recusou a aposta de **R$ ${amount.toLocaleString('pt-BR')}**! A carteira dele está a salvo (mas o orgulho não).`, components: [] });
+                        return i.update({ content: `💨╺╸<@${targetUser.id}> amarelou e recusou a aposta de **R$ ${amount.toLocaleString('pt-BR')}**! A carteira dele está a salvo (mas o orgulho não).`, components: [] });
                     }
 
                     if (i.customId === 'hap_accept') {
@@ -568,14 +571,14 @@ if (command === 'loja' || command === 'mercado') {
                 collector.on('end', (collected, reason) => {
                     if (reason === 'time') {
                         // Remove os botões se o tempo passar e avisa
-                        msg.edit({ content: `⏳ O tempo esgotou! <@${targetUser.id}> não respondeu a tempo e o desafio expirou.`, components: [] }).catch(()=>{});
+                        msg.edit({ content: `⏳╺╸**O tempo esgotou! <@${targetUser.id}> não respondeu a tempo e o desafio expirou.**`, components: [] }).catch(()=>{});
                     }
                 });
 
                 return;
             }
             // 👇 NOVA TRAVA: Ignora os botões que são processados ao vivo (Coletores Inline)
-                if (interaction.customId) {
+                if (typeof interaction !== 'undefined' && interaction.customId) {
                     const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator'];
                     if (inlineIds.some(id => interaction.customId.startsWith(id))) return;
                 }            // ==========================================
@@ -605,12 +608,12 @@ if (command === 'loja' || command === 'mercado') {
             collector.on('collect', async i => {
                 if (i.customId === 'hap_join') {
                     if (participants.includes(i.user.id)) {
-                        return i.reply({ content: '❌ Você já colocou seu dinheiro nesta mesa!', flags: [MessageFlags.Ephemeral] });
+                        return i.reply({ content: '❌╺╸**Você já colocou seu dinheiro nesta mesa!**', flags: [MessageFlags.Ephemeral] });
                     }
 
                     let pProfile = await prisma.hypeUser.findUnique({ where: { id: i.user.id } });
                     if (!pProfile || pProfile.carteira < amount) {
-                        return i.reply({ content: `❌ Você não tem **R$ ${amount.toLocaleString('pt-BR')}** na carteira!`, flags: [MessageFlags.Ephemeral] });
+                        return i.reply({ content: `❌╺╸Você não tem **R$ ${amount.toLocaleString('pt-BR')}** na carteira!`, flags: [MessageFlags.Ephemeral] });
                     }
 
                     // Desconta e adiciona o jogador ao lobby
@@ -629,7 +632,7 @@ if (command === 'loja' || command === 'mercado') {
                 if (participants.length === 1) {
                     // Ninguém entrou, devolve o dinheiro ao criador da mesa
                     await prisma.hypeUser.update({ where: { id: message.author.id }, data: { carteira: { increment: amount } } });
-                    return msg.edit({ content: '😔 A mesa fechou. Ninguém quis apostar e o seu dinheiro foi devolvido para a carteira.', embeds: [], components: [] }).catch(()=>{});
+                    return msg.edit({ content: '😔╺╸**A mesa fechou. Ninguém quis apostar e o seu dinheiro foi devolvido para a carteira.**', embeds: [], components: [] }).catch(()=>{});
                 }
 
                 // Sorteia o Vencedor
@@ -691,7 +694,7 @@ if (command === 'loja' || command === 'mercado') {
 
                 if (now - lastTime < cooldownTime) {
                     const expireUnix = Math.floor((lastTime + cooldownTime) / 1000);
-                    return message.reply(`⏳ **Calma lá, magnata!** Já recolheste o teu ${nomePremio}.\nPodes recolher de novo <t:${expireUnix}:R>.`);
+                    return message.reply(`⏳╺╸**Calma lá, magnata!** Já recolheste o teu ${nomePremio}.\nPodes recolher de novo <t:${expireUnix}:R>.`);
                 }
             }
 
@@ -718,12 +721,12 @@ if (command === 'loja' || command === 'mercado') {
                 create: createData
             });
 
-            let extraMsg = vipLevel > 0 ? `\n\n💎 **Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
+            let extraMsg = vipLevel > 0 ? `\n\n💎╺╸**Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
 
             const embed = new EmbedBuilder()
                 .setColor(embedColor)
                 .setTitle(`💰 ${nomePremio} Recolhido!`)
-                .setDescription(`FFoi ao banco e levou a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}${extraMsg}\n\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
+                .setDescription(`Foi ao banco e levou a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}${extraMsg}\n\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
                 .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
 
             return message.reply({ embeds: [embed] });
@@ -736,15 +739,15 @@ if (command === 'loja' || command === 'mercado') {
             const amountStr = args[1]; // Exemplo de uso: hpix @usuario 5000
 
             if (!targetUser || !amountStr) {
-                return message.reply('❌ **Uso correto:** `hpix @usuario <valor>` ou `hpix @usuario all`');
+                return message.reply('❌╺╸**Uso correto:** `hpix @usuario <valor>` ou `hpix @usuario all`');
             }
 
             if (targetUser.id === message.author.id) {
-                return message.reply('❌ Não podes fazer um Pix para ti mesmo!');
+                return message.reply('❌╺╸**Não pode fazer um Pix para vc  mesmo!**');
             }
 
             if (targetUser.bot) {
-                return message.reply('❌ Bots não têm conta no Hype Bank.');
+                return message.reply('❌╺╸**Bots não têm conta no Hype Bank.**');
             }
 
             const senderId = message.author.id;
@@ -759,15 +762,15 @@ if (command === 'loja' || command === 'mercado') {
             }
 
             if (isNaN(amount) || amount <= 0) {
-                return message.reply('❌ Valor inválido para transferência.');
+                return message.reply('❌╺╸**Valor inválido para transferência.**');
             }
 
             // Verifica se o dinheiro está no Cartão (Banco)
             if (!senderProfile || senderProfile.hypeCash < amount) {
-                return message.reply(`❌ **Saldo Insuficiente!** Tu não tens **R$ ${amount.toLocaleString('pt-BR')}** no teu Cartão Hype.\nO seu saldo atual é **R$ ${(senderProfile?.hypeCash || 0).toLocaleString('pt-BR')}**.\n*(Usa o \`hdep\` para depositar o dinheiro da mão)*`);
+                return message.reply(`❌╺╸**Saldo Insuficiente!** Tu não tens **R$ ${amount.toLocaleString('pt-BR')}** no teu Cartão Hype.\nO seu saldo atual é **R$ ${(senderProfile?.hypeCash || 0).toLocaleString('pt-BR')}**.\n*(Usa o \`hdep\` para depositar o dinheiro da mão)*`);
             }
 
-            const loadingMsg = await message.reply('🔄 A contactar o Banco Central e a verificar dados...');
+            const loadingMsg = await message.reply('🔄╺╸**A contactar o Banco Central e a verificar dados...**');
 
             try {
                 // Transação segura: Tira de um, coloca noutro. Se falhar, reverte tudo.
@@ -792,13 +795,13 @@ if (command === 'loja' || command === 'mercado') {
                 const attachment = new AttachmentBuilder(imageBuffer, { name: 'comprovante_pix.png' });
 
                 await loadingMsg.edit({
-                    content: `✅ **PIX CONCLUÍDO!**\n<@${senderId}> transferiu **R$ ${amount.toLocaleString('pt-BR')}** diretamente para a conta de <@${receiverId}>.`,
+                    content: `✅╺╸**PIX CONCLUÍDO!**\n<@${senderId}> transferiu **R$ ${amount.toLocaleString('pt-BR')}** diretamente para a conta de <@${receiverId}>.`,
                     files: [attachment]
                 });
 
             } catch (error) {
-                console.error('❌ Erro no PIX:', error);
-                await loadingMsg.edit('❌ Ocorreu um erro no servidor do banco ao processar o teu Pix.');
+                console.error('❌╺╸Erro no PIX:', error);
+                await loadingMsg.edit('❌╺╸Ocorreu um erro no servidor do banco ao processar o teu Pix.');
             }
         }
 
@@ -809,9 +812,9 @@ if (command === 'loja' || command === 'mercado') {
             const authorId = message.author.id;
             const targetUser = message.mentions.users.first();
 
-            if (!targetUser) return message.reply('❌ Precisas de mencionar a vítima! Exemplo: `hroubar @usuario`');
-            if (targetUser.id === authorId) return message.reply('❌ Queres roubar a ti próprio? Vai ao psicólogo, não ao bot!');
-            if (targetUser.bot) return message.reply('🤖 Roubar um bot? Eu não guardo notas de papel, só código!');
+            if (!targetUser) return message.reply('❌╺╸**Precisas de mencionar a vítima! Exemplo: `hroubar @usuario`**');
+            if (targetUser.id === authorId) return message.reply('❌╺╸Queres roubar a ti próprio? Vai ao psicólogo, não ao bot!');
+            if (targetUser.bot) return message.reply('🤖╺╸**Roubar um bot? Eu não guardo notas de papel, só código!**');
 
             let [ladrao, vitima] = await Promise.all([
                 prisma.hypeUser.findUnique({ where: { id: authorId } }),
@@ -820,7 +823,7 @@ if (command === 'loja' || command === 'mercado') {
 
             if (!ladrao) ladrao = await prisma.hypeUser.create({ data: { id: authorId } });
             if (!vitima || vitima.carteira <= 0) {
-                return message.reply(`💨 **Vácuo!** <@${targetUser.id}> não tem nem um centavo na carteira. Não vale o esforço!`);
+                return message.reply(`💨╺╸**Vácuo!** <@${targetUser.id}> não tem nem um centavo na carteira. Não vale o esforço!`);
             }
 
             const cooldownRoubo = 10 * 60 * 1000;
@@ -828,14 +831,14 @@ if (command === 'loja' || command === 'mercado') {
                 const diff = Date.now() - new Date(ladrao.lastRob).getTime();
                 if (diff < cooldownRoubo) {
                     const expireUnix = Math.floor((new Date(ladrao.lastRob).getTime() + cooldownRoubo) / 1000);
-                    return message.reply(`⏳ A polícia está de olho em ti! Espera até <t:${expireUnix}:R> para tentares outro assalto.`);
+                    return message.reply(`⏳╺╸A polícia está de olho em ti! Espera até <t:${expireUnix}:R> para tentares outro assalto.`);
                 }
             }
 // 🛡️ VERIFICAÇÃO DO COLETE À PROVA DE BALAS (15 Minutos)
             if (vitima.coleteExp && new Date(vitima.coleteExp).getTime() > Date.now()) {
                 // Aplica apenas o cooldown ao ladrão (Colete NÃO quebra, dura os 15 minutos inteiros)
                 await prisma.hypeUser.update({ where: { id: authorId }, data: { lastRob: new Date() } });
-                return message.reply(`🛡️ **ASSALTO BLOQUEADO!** Você tentou roubar <@${targetUser.id}>, mas ele está com um **Colete Balístico** ativo!\nO assalto falhou e a blindagem dele continua intacta. Fuja antes que a polícia chegue!`);
+                return message.reply(`🛡️╺╸**ASSALTO BLOQUEADO!** Você tentou roubar <@${targetUser.id}>, mas ele está com um **Colete Balístico** ativo!\nO assalto falhou e a blindagem dele continua intacta. Fuja antes que a polícia chegue!`);
             }
 
             // 🪓 VERIFICAÇÃO DO PÉ DE CABRA
@@ -844,7 +847,7 @@ if (command === 'loja' || command === 'mercado') {
             
             if (ladrao.peDeCabraExp && new Date(ladrao.peDeCabraExp).getTime() > Date.now()) {
                 chanceSucesso += 0.15; // Sobe para 60%
-                msgPeCabra = '\n🪓 *(Usou o teu Pé de Cabra para facilitar o roubo!)*';
+                msgPeCabra = '\n🪓╺╸*(Usou o teu Pé de Cabra para facilitar o roubo!)*';
             }
 
             const sorteio = Math.random();
@@ -887,7 +890,7 @@ if (command === 'loja' || command === 'mercado') {
                         data: { disfarceUses: novosUsos }
                     });
 
-                    msgDisfarce = `\n\n🎭 **DISFARCE UTILIZADO:** Graças ao teu Kit de Disfarce, a polícia não te reconheceu totalmente! A multa foi reduzida em **50%**. (Usos restantes: **${novosUsos}**)`;
+                    msgDisfarce = `\n\n🎭╺╸**DISFARCE UTILIZADO:** Graças ao teu Kit de Disfarce, a polícia não te reconheceu totalmente! A multa foi reduzida em **50%**. (Usos restantes: **${novosUsos}**)`;
                 }
 
                 // Aplica o débito da multa e o cooldown
@@ -899,28 +902,28 @@ if (command === 'loja' || command === 'mercado') {
                     } 
                 });
 
-                return message.reply(`🚨 **TE PEGARAM!** O alarme disparou e a polícia cercou o local. <@${targetUser.id}> fugiu e tiveste de pagar **R$ ${multaFinal.toLocaleString('pt-BR')}** de fiança para não seres preso!${msgDisfarce}`);
+                return message.reply(`🚨╺╸**TE PEGARAM!** O alarme disparou e a polícia cercou o local. <@${targetUser.id}> fugiu e tiveste de pagar **R$ ${multaFinal.toLocaleString('pt-BR')}** de fiança para não seres preso!${msgDisfarce}`);
             }
         }
 
         // ==========================================
         // 🃏 GAME: Blackjack (hbj)
         // ==========================================
-        if (command === 'blackjack' || command === 'bj') {
+        if (command === 'blackjack' || command === 'black') {
             const betInput = args[0];
 
-            if (!betInput) return message.reply('❌ **Uso correto:** `hbj <valor>` ou `hbj all`.');
+            if (!betInput) return message.reply('❌╺╸**Uso correto:** `hbj <valor>` ou `hbj all`.');
 
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
-            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado. Usa o `hdiario` para começar!');
+            if (!userProfile) return message.reply('❌╺╸Ainda não tens um perfil registado. Usa o `hdiario` para começar!');
 
             let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
-            if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
-            if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira! (Vai ao banco sacar)`);
+            if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌╺╸Valor de aposta inválido.');
+            if (userProfile.carteira < betAmount) return message.reply(`❌╺╸Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira! (Vai ao banco sacar)`);
 
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
-                return message.reply('⏳ Calma! O Agiota ainda está a baralhar as cartas. Aguarda 5 segundos.');
+                return message.reply('⏳╺╸Calma! O Agiota ainda está a baralhar as cartas. Aguarda 5 segundos.');
             }
 
             await prisma.hypeUser.update({
@@ -983,18 +986,18 @@ if (command === 'loja' || command === 'mercado') {
         if (command === 'crash') {
             const betInput = args[0];
 
-            if (!betInput) return message.reply('❌ **Uso correto:** `hcrash <valor>` ou `hcrash all`.');
+            if (!betInput) return message.reply('❌╺╸**Uso correto:** `hcrash <valor>` ou `hcrash all`.');
 
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
-            if (!userProfile) return message.reply('❌ Ainda não tens um perfil registado.');
+            if (!userProfile) return message.reply('❌╺╸Ainda não tens um perfil registado.');
 
             let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
             if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
 
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
-                return message.reply('⏳ O foguetão ainda está a abastecer! Aguarda 5 segundos.');
+                return message.reply('⏳╺╸O **foguetão ainda está a abastecer! Aguarda 5 segundos.**');
             }
 
             await prisma.hypeUser.update({
@@ -1084,7 +1087,7 @@ if (command === 'loja' || command === 'mercado') {
             const { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
             
             // 1. Avisa o utilizador que está a processar (porque agora vamos forçar a leitura do servidor todo)
-            const msg = await message.reply({ content: '⏳ `Lendo a lista de habitantes e desenhando a galeria de Magnatas...`' });
+            const msg = await message.reply({ content: '⏳╺╸`**Lendo a lista de habitantes e desenhando a galeria de Magnatas...**`' });
 
             // 2. Busca os utilizadores diretamente ordenados pela riqueza no BANCO (hypeCash)
             const allUsersRaw = await prisma.hypeUser.findMany({ 
@@ -1162,13 +1165,13 @@ if (command === 'loja' || command === 'mercado') {
                     const collector = msg.createMessageComponentCollector({ time: 60000 });
                     collector.on('collect', async i => {
                         if (i.user.id !== message.author.id) {
-                            return i.reply({ content: '❌ Você não pode trocar a página deste ranking.', flags: [MessageFlags.Ephemeral] });
+                            return i.reply({ content: '❌╺╸**Você não pode trocar a página deste ranking.**', flags: [MessageFlags.Ephemeral] });
                         }
 
                         if (i.customId === 'rank_prev' && currentPage > 0) currentPage--;
                         if (i.customId === 'rank_next' && currentPage < chunks.length - 1) currentPage++;
 
-                        await i.update({ content: '⏳ `Desenhando a nova página...`', files: [], components: [] });
+                        await i.update({ content: '⏳╺╸`**Desenhando a nova página...**`', files: [], components: [] });
                         
                         const newAttachment = await renderPage(currentPage);
                         await msg.edit({ content: '', files: [newAttachment], components: [getRow(currentPage)] });
@@ -1178,7 +1181,7 @@ if (command === 'loja' || command === 'mercado') {
                 }
             } catch (error) {
                 console.error(error);
-                msg.edit({ content: '❌ Ocorreu um erro ao gerar o ranking visual.' }).catch(()=>{});
+                msg.edit({ content: '❌╺╸Ocorreu um erro ao gerar o ranking visual.' }).catch(()=>{});
             }
 
             return;
@@ -1191,14 +1194,14 @@ if (command === 'loja' || command === 'mercado') {
             
             // 🛡️ TRAVA: Apenas Administradores
             if (!message.member.permissions.has('Administrator')) {
-                return message.reply('❌ Apenas a **Alta Cúpula (Admins)** pode iniciar o evento da Mala Criptografada!');
+                return message.reply('❌╺╸Apenas a **Alta Cúpula (Admins)** pode iniciar o evento da Mala Criptografada!');
             }
 
             const prize = parseInt(args[0]?.replace(/k/g, '000'));
             const cost = parseInt(args[1]?.replace(/k/g, '000'));
 
             if (!prize || !cost || isNaN(prize) || isNaN(cost)) {
-                return message.reply('📝 **Uso correto:** `hmala <premio> <custo_por_tentativa>`\nExemplo: `hmala 50k 1k`');
+                return message.reply('📝╺╸**Uso correto:** `hmala <premio> <custo_por_tentativa>`\nExemplo: `hmala 50k 1k`');
             }
 
             // Senha de 3 DÍGITOS
@@ -1214,7 +1217,7 @@ if (command === 'loja' || command === 'mercado') {
             const attachment = new AttachmentBuilder(malaBuffer, { name: 'mala.png' });
 
             const msg = await message.channel.send({
-                content: `🚨 **ALERTA NO SUBMUNDO!** A Alta Cúpula soltou uma maleta trancada!\nValendo **R$ ${prize.toLocaleString('pt-BR')}**! Mandem senhas de **3 DÍGITOS** (Ex: 418) no chat para tentar abrir.`,
+                content: `🚨╺╸**ALERTA NO SUBMUNDO!** A Alta Cúpula soltou uma maleta trancada!\nValendo **R$ ${prize.toLocaleString('pt-BR')}**! Mandem senhas de **3 DÍGITOS** (Ex: 418) no chat para tentar abrir.`,
                 files: [attachment]
             });
 
@@ -1236,7 +1239,7 @@ if (command === 'loja' || command === 'mercado') {
                 `O segundo dígito é exatamente **${p1}**. (Isso é um presente!)`,
                 `SÉRIO? A senha está **entre ${Math.max(100, passNum - 3)} e ${Math.min(999, passNum + 3)}**.`,
                 `A senha começa com **${p0}${p1}**. Falta literalmente só 1 número!`,
-                `💻 **ÚLTIMA DICA:** A senha inteira é **${password}**. Alguém digita isso logo pelo amor de Deus!`
+                `💻╺╸**ÚLTIMA DICA:** A senha inteira é **${password}**. Alguém digita isso logo pelo amor de Deus!`
             ];
 
             let currentHintIndex = 0;
@@ -1244,7 +1247,7 @@ if (command === 'loja' || command === 'mercado') {
             // Envia uma dica nova e mais apelona a cada 15 segundos
             const hintInterval = setInterval(() => {
                 if (currentHintIndex < hintsProgressive.length) {
-                    message.channel.send(`💡 **Dica do Hacker [${currentHintIndex + 1}/${hintsProgressive.length}]:** ${hintsProgressive[currentHintIndex]}`);
+                    message.channel.send(`💡╺╸**Dica do Hacker [${currentHintIndex + 1}/${hintsProgressive.length}]:** ${hintsProgressive[currentHintIndex]}`);
                     currentHintIndex++;
                 }
             }, 15000); // 👈 15 segundos
@@ -1282,7 +1285,7 @@ if (command === 'loja' || command === 'mercado') {
                     });
 
                     // 👇 A MÁGICA VISUAL DA VITÓRIA 👇
-                    const winMsg = await m.reply('🔐 `Criptografia quebrada! Autenticando e gerando o recibo de Magnata... Aguarde.`');
+                    const winMsg = await m.reply('🔐╺╸`Criptografia quebrada! Autenticando e gerando o recibo de Magnata... Aguarde.`');
                     
                     const { generateMalaWinImage } = require('../../../utils/canvasMalaWin');
                     const winBuffer = await generateMalaWinImage(m.author, prize, password);
@@ -1303,7 +1306,7 @@ if (command === 'loja' || command === 'mercado') {
             collector.on('end', (collected, reason) => {
                 clearInterval(hintInterval);
                 if (reason !== 'won') {
-                    message.channel.send(`🚨 **SISTEMA TRAVADO!**\nO tempo de hacking esgotou e a maleta bloqueou. A senha correta era **${password}**.`);
+                    message.channel.send(`🚨╺╸**SISTEMA TRAVADO!**\nO tempo de hacking esgotou e a maleta bloqueou. A senha correta era **${password}**.`);
                 }
             });
 
@@ -1430,7 +1433,7 @@ if (command === 'loja' || command === 'mercado') {
             const targetUser = message.mentions.users.first() || message.author;
             const isOwnProfile = targetUser.id === message.author.id; 
 
-            const loadingMsg = await message.reply('🔍 A procurar perfil...');
+            const loadingMsg = await message.reply('🔍╺╸**A procurar perfil...**');
 
             try {
                 let userData = await prisma.hypeUser.findUnique({ where: { id: targetUser.id } });
@@ -1451,7 +1454,7 @@ if (command === 'loja' || command === 'mercado') {
                 if (isOwnProfile) {
                     const row = new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId('eco_profile_bio').setLabel('Editar Bio').setStyle(ButtonStyle.Secondary).setEmoji('✏️'),
-                        new ButtonBuilder().setCustomId('eco_profile_theme').setLabel('Temas de Perfil').setStyle(userData.vipLevel > 0 ? ButtonStyle.Primary : ButtonStyle.Secondary).setEmoji('🎨').setDisabled(userData.vipLevel === 0) 
+                        new ButtonBuilder().setCustomId('btn_perfil_cor').setLabel('Cores de Perfil').setStyle(userData.vipLevel > 0 ? ButtonStyle.Primary : ButtonStyle.Secondary).setEmoji('🎨').setDisabled(userData.vipLevel === 0) 
                     );
                     components.push(row);
                 } else {
@@ -1473,53 +1476,53 @@ if (command === 'loja' || command === 'mercado') {
         // ==========================================
         if (command === 'depositar' || command === 'dep') {
             let valorStr = args[0];
-            if (!valorStr) return message.reply('❌ Você precisa dizer o valor! Exemplo: `hdepositar 100` ou `hdepositar tudo`');
+            if (!valorStr) return message.reply('❌╺╸**Você precisa dizer o valor! Exemplo: `hdepositar 100` ou `hdepositar tudo**`');
 
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            if (!user || user.carteira <= 0) return message.reply('❌ Não tens dinheiro na carteira para depositar.');
+            if (!user || user.carteira <= 0) return message.reply('❌╺╸Não tens dinheiro na carteira para depositar.');
 
             let valor = parseInt(valorStr);
             if (valorStr.toLowerCase() === 'tudo' || valorStr.toLowerCase() === 'all') valor = user.carteira;
 
-            if (isNaN(valor) || valor <= 0) return message.reply('❌ Valor inválido!');
-            if (user.carteira < valor) return message.reply(`❌ Só tem **R$ ${user.carteira.toLocaleString('pt-BR')}** na carteira.`);
+            if (isNaN(valor) || valor <= 0) return message.reply('❌╺╸Valor inválido!');
+            if (user.carteira < valor) return message.reply(`❌╺╸Só tem **R$ ${user.carteira.toLocaleString('pt-BR')}** na carteira.`);
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { carteira: { decrement: valor }, hypeCash: { increment: valor } } });
-            return message.reply(`✅ **Sucesso!** Você depositou **R$ ${valor.toLocaleString('pt-BR')}** no seu Cartão Hype! 🏦`);
+            return message.reply(`✅╺╸**Sucesso!** Você depositou **R$ ${valor.toLocaleString('pt-BR')}** no seu Cartão Hype! 🏦`);
         }
 
         if (command === 'depall') {
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            if (!user || user.carteira <= 0) return message.reply('❌ Não tem nenhum dinheiro na carteira para depositar.');
+            if (!user || user.carteira <= 0) return message.reply('❌╺╸Não tem nenhum dinheiro na carteira para depositar.');
             const valorTotal = user.carteira;
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { carteira: { decrement: valorTotal }, hypeCash: { increment: valorTotal } } });
-            return message.reply(`✅ **Segurança Máxima!** Você depositou todo o seu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) no seu Cartão Hype! 🏦`);
+            return message.reply(`✅╺╸**Segurança Máxima!** Você depositou todo o seu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) no seu Cartão Hype! 🏦`);
         }
 
         if (command === 'sacar' || command === 'saque') {
             let valorStr = args[0];
-            if (!valorStr) return message.reply('❌ Você precisa dizer o valor! Exemplo: `hsacar 100`');
+            if (!valorStr) return message.reply('❌╺╸Você precisa dizer o valor! Exemplo: `hsacar 100`');
 
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
             let valor = parseInt(valorStr);
             if (valorStr.toLowerCase() === 'tudo') valor = user?.hypeCash || 0;
 
             if (!user || isNaN(valor) || valor <= 0 || user.hypeCash < valor) {
-                return message.reply(`❌ Saldo insuficiente no banco. Tem apenas **R$ ${(user?.hypeCash || 0).toLocaleString('pt-BR')}**.`);
+                return message.reply(`❌╺╸Saldo insuficiente no banco. Tem apenas **R$ ${(user?.hypeCash || 0).toLocaleString('pt-BR')}**.`);
             }
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { hypeCash: { decrement: valor }, carteira: { increment: valor } } });
-            return message.reply(`✅ **Saque feito!** Retirou **R$ ${valor.toLocaleString('pt-BR')}** do banco. O dinheiro está na tua carteira. Cuidado nas ruas! 🔫`);
+            return message.reply(`✅╺╸**Saque feito!** Retirou **R$ ${valor.toLocaleString('pt-BR')}** do banco. O dinheiro está na tua carteira. Cuidado nas ruas!╺╸🔫`);
         }
 
         if (command === 'sacarall') {
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            if (!user || user.hypeCash <= 0) return message.reply('❌ O seu banco está a zero. Não tem nada para sacar.');
+            if (!user || user.hypeCash <= 0) return message.reply('❌╺╸O seu banco está a zero. Não tem nada para sacar.');
             const valorTotal = user.hypeCash;
 
             await prisma.hypeUser.update({ where: { id: user.id }, data: { hypeCash: { decrement: valorTotal }, carteira: { increment: valorTotal } } });
-            return message.reply(`✅ **Saque Total!** Retirou todo o seu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) do banco. Cuidado nas ruas! 🔫`);
+            return message.reply(`✅╺╸**Saque Total!** Retirou todo o seu dinheiro (**R$ ${valorTotal.toLocaleString('pt-BR')}**) do banco. Cuidado nas ruas!╺╸🔫`);
         }
 
         // ==========================================
@@ -1527,7 +1530,7 @@ if (command === 'loja' || command === 'mercado') {
         // ==========================================
         if (command === 'c' || command === 'carteira') {
             const targetUser = message.mentions.users.first() || message.author;
-            const loadingMsg = await message.reply('🔍 A abrir a carteira...');
+            const loadingMsg = await message.reply('🔍╺╸**A abrir a carteira...**');
 
             try {
                 let userData = await prisma.hypeUser.findUnique({ where: { id: targetUser.id } });
@@ -1537,10 +1540,10 @@ if (command === 'loja' || command === 'mercado') {
                 const imageBuffer = await generateWalletImage(targetUser, userData);
                 const attachment = new AttachmentBuilder(imageBuffer, { name: 'wallet.png' });
 
-                await loadingMsg.edit({ content: `**💸Carteira de** <@${targetUser.id}>`, files: [attachment] });
+                await loadingMsg.edit({ content: `**💸╺╸Carteira de** <@${targetUser.id}>`, files: [attachment] });
             } catch (err) {
                 console.error(err);
-                await loadingMsg.edit('❌ Erro ao gerar a carteira.');
+                await loadingMsg.edit('❌╺╸Erro ao gerar a carteira.');
             }
         }
 
@@ -1551,7 +1554,7 @@ if (command === 'loja' || command === 'mercado') {
             const targetUser = message.mentions.users.first() || message.author;
             const guildId = message.guild.id;
 
-            const loadingMsg = await message.reply('💳 A imprimir o Cartão Hype...');
+            const loadingMsg = await message.reply('💳╺╸**A imprimir o Cartão Hype...**');
 
             try {
                 let [userProfile, config] = await Promise.all([
@@ -1606,23 +1609,30 @@ if (command === 'loja' || command === 'mercado') {
 
                 const saldoFormatado = (userProfile.hypeCash || 0).toLocaleString('pt-BR');
 
+                // 👇 INJEÇÃO DAS CORES CUSTOMIZADAS AQUI! 👇
+                const cColor1 = userProfile.customVipColor1 || null;
+                const cColor2 = userProfile.customVipColor2 || null;
+
                 const { generateHypeCard } = require('../../../utils/canvasCard');
-                const cardBuffer = await generateHypeCard(targetUser, userProfile.cardNumber, saldoFormatado, vipRealLevel, txtVip, txtValidade);
+                // Passamos cColor1 e cColor2 para o motor do Canvas!
+                const cardBuffer = await generateHypeCard(targetUser, userProfile.cardNumber, saldoFormatado, vipRealLevel, txtVip, txtValidade, cColor1, cColor2);
                 
                 const attachment = new AttachmentBuilder(cardBuffer, { name: 'hypecard.png' });
-                const embed = new EmbedBuilder().setColor(colorAccent).setImage('attachment://hypecard.png');
+                // Se ele tiver uma cor customizada, a linha da Embed (colorAccent) assume essa cor!
+                const embed = new EmbedBuilder().setColor(cColor1 || colorAccent).setImage('attachment://hypecard.png');
 
                 const components = [];
                 if (targetUser.id === message.author.id) {
                     const row = new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId('eco_user_store').setLabel('Lojinha Hype').setStyle(ButtonStyle.Primary).setEmoji('🛒'),
-                        new ButtonBuilder().setCustomId('eco_user_daily').setLabel('Pegar Daily').setStyle(ButtonStyle.Success).setEmoji('🎁'),
-                        new ButtonBuilder().setCustomId('eco_user_config').setLabel('Benefícios VIP').setStyle(ButtonStyle.Secondary).setEmoji('💎')
+                        // O botão de personalizar a cor continua aqui e deve abrir o menu
+                        new ButtonBuilder().setCustomId('btn_vip_cor').setLabel('🎨 Cor do Cartão VIP').setStyle(ButtonStyle.Success).setEmoji('🎁'),
+                        new ButtonBuilder().setCustomId('eco_user_config').setLabel('Poderes VIP').setStyle(ButtonStyle.Secondary).setEmoji('💎')
                     );
                     components.push(row);
                 }
 
-                await loadingMsg.edit({ content: `**Acesso VIP** de <@${targetUser.id}>`, embeds: [embed], files: [attachment], components: components });
+                await loadingMsg.edit({ content: `**💎╺╸Acesso VIP** de <@${targetUser.id}>`, embeds: [embed], files: [attachment], components: components });
 
             } catch (error) {
                 console.error('❌ Erro ao abrir hvip:', error);

@@ -30,7 +30,7 @@ module.exports = {
             const statusColor = hasAnyVip ? 42751 : 2829617; // Dourado/Azul ou Cinza
 
             const statusMsg = hasAnyVip 
-                ? `✅ Seu acesso VIP está **Ativo**. Aproveite seus benefícios!`
+                ? `✅ Seu acesso VIP está **Ativo**. Aproveite seus poderes!`
                 : `⚠️ Você é um **Membro Comum**. As funções abaixo estão bloqueadas para uso.`;
 
             const componentsArray = [
@@ -38,13 +38,13 @@ module.exports = {
                     "type": 17,
                     "accent_color": statusColor,
                     "components": [
-                        { "type": 10, "content": `# 👑 Central de Benefícios VIP\nGerencie suas vantagens exclusivas de forma integrada.` },
+                        { "type": 10, "content": `# 👑 Central de poderes VIP\nGerencie suas vantagens exclusivas de forma integrada.` },
                         { "type": 14, "divider": true, "spacing": 2 },
                         {
                             "type": 9,
                             "accessory": { "type": 2, "style": 2, "label": "Abrir", "emoji": { "name": "🥉" }, "custom_id": "eco_panel_vip_1" },
                             "components": [
-                                { "type": 10, "content": "🥉 VIP Nível 1: Pista Premium" },
+                                { "type": 10, "content": "🥉╺╸VIP 1: BOOSTER, PRIME" },
                                 { "type": 10, "content": "Cores de Nick e multiplicadores básicos." }
                             ]
                         },
@@ -53,7 +53,7 @@ module.exports = {
                             "type": 9,
                             "accessory": { "type": 2, "style": 2, "label": "Abrir", "emoji": { "name": "🥈" }, "custom_id": "eco_panel_vip_2" },
                             "components": [
-                                { "type": 10, "content": "🥈 VIP Nível 2: Camarote" },
+                                { "type": 10, "content": "🥈╺╸VIP 2: ELITE, EXCLUSIVE" },
                                 { "type": 10, "content": "Anúncios Globais e bônus intermediário." }
                             ]
                         },
@@ -62,8 +62,8 @@ module.exports = {
                             "type": 9,
                             "accessory": { "type": 2, "style": 2, "label": "Abrir", "emoji": { "name": "🥇" }, "custom_id": "eco_panel_vip_3" },
                             "components": [
-                                { "type": 10, "content": "🥇 VIP Nível 3: Dono do Baile" },
-                                { "type": 10, "content": "Calls Privadas e benefícios máximos." }
+                                { "type": 10, "content": "🥇╺╸VIP 3: SUPREME" },
+                                { "type": 10, "content": "Calls Privadas e poderes máximos." }
                             ]
                         },
                         { "type": 14, "divider": true, "spacing": 2 },
@@ -80,7 +80,7 @@ module.exports = {
             });
         } catch (error) {
             console.error('Erro ao carregar painel VIP:', error);
-            await interaction.editReply({ content: '❌ Erro ao carregar o painel de benefícios VIP.', flags: [] });
+            await interaction.editReply({ content: '❌ Erro ao carregar o painel de poderes VIP.', flags: [] });
         }
     }
 };

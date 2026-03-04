@@ -50,7 +50,7 @@ module.exports = (client) => {
                         }
 
                         // Notifica a perda
-                        member.send(`⚠️ **O Sonho Acabou!**\nO seu acesso VIP expirou e os seus benefícios foram revogados no servidor **${guild.name}**. Renove para voltar à elite!`).catch(() => {});
+                        member.send(`⚠️ **O Sonho Acabou!**\nO seu acesso VIP expirou e os seus poderes foram revogados no servidor **${guild.name}**. Renove para voltar à elite!`).catch(() => {});
                     }
                 }
             }

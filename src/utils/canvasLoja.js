@@ -55,9 +55,9 @@ async function generateShopCatalog() {
     };
 
     // 👇 NOVOS PREÇOS E DESCRIÇÕES
-    await drawItem('COLETE BALÍSTICO', 10000, 'Proteção total contra todos os assaltos por 15 minutos.', 150, 'https://cdn-icons-png.flaticon.com/512/3233/3233514.png');
-    await drawItem('PÉ DE CABRA', 10000, 'Aumenta em 15% a chance de roubo por 15 minutos.', 320, 'https://cdn-icons-png.flaticon.com/512/3596/3596045.png');
-    await drawItem('KIT DISFARCE', 15000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png');
+    await drawItem('COLETE BALÍSTICO', 150000, 'Proteção total contra todos os assaltos por 15 minutos.', 150, 'https://i.imgur.com/8P4SWpz.png');
+    await drawItem('PÉ DE CABRA', 50000, 'Aumenta em 15% a chance de roubo por 15 minutos.', 320, 'https://i.imgur.com/pBFWxEA.png');
+    await drawItem('KIT DISFARCE', 30000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://i.imgur.com/8Wmmnn1.png');
 
     return canvas.toBuffer();
 }

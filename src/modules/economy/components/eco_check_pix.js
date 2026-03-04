@@ -87,7 +87,7 @@ module.exports = {
             const successEmbed = new EmbedBuilder()
                 .setTitle('🎉 VIP ATIVADO!')
                 .setColor('#57F287')
-                .setDescription(`O seu PIX de **R$ ${price.toFixed(2)}** foi aprovado!\nO seu acesso **${planName}** já está na conta e é válido por **30 dias**.\n\n👉 Use \`hvip\` para abrir o seu painel de benefícios.`);
+                .setDescription(`O seu PIX de **R$ ${price.toFixed(2)}** foi aprovado!\nO seu acesso **${planName}** já está na conta e é válido por **30 dias**.\n\n👉 Use \`hvip\` para abrir o seu painel de poderes.`);
 
             await interaction.message.edit({ content: '', embeds: [successEmbed], components: [], files: [] }).catch(()=>{});
             await interaction.editReply('✅ Tudo certo! Aproveite o seu VIP.');

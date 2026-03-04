@@ -13,7 +13,14 @@ module.exports = {
     customId: 'dev_guild_manage',
 
     async execute(interaction, client) {
-        const guildId = interaction.values ? interaction.values[0] : null;
+        // 👇 Inteligência Dupla: Lê o ID tanto do Menu de Seleção quanto do botão de "Voltar"
+        let guildId;
+        if (interaction.isStringSelectMenu()) {
+            guildId = interaction.values[0];
+        } else {
+            guildId = interaction.customId.split('_').pop();
+        }
+
         if (!guildId || guildId === 'none') return interaction.reply({ content: '❌ Seleção inválida.', flags: [MessageFlags.Ephemeral] });
         
         const discordGuild = client.guilds.cache.get(guildId);
@@ -45,64 +52,36 @@ module.exports = {
         const featuresList = dbGuild.features.length > 0 ? dbGuild.features.join(', ') : 'Nenhuma';
 
         // ==========================================
-        // 🎨 UI DO PAINEL DE GESTÃO (V2)
+        // 🎨 PÁGINA 1: GESTÃO DO SERVIDOR E MÓDULOS
         // ==========================================
         const header = new TextDisplayBuilder()
-            .setContent(`# 🎛️ Gerenciando: ${discordGuild ? discordGuild.name : 'Desconhecido'}\nID: \`${guildId}\``);
+            .setContent(`# 🎛️ Gerenciando Servidor (Pág 1/2)\nNome: **${discordGuild ? discordGuild.name : 'Desconhecido'}**\nID: \`${guildId}\``);
 
         const stats = new TextDisplayBuilder()
-            .setContent(`**Status:** ${statusText}\n**Vencimento:** ${expireDateString} (${daysRemaining} dias)\n**Módulos:** \`[${featuresList}]\``);
+            .setContent(`**Status:** ${statusText}\n**Vencimento:** ${expireDateString} (${daysRemaining} dias)\n**Módulos Ativos:** \`[${featuresList}]\``);
 
-        // Botões de Tempo e Features
+        // Botões de Licença SaaS do Servidor
         const rowTime = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId(`dev_vip_add_7_${guildId}`).setLabel('+7 Dias').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`dev_vip_add_30_${guildId}`).setLabel('+30 Dias').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`dev_vip_set_lifetime_${guildId}`).setLabel('👑 Lifetime').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId(`dev_vip_remove_${guildId}`).setLabel('🛑 Remover VIP').setStyle(ButtonStyle.Danger)
+            new ButtonBuilder().setCustomId(`dev_vip_remove_${guildId}`).setLabel('🛑 Remover VIP (Servidor)').setStyle(ButtonStyle.Danger)
         );
 
+        // Botões de Ativação de Sistemas
         const rowFeatures = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId(`dev_feat_toggle_tickets_${guildId}`).setLabel('Tickets (Toggle)').setStyle(ButtonStyle.Secondary).setEmoji('🎫'),
             new ButtonBuilder().setCustomId(`dev_feat_toggle_autovoice_${guildId}`).setLabel('Voice (Toggle)').setStyle(ButtonStyle.Secondary).setEmoji('🔊'),
-            // 👇 AQUI ESTÁ O NOVO BOTÃO DO CASSINO
             new ButtonBuilder().setCustomId(`dev_feat_toggle_cassino_${guildId}`).setLabel('Cassino (Toggle)').setStyle(ButtonStyle.Secondary).setEmoji('🎰')
         );
 
-        // Seção de Economia e Lojinha
-        const labelEconomy = new TextDisplayBuilder().setContent('**💰 Gestão HypeCoins & Loja**');
-        
-        const rowEconomy = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`eco_hypecash_add_${guildId}`).setLabel('Dar Saldo').setStyle(ButtonStyle.Success).setEmoji('➕'),
-            new ButtonBuilder().setCustomId(`eco_hypecash_rem_${guildId}`).setLabel('Tirar Saldo').setStyle(ButtonStyle.Danger).setEmoji('➖'),
-            new ButtonBuilder().setCustomId(`eco_store_add_${guildId}`).setLabel('Criar Item').setStyle(ButtonStyle.Primary).setEmoji('📦'),
-            new ButtonBuilder().setCustomId(`eco_store_rem_${guildId}`).setLabel('Remover Item').setStyle(ButtonStyle.Danger).setEmoji('🗑️'), //
-            new ButtonBuilder().setCustomId(`eco_store_list_${guildId}`).setLabel('Ver Itens').setStyle(ButtonStyle.Secondary).setEmoji('📋')
-        );
-
-        const rowVipLogs = new ActionRowBuilder().addComponents(
+        // 👇 NAVEGAÇÃO PARA A ABA DE ECONOMIA
+        const rowNav = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setCustomId(`eco_manage_vip_roles_${guildId}`)
-                .setLabel('Configurar Cargos')
+                .setCustomId(`dev_eco_manage_${guildId}`)
+                .setLabel('Ir para Gestão de Economia, Loja e Jogadores VIP ➡️')
                 .setStyle(ButtonStyle.Primary)
-                .setEmoji('👑'),
-            new ButtonBuilder()
-                .setCustomId(`eco_setup_banlog_${guildId}`)
-                .setLabel('Canal de Denúncias')
-                .setStyle(ButtonStyle.Danger)
-                .setEmoji('⚖️'),
-            new ButtonBuilder()
-                .setCustomId(`eco_give_vip_user_${guildId}`)
-                .setLabel('Dar VIP a Jogador')
-                .setStyle(ButtonStyle.Success)
-                .setEmoji('🎁')
-        );
-
-        const rowVipFinance = new ActionRowBuilder().addComponents(
-            new ButtonBuilder()
-                .setCustomId(`eco_config_vip_finance_${guildId}`)
-                .setLabel('Configurar Preços e Mercado Pago')
-                .setStyle(ButtonStyle.Success)
-                .setEmoji('💸')
+                .setEmoji('💰')
         );
 
         const container = new ContainerBuilder()
@@ -111,12 +90,10 @@ module.exports = {
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(stats)
             .addSeparatorComponents(new SeparatorBuilder())
-            .addActionRowComponents(rowTime, rowFeatures)
+            .addActionRowComponents(rowTime)
+            .addActionRowComponents(rowFeatures)
             .addSeparatorComponents(new SeparatorBuilder())
-            .addTextDisplayComponents(labelEconomy) 
-            .addActionRowComponents(rowEconomy)
-            .addActionRowComponents(rowVipFinance)
-            .addActionRowComponents(rowVipLogs); 
+            .addActionRowComponents(rowNav); 
 
         await interaction.update({
             components: [container],

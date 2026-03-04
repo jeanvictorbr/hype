@@ -13,7 +13,7 @@ const { generateHypeCard } = require('../../../utils/canvasCard');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('vip')
-        .setDescription('💳 Acesse seu Cartão Hype, saldo e benefícios'),
+        .setDescription('💳 Acesse seu Cartão Hype, saldo e poderes'),
 
     async execute(interaction, client) {
         await interaction.deferReply({ flags: [MessageFlags.Ephemeral] });
@@ -101,7 +101,7 @@ module.exports = {
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId('eco_user_store').setLabel('Lojinha Hype').setStyle(ButtonStyle.Primary).setEmoji('🛒'),
                 new ButtonBuilder().setCustomId('eco_user_daily').setLabel('Pegar Daily').setStyle(ButtonStyle.Success).setEmoji('🎁'),
-                new ButtonBuilder().setCustomId('eco_user_config').setLabel('Benefícios VIP').setStyle(ButtonStyle.Secondary).setEmoji('💎')
+                new ButtonBuilder().setCustomId('eco_user_config').setLabel('poderes VIP').setStyle(ButtonStyle.Secondary).setEmoji('💎')
             );
 
             await interaction.editReply({
