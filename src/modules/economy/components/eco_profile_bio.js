@@ -1,31 +1,26 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } = require('discord.js');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 
 module.exports = {
-    customId: 'eco_profile_bio',
-
+    customIdPrefix: 'eco_profile_bio_',
     async execute(interaction) {
-        // 🔒 SEGURANÇA: Verifica se o clicador é o dono da interação original
-        if (interaction.message.interaction && interaction.user.id !== interaction.message.interaction.user.id) {
-            return interaction.reply({ 
-                content: '❌ **Acesso Negado!** Você só pode editar o seu próprio perfil.', 
-                flags: [MessageFlags.Ephemeral] 
-            });
+        const ownerId = interaction.customId.replace('eco_profile_bio_', '');
+
+        if (interaction.user.id !== ownerId) {
+            return interaction.reply({ content: '🛑 **Acesso Negado:** Só podes alterar a tua própria biografia!', ephemeral: true });
         }
 
         const modal = new ModalBuilder()
             .setCustomId('eco_profile_bio_submit')
-            .setTitle('Editar Biografia Hype');
+            .setTitle('Editar Biografia do Perfil');
 
         const bioInput = new TextInputBuilder()
-            .setCustomId('bioInput')
-            .setLabel("Escreve a tua nova frase de perfil:")
+            .setCustomId('bio')
+            .setLabel('Uma frase sobre si')
             .setStyle(TextInputStyle.Paragraph)
-            .setPlaceholder('Ex: A dominar o Cassino Hype desde 2024.')
-            .setMaxLength(140)
+            .setMaxLength(85)
             .setRequired(true);
 
-        const row = new ActionRowBuilder().addComponents(bioInput);
-        modal.addComponents(row);
+        modal.addComponents(new ActionRowBuilder().addComponents(bioInput));
         await interaction.showModal(modal);
     }
 };

@@ -1,22 +1,35 @@
 const { StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
-const { prisma } = require('../../../core/database'); // Ajuste o caminho se necessário
+const { prisma } = require('../../../core/database');
 
 module.exports = {
-    customId: 'btn_perfil_cor',
+    // Mudamos de customId para Prefix para ele conseguir ler a tranca
+    customIdPrefix: 'btn_perfil_cor_', 
+
     async execute(interaction) {
+        // Pega o ID de quem é o verdadeiro dono da mensagem
+        const ownerId = interaction.customId.replace('btn_perfil_cor_', '');
+
+        // 🛡️ TRANCA ANTI-INTRUSO: Se quem clicou não for o dono...
+        if (interaction.user.id !== ownerId) {
+            return interaction.reply({ 
+                content: '🛑 **Acesso Negado:** Tu só podes customizar as cores do teu próprio perfil! Usa o comando `hperfil` para abrires o teu.', 
+                ephemeral: true 
+            });
+        }
+
         const userData = await prisma.hypeUser.findUnique({ where: { id: interaction.user.id } });
         
-        // 🛡️ Apenas VIPs podem customizar as cores!
+        // Esta trava continua por segurança (caso alguém perca o VIP com o perfil aberto)
         if (!userData || userData.vipLevel === 0) {
             return interaction.reply({ content: '❌ Apenas membros **VIP** podem customizar as cores do perfil!', ephemeral: true });
         }
 
-        // 🎨 Cria o Menu de Seleção com 25 Opções (1 Padrão + 24 Cores Premium)
+        // 🎨 Cria o Menu de Seleção
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId('select_perfil_cor')
             .setPlaceholder('Escolha 1 ou 2 cores mágicas...')
-            .setMinValues(1) // Obrigatório escolher pelo menos 1
-            .setMaxValues(2) // Pode escolher no máximo 2
+            .setMinValues(1)
+            .setMaxValues(2)
             .addOptions([
                 { label: '🔄 RESTAURAR PADRÃO', description: 'Voltar para a cor original do seu nível', value: 'padrao', emoji: '🎨' },
                 { label: 'Vermelho Neon', description: 'O clássico vermelho vibrante', value: '#FF003C', emoji: '🔴' },
@@ -47,7 +60,6 @@ module.exports = {
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
 
-        // Envia o menu apenas para o utilizador (ephemeral)
         await interaction.reply({ 
             content: '🎨 **Personalização VIP de Cores**\n\nSelecione na lista abaixo:\n👉 **Padrão:** Devolve o perfil à cor original.\n👉 **1 Cor:** Todo o perfil usa essa cor.\n👉 **2 Cores:** A primeira é o Brilho Principal, a segunda é o Fundo!', 
             components: [row], 

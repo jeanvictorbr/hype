@@ -1426,7 +1426,7 @@ if (command === 'loja' || command === 'mercado') {
 
             return;
         }
-        // ==========================================
+// ==========================================
         // 🚀 COMANDO: hperfil
         // ==========================================
         if (command === 'perfil') {
@@ -1453,9 +1453,18 @@ if (command === 'loja' || command === 'mercado') {
                 
                 if (isOwnProfile) {
                     const row = new ActionRowBuilder().addComponents(
-                        new ButtonBuilder().setCustomId('eco_profile_bio').setLabel('Editar Bio').setStyle(ButtonStyle.Secondary).setEmoji('✏️'),
-                        new ButtonBuilder().setCustomId('btn_perfil_cor').setLabel('Cores de Perfil').setStyle(userData.vipLevel > 0 ? ButtonStyle.Primary : ButtonStyle.Secondary).setEmoji('🎨').setDisabled(userData.vipLevel === 0) 
+                        // Adicionamos a "tranca" (ID do dono) também no botão de Editar Bio
+                        new ButtonBuilder().setCustomId(`eco_profile_bio_${targetUser.id}`).setLabel('Editar Bio').setStyle(ButtonStyle.Secondary).setEmoji('✏️')
                     );
+
+                    // 👇 O Botão de Cores AGORA SÓ APARECE se a pessoa for de facto VIP!
+                    if (userData.vipLevel > 0) {
+                        // O ID do botão agora leva o ID do dono para trancar a execução!
+                        row.addComponents(
+                            new ButtonBuilder().setCustomId(`btn_perfil_cor_${targetUser.id}`).setLabel('Cores de Perfil').setStyle(ButtonStyle.Primary).setEmoji('🎨')
+                        );
+                    }
+                    
                     components.push(row);
                 } else {
                     const row = new ActionRowBuilder().addComponents(
