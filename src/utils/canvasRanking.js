@@ -29,7 +29,7 @@ async function generateRankingImage(players, page, totalPages, guildName) {
     // ==========================================
     // 2. CABEÇALHO (LOGO + TÍTULO)
     // ==========================================
-    ctx.fillStyle = '#0000FF'; 
+    ctx.fillStyle = '#ffffff'; 
     ctx.font = '900 40px "Arial Black", sans-serif'; // Fonte um pouco menor para caber perfeito com a logo
     ctx.textBaseline = 'middle';
     
@@ -82,7 +82,7 @@ async function generateRankingImage(players, page, totalPages, guildName) {
                         isTop2 ? 'rgba(161, 161, 170, 0.15)' : 
                         isTop3 ? 'rgba(180, 83, 9, 0.15)' : 'rgba(255, 255, 255, 0.03)';
         
-        const strokeColor = isTop1 ? '#0000FF' : isTop2 ? '#d4d4d8' : isTop3 ? '#b45309' : '#333333';
+        const strokeColor = isTop1 ? '#fbff00' : isTop2 ? '#d4d4d8' : isTop3 ? '#b45309' : '#333333';
 
         ctx.save();
         ctx.fillStyle = bgColor;
