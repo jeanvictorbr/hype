@@ -111,7 +111,7 @@ async function generateRankingImage(players, page, totalPages, guildName) {
         }
 
         // Nome
-        ctx.fillStyle = isTop1 ? '#0000FF' : '#ffffff';
+        ctx.fillStyle = isTop1 ? '#ffffff' : '#ffffff';
         ctx.textAlign = 'left';
         ctx.font = isTop1 ? 'bold 22px Arial' : 'bold 20px Arial';
         let name = p.username.length > 18 ? p.username.substring(0, 18) + '...' : p.username;
