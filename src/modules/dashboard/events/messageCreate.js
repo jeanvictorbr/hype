@@ -1682,7 +1682,7 @@ if (command === 'loja' || command === 'mercado') {
             return message.reply({ embeds: [embed], components: [row], files: [attachment] });
         }
 
-        // ==========================================
+  // ==========================================
         // 🚀 GAME: Crash (hcrash)
         // ==========================================
         if (command === 'crash') {
@@ -1694,7 +1694,7 @@ if (command === 'loja' || command === 'mercado') {
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             if (!userProfile) return message.reply('❌╺╸Ainda não tens um perfil registado.');
 
-            let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            let betAmount = betInput.toLowerCase() === 'all' || betInput.toLowerCase() === 'tudo' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
             
             // 👇 LIMITADOR DE APOSTAS: MÁXIMO 1 MILHÃO (1KK)
@@ -1727,14 +1727,17 @@ if (command === 'loja' || command === 'mercado') {
             let imageBuffer = await generateCrashImage(gameState.multiplier, gameState.status);
             let attachment = new AttachmentBuilder(imageBuffer, { name: 'crash.png' });
 
+            // 👇 CÁLCULO INICIAL DO LUCRO
+            let currentProfit = Math.floor(betAmount * gameState.multiplier);
+
             const embed = new EmbedBuilder()
                 .setColor('#FEE75C')
                 .setTitle('🚀 CRASH HYPE')
-                .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n\n🟢 O foguetão está a subir! Pule antes que exploda!`)
+                .setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Retorno Atual:** 💰 R$ ${currentProfit.toLocaleString('pt-BR')}\n\n🟢 O foguetão está a subir! Pule antes que exploda!`)
                 .setImage('attachment://crash.png');
 
             const cashoutBtn = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId(`eco_crash_cashout_${userId}`).setLabel('💰 PULAR DO FOGUETE').setStyle(ButtonStyle.Success)
+                new ButtonBuilder().setCustomId(`eco_crash_cashout_${userId}`).setLabel(`💰 PULAR (R$ ${currentProfit.toLocaleString('pt-BR')})`).setStyle(ButtonStyle.Success)
             );
 
             const gameMessage = await message.reply({ embeds: [embed], components: [cashoutBtn], files: [attachment] });
@@ -1760,7 +1763,12 @@ if (command === 'loja' || command === 'mercado') {
                 imageBuffer = await generateCrashImage(gameState.multiplier, gameState.status);
                 attachment = new AttachmentBuilder(imageBuffer, { name: 'crash.png' });
 
-                embed.setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n\n🟢 O foguetão está a subir! Pule antes que exploda!`);
+                // 👇 ATUALIZAÇÃO EM TEMPO REAL DO LUCRO NO LOOP
+                currentProfit = Math.floor(betAmount * currentMult);
+
+                embed.setDescription(`**Piloto:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Retorno Atual:** 💰 R$ ${currentProfit.toLocaleString('pt-BR')}\n\n🟢 O foguetão está a subir! Pule antes que exploda!`);
+                cashoutBtn.components[0].setLabel(`💰 PULAR (R$ ${currentProfit.toLocaleString('pt-BR')})`);
+
                 await gameMessage.edit({ embeds: [embed], components: [cashoutBtn], files: [attachment], attachments: [] }).catch(() => {});
             }
 
@@ -2019,63 +2027,74 @@ if (command === 'loja' || command === 'mercado') {
             return;
         }
 // ==========================================
-        // 📖 COMANDO: hajuda / hhelp (Menu Paginado)
+        // 📖 COMANDO: hajuda / hhelp (Menu Paginado Completo)
         // ==========================================
         if (command === 'ajuda' || command === 'help') {
             const pages = [
                 new EmbedBuilder()
                     .setColor('#2b2d31')
-                    .setTitle('📖 Ajuda - 🏦 Economia Básica')
-                    .setDescription('**Prefixo Oficial:** `h`\nA base da economia. O teu dinheiro da mão fica na **Carteira**, o dinheiro seguro fica no **Banco**.')
+                    .setTitle('🏦 Hype Economy - Guia de Sobrevivência')
+                    .setDescription('**Prefixo Oficial:** `h`\nAqui na cidade, o dinheiro move tudo. O teu dinheiro da mão fica na **Carteira**, o dinheiro seguro fica no **Banco**.')
                     .addFields(
-                        { name: '💼 Gerenciamento', value: '`hcarteira (hc)` - Vê o saldo que tens em mãos.\n`hperfil` - Vê o teu nível VIP e status.\n`htempo (hcd)` - Verifica todos os teus tempos de recarga.' },
-                        { name: '🏦 O Banco', value: '`hdepositar (hdep) <valor>` - Guarda no banco.\n`hdepall` - Guarda TUDO no banco rápido.\n`hsacar <valor>` - Tira dinheiro do banco.\n`hsacarall` - Tira TUDO do banco.\n`hpix @user <valor/all>` - Transfere dinheiro seguro para um amigo.' },
-                        { name: '💰 Salários Fixos', value: '`hdiario` - Recolhe a tua mesada a cada 24h.\n`hsemanal` - Recolhe o teu salário a cada 7 dias.\n`hmensal` - O teu bónus massivo a cada 30 dias.' }
+                        { name: '💼 Gerenciamento Pessoal', value: '`hcarteira` (ou `hc`) - Vê o saldo que tens em mãos.\n`hperfil` - Vê o teu nível VIP, status e edita a tua bio.\n`htempo` (ou `hcd`) - Verifica os tempos de recarga de tudo.' },
+                        { name: '💰 Salários & Renda Fixa', value: '`hdiario` - Recolhe a tua grana a cada 24 horas.\n`hsemanal` - Bônus suado a cada 7 dias.\n`hmensal` - O grande malote a cada 30 dias.' },
+                        { name: '🏧 Banco Central', value: '`hdepositar <valor>` (ou `hdep all`) - Guarda na conta.\n`hsacar <valor>` (ou `hsacar all`) - Tira pro bolso.\n`hpix @usuario <valor>` - Transfere grana segura pra um truta.' }
                     )
+                    .setFooter({ text: 'Página 1/5 • Economia & Banco' })
                     .setThumbnail(client.user.displayAvatarURL()),
                 
                 new EmbedBuilder()
                     .setColor('#FEE75C')
-                    .setTitle('📖 Ajuda - 🎰 Cassino & Jogos')
-                    .setDescription('Apostas arriscadas! Todos os jogos cobram o valor diretamente da tua **CARTEIRA** (dinheiro na mão).')
+                    .setTitle('🎰 Cassino Hype - Jogos Solo')
+                    .setDescription('Apostas arriscadas! Todos os jogos cobram o valor diretamente da tua **CARTEIRA** (dinheiro na mão). Limite de 1KK por aposta.')
                     .addFields(
-                        { name: '🐯 Máquinas', value: '`htigrinho <valor/all>` - Gira a slot machine do tigre.\n`hmines <valor/all>` - Campo minado. Retira o dinheiro antes de pisar na bomba!' },
-                        { name: '🚀 Multiplicadores & Cartas', value: '`hcrash <valor/all>` - O foguetão sobe! Pula antes de explodir.\n`hbj <valor/all>` - Joga Blackjack (21) contra o Agiota do servidor.' },
-                        { name: '🔫 Multiplayer', value: '`hroleta <valor>` - Abre uma mesa de Roleta Russa no chat (Mín. 2 a 6 jogadores).' }
+                        { name: '🐯 O Famoso Tigrinho', value: '`htigrinho <valor>` (ou `all`) - Gira a máquina do tigre. Pode pagar até 10x se vier a cartinha!' },
+                        { name: '💣 Campo Minado', value: '`hmines <valor>` (ou `all`) - Tenta achar os diamantes e saca o lucro antes de pisar na bomba.' },
+                        { name: '🚀 Crash (O Foguetão)', value: '`hcrash <valor>` (ou `all`) - O multiplicador sobe... Pula antes que o foguete exploda na tua cara!' },
+                        { name: '🃏 Blackjack (21)', value: '`hbj <valor>` (ou `all`) - Desafia o Agiota num carteado clássico. Chega perto do 21 sem estourar.' }
                     )
+                    .setFooter({ text: 'Página 2/5 • Cassino Solo' })
                     .setThumbnail(client.user.displayAvatarURL()),
 
                 new EmbedBuilder()
-                    .setColor('#ED4245')
-                    .setTitle('📖 Ajuda - 🎭 Social & Crime')
-                    .setDescription('Movimenta o chat para ganhares pequenas quantias. Se tiveres VIP, ganhas com multiplicador!')
+                    .setColor('#ef4444')
+                    .setTitle('🔫 Submundo - Multiplayer & Crime')
+                    .setDescription('Aqui a parada fica séria. Chama os amigos pra call, aposta alto ou perde a vida tentando.')
                     .addFields(
-                        { name: '❤️ Amor & Carinho', value: '`hbeijar @user`\n`habracar @user`\n`hpat @user`\n`hcafune @user`' },
-                        { name: '🥊 Porrada & Ódio', value: '`htapa @user`\n`hsocar @user`\n`hmorder @user`' },
-                        { name: '🥷 Submundo', value: '`hroubar @user` - Tenta passar a mão na carteira de alguém. Se a polícia te apanhar, pagas multa alta!' }
+                        { name: '🏦 Assalto ao Banco (RPG)', value: '`hassalto <valor>` - O Maior evento do servidor! Reúne até 4 amigos, escolham papéis (Piloto, Hacker, Atirador) e tentem roubar o cofre com escolhas dinâmicas!' },
+                        { name: '🏎️ Corrida Clandestina', value: '`hcorrida <valor>` - Abre um lobby, apostem nos carros (🔴🔵🟢🟡) e assistam à corrida insana com nitro e batidas!' },
+                        { name: '🔫 Roleta Russa', value: '`hroleta <valor>` - Abre uma mesa (2 a 6 pessoas). Um revólver, uma bala. Quem sobrar leva o Pote Gigante!' },
+                        { name: '🎲 Apostas (Cara ou Coroa)', value: '`hap <valor>` - Cria um lobby livre.\n`hap <valor> @usuario` - Desafia um rival pro X1 cara a cara.' },
+                        { name: '🥷 Crime de Rua', value: '`hroubar @usuario` - Tenta passar a mão na carteira. Se falhar, paga multa pesada pra polícia!\n`hmercado` (ou `hloja`) - Compra itens ilegais (Colete, Pé de Cabra, Disfarce) pra te dar vantagem.' }
                     )
+                    .setFooter({ text: 'Página 3/5 • Multiplayer & Submundo' })
                     .setThumbnail(client.user.displayAvatarURL()),
 
                 new EmbedBuilder()
                     .setColor('#9b59b6')
-                    .setTitle('📖 Ajuda - 🏆 Rankings & VIP')
-                    .setDescription('Os comandos de ostentação. Vê quem domina a economia!')
+                    .setTitle('🎭 Interações Sociais & Ostentação')
+                    .setDescription('Interage no chat para ganhar um troco extra e mostra a todos quem é que manda na cidade!')
                     .addFields(
-                        { name: '📊 Pódio dos Ricos', value: '`hrank` - Ranking com os mais ricos **deste servidor**.\n`hrankglobal` - Ranking dos mais ricos de **todos os servidores**.' },
-                        { name: '💎 Hype VIP', value: '`hvip` - Abre o teu painel VIP para pegar prêmios secretos e Lojinha.\n`/comprarvip` *(Comando Barra)* - Loja oficial para comprar VIP e Moedas com Pix real.' },
-                        { name: '🧾 Outros', value: '`/extrato` *(Comando Barra)* - Vê o teu histórico de logs.' }
+                        { name: '🏆 Rankings de Riqueza', value: '`hrank` - Pódio dos magnatas do servidor local.\n`hrankglobal` - Pódio dos mais ricos de TODOS os servidores.' },
+                        { name: '💎 Hype VIP', value: '`hvip` - Abre o painel do teu Cartão de Crédito Black (Muda cor, resgata itens, etc).\n`/comprarvip` - Loja para adquirir benefícios REAIS.' },
+                        { name: '❤️ Rolê de Casal (Ganha $)', value: '`hbeijar @user` | `habracar @user` | `hpat @user` | `hcafune @user`' },
+                        { name: '🥊 Porradaria (Ganha $)', value: '`htapa @user` | `hsocar @user` | `hmorder @user` | `hchutar @user`' },
+                        { name: '🥂 Festas (Ganha $)', value: '`hdancar @user` | `hbrindar @user`' }
                     )
+                    .setFooter({ text: 'Página 4/5 • Social & VIP' })
                     .setThumbnail(client.user.displayAvatarURL()),
 
                 new EmbedBuilder()
                     .setColor('#000000')
-                    .setTitle('📖 Ajuda - 👑 Staff & Developer')
-                    .setDescription('Comandos Barra (`/`) de uso restrito à administração.')
+                    .setTitle('👑 Administração & Staff')
+                    .setDescription('Comandos restritos à Alta Cúpula e eventos do servidor.')
                     .addFields(
-                        { name: '⚙️ Sistemas Base', value: '`/hype` - Dashboard Principal do Bot.\n`/massrole` - Dá cargo em massa.\n`/locticket` - Envia o painel de Tickets.' },
-                        { name: '🛠️ Economia Local (Staff)', value: '`/resetcooldowns` - Seta os cooldowns de alguém a 0.\n`/ranking` - Ranking de quem mais atendeu tickets.' },
-                        { name: '💻 Modo Deus (Só Dono)', value: '`/devpanel` - Injeta dinheiro e gere a loja base.\n`/wipecooldowns` - Zera os tempos de TODO o servidor.\n`/wipeeconomy` - Deleta o saldo de TODO o servidor.' }
+                        { name: '💼 Sistema de Tickets (Modo Slash)', value: '`/locticket` - Envia o painel de suporte.\n`/ranking` - Top atendimentos da Staff.' },
+                        { name: '⚙️ Comandos de Gestão (Modo Slash)', value: '`/hype` - Dashboard Central.\n`/massrole` - Dá cargo em massa a todos.' },
+                        { name: '🎁 Evento da Maleta', value: '`hmala <premio> <custo_tentativa>` - *(Admin)* Solta uma maleta criptografada no chat pra galera hackear a senha de 3 dígitos!' },
+                        { name: '💻 Dev Panel (Dono)', value: '`/devpanel` - Painel deus (Injeta dinheiro, gere VIPs).\n`/wipecooldowns` - Zera o delay de todos.\n`/wipeeconomy` - Reseta o dinheiro do servidor inteiro.' }
                     )
+                    .setFooter({ text: 'Página 5/5 • Staff & Eventos' })
                     .setThumbnail(client.user.displayAvatarURL())
             ];
 
@@ -2087,17 +2106,17 @@ if (command === 'loja' || command === 'mercado') {
                         .setCustomId('prev_help')
                         .setLabel('◀ Anterior')
                         .setStyle(ButtonStyle.Primary)
-                        .setDisabled(page === 0), // Desativa se estiver na primeira página
+                        .setDisabled(page === 0), 
                     new ButtonBuilder()
                         .setCustomId('page_indicator')
-                        .setLabel(`Página ${page + 1} de ${pages.length}`)
+                        .setLabel(`Página ${page + 1}/${pages.length}`)
                         .setStyle(ButtonStyle.Secondary)
-                        .setDisabled(true), // Apenas decorativo
+                        .setDisabled(true),
                     new ButtonBuilder()
                         .setCustomId('next_help')
                         .setLabel('Próxima ▶')
                         .setStyle(ButtonStyle.Primary)
-                        .setDisabled(page === pages.length - 1) // Desativa se estiver na última
+                        .setDisabled(page === pages.length - 1)
                 );
             };
 
@@ -2106,15 +2125,16 @@ if (command === 'loja' || command === 'mercado') {
                 components: [getRow(currentPage)]
             });
 
-            // Cria um coletor que dura 2 minutos (120000ms)
-            const collector = helpMessage.createMessageComponentCollector({
-                filter: i => i.user.id === message.author.id, // Só quem executou o comando pode trocar de página
-                time: 120000 
-            });
+            const collector = helpMessage.createMessageComponentCollector({ time: 120000 });
 
             collector.on('collect', async i => {
-                if (i.customId === 'prev_help') currentPage--;
-                if (i.customId === 'next_help') currentPage++;
+                // Trava contra bisbilhoteiros
+                if (i.user.id !== message.author.id) {
+                    return i.reply({ content: '❌ Usa o comando `hajuda` tu mesmo se quiseres ler o guia!', flags: [MessageFlags.Ephemeral] }).catch(()=>{});
+                }
+
+                if (i.customId === 'prev_help' && currentPage > 0) currentPage--;
+                if (i.customId === 'next_help' && currentPage < pages.length - 1) currentPage++;
 
                 await i.update({
                     embeds: [pages[currentPage]],
@@ -2122,10 +2142,9 @@ if (command === 'loja' || command === 'mercado') {
                 });
             });
 
-            // Quando o tempo acabar, remove os botões para limpar o servidor
             collector.on('end', () => {
                 const disabledRow = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('timeout').setLabel('Tempo Esgotado').setStyle(ButtonStyle.Secondary).setDisabled(true)
+                    new ButtonBuilder().setCustomId('timeout').setLabel('Guia Fechado').setStyle(ButtonStyle.Secondary).setDisabled(true)
                 );
                 helpMessage.edit({ components: [disabledRow] }).catch(() => {});
             });

@@ -54,10 +54,10 @@ async function generateShopCatalog() {
         ctx.fillText(`R$ ${price.toLocaleString('pt-BR')}`, 630, y + 120);
     };
 
-    // 👇 NOVOS PREÇOS E DESCRIÇÕES
-    await drawItem('COLETE BALÍSTICO', 150000, 'Proteção total contra todos os assaltos por 15 minutos.', 150, 'https://i.imgur.com/8P4SWpz.png');
-    await drawItem('PÉ DE CABRA', 50000, 'Aumenta em 15% a chance de roubo por 15 minutos.', 320, 'https://i.imgur.com/pBFWxEA.png');
-    await drawItem('KIT DISFARCE', 30000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://i.imgur.com/8Wmmnn1.png');
+    // 👇 NOVOS PREÇOS, DESCRIÇÕES E ÍCONES REALISTAS
+    await drawItem('COLETE BALÍSTICO', 150000, 'Proteção total contra todos os assaltos por 15 minutos.', 150, 'https://img.icons8.com/color/256/body-armor.png');
+    await drawItem('PÉ DE CABRA', 50000, 'Aumenta em 15% a chance de roubo por 15 minutos.', 320, 'https://img.icons8.com/color/256/crowbar.png');
+    await drawItem('KIT DISFARCE', 30000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://img.icons8.com/color/256/anonymous-mask.png');
 
     return canvas.toBuffer();
 }
