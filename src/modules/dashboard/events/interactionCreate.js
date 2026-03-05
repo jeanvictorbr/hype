@@ -1,16 +1,30 @@
+const { MessageFlags } = require('discord.js');
+
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction, client) {
         
         try {
             // ==========================================
-            // 1. ROTEADOR DE COMANDOS DE BARRA (/hype, /devpanel)
+            // 1. TRAVA CIRÚRGICA (SÓ PARA JOGOS INLINE)
             // ==========================================
-            // 👇 ADICIONE ESTA TRAVA AQUI 👇
-        if (interaction.isButton() && ['opt1', 'opt2', 'opt3', 'heist_', 'choice_', 'race_', 'hap_', 'eco_'].some(prefix => interaction.customId.startsWith(prefix))) {
-            return; // Ignora globalmente para o coletor local resolver!
-        }
-        // 👆 FIM DA TRAVA 👆
+            if (interaction.isButton()) {
+                const inlineIds = [
+                    'opt1', 'opt2', 'opt3', 'heist_', 'choice_', // Assalto
+                    'race_bet_', // Corrida
+                    'hap_', // Apostas Cara ou Coroa
+                    'prev_help', 'next_help', 'page_indicator' // Paginador de Ajuda
+                ];
+                
+                // Se o ID do botão for um destes de cima, o roteador ignora e deixa o minigame rodar!
+                if (inlineIds.some(prefix => interaction.customId.startsWith(prefix))) {
+                    return; 
+                }
+            }
+
+            // ==========================================
+            // 2. ROTEADOR DE COMANDOS DE BARRA (/hype, /devpanel)
+            // ==========================================
             if (interaction.isChatInputCommand()) {
                 const command = client.commands.get(interaction.commandName);
                 if (!command) return;
@@ -19,47 +33,32 @@ module.exports = {
             }
             
             // ==========================================
-            // 2. ROTEADOR INTELIGENTE DE COMPONENTES V2 E MODALS
+            // 3. ROTEADOR INTELIGENTE DE COMPONENTES V2 E MODALS
             // ==========================================
             else if (interaction.isMessageComponent() || interaction.isModalSubmit()) {
                 
-                // 👇 LISTA DE BLOQUEIO (IGNORAR COMPONENTES PROCESSADOS INLINE) 👇
-                // Se o ID do botão for da ajuda ou das apostas, este roteador ignora e sai.
-                // Isso evita o erro de "Unknown interaction" e conflitos com o messageCreate.
-                if (interaction.customId) {
-                    const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator','roleta_', 'rank_','race_bet_','heist_', 'choice_'];
-                    if (inlineIds.some(id => interaction.customId.startsWith(id))) {
-                        return; // Aborta silenciosamente e deixa o messageCreate trabalhar
-                    }
-                }
-
-                // Tenta achar o arquivo do componente pelo ID exato
                 let component = client.components.get(interaction.customId);
                 
-                // Se não achar um ID exato, procura por componentes dinâmicos (Prefixos)
                 if (!component) {
                     const matchingComponents = Array.from(client.components.values()).filter(c => 
                         c.customIdPrefix && interaction.customId.startsWith(c.customIdPrefix)
                     );
 
                     if (matchingComponents.length > 0) {
-                        // Ordena pelo tamanho do prefixo (do MAIOR para o MENOR)
                         matchingComponents.sort((a, b) => b.customIdPrefix.length - a.customIdPrefix.length);
                         component = matchingComponents[0]; 
                     }
                 }
 
-                // Se o componente existir, executa!
                 if (component) {
                     await component.execute(interaction, client);
                 } else {
-                    // Log apenas para IDs que realmente deveriam ter um arquivo e não têm
                     console.warn(`⚠️ [Roteador] Nenhum arquivo foi encontrado para processar o ID: ${interaction.customId}`);
                     
                     if (!interaction.replied && !interaction.deferred) {
                         await interaction.reply({ 
                             content: '❌ O código deste botão ainda não foi implementado ou não foi carregado.', 
-                            ephemeral: true 
+                            flags: [MessageFlags.Ephemeral] 
                         }).catch(() => {});
                     }
                 }
@@ -78,7 +77,7 @@ module.exports = {
             console.error(`❌ Erro grave na interação ${interaction.customId || interaction.commandName}:`, error);
             
             try {
-                const payload = { content: '❌ Ocorreu um erro ao processar. Tente novamente.', ephemeral: true };
+                const payload = { content: '❌ Ocorreu um erro ao processar. Tente novamente.', flags: [MessageFlags.Ephemeral] };
                 if (interaction.replied || interaction.deferred) {
                     await interaction.followUp(payload).catch(() => {});
                 } else {
