@@ -121,9 +121,9 @@ async function generateWalletImage(userDiscord, userData) {
     ctx.fillText(`R$ ${carteiraValor}`, cardX + 28, cardY + 65);
 
     drawRoundRectPath(ctx, cardX + cardW - 100, cardY + 32, 70, 24, 6);
-    ctx.fillStyle = 'rgba(2, 85, 23, 0.15)'; ctx.fill();
+    ctx.fillStyle = 'rgba(65, 3, 3, 0.15)'; ctx.fill();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#00ff2a'; ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#ff0000'; ctx.font = 'bold 12px Arial';
     ctx.fillText('RISCO', cardX + cardW - 65, cardY + 44);
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctx.lineWidth = 1;
@@ -141,9 +141,9 @@ async function generateWalletImage(userDiscord, userData) {
     ctx.fillText(`R$ ${bancoValor}`, cardX + 28, cardY + 230);
 
     drawRoundRectPath(ctx, cardX + cardW - 100, cardY + 197, 70, 24, 6);
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.15)'; ctx.fill();
+    ctx.fillStyle = 'rgba(6, 87, 3, 0.15)'; ctx.fill();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#0000FF'; ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#00ff40'; ctx.font = 'bold 12px Arial';
     ctx.fillText('SEGURO', cardX + cardW - 65, cardY + 209);
 
     // 6. RODAPÉ
