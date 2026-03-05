@@ -70,12 +70,12 @@ async function generateTopMoneyImage(topUsers, callerData) {
     
     if (logoImg) {
         // Pinta a logo de Azul Néon para o título
-        ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 40;
-        tintLogo(ctx, logoImg, width/2 - 50, 10, 100, 100 * (logoImg.height / logoImg.width), '#ffffff');
+        ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 40;
+        tintLogo(ctx, logoImg, width/2 - 50, 10, 100, 100 * (logoImg.height / logoImg.width), '#60a5fa');
         ctx.shadowBlur = 0;
     }
     
-    ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 20;
+    ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 20;
     ctx.fillStyle = '#ffffff';
     ctx.font = '900 40px "Arial Black", sans-serif';
     ctx.fillText('RANKING DE MAGNATAS', width / 2, 110);
@@ -179,7 +179,7 @@ async function generateTopMoneyImage(topUsers, callerData) {
     ctx.fillStyle = footerGrad;
     drawRoundRectPath(ctx, 40, footerY, width - 80, 70, 15);
     ctx.fill();
-    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 15; ctx.stroke(); ctx.restore();
+    ctx.strokeStyle = '#60a5fa'; ctx.lineWidth = 2; ctx.shadowColor = '#60a5fa'; ctx.shadowBlur = 15; ctx.stroke(); ctx.restore();
 
     ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';

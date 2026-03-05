@@ -12,7 +12,7 @@ const PAYTABLE = {
     '🐯': 10.0  // Limitado a 10x
 };
 
-// 📈 TABELA PADRÃO DE APOSTAS
+// 📈 TABELA PADRÃO DE APOSTAS (O máximo já era 1kk aqui)
 const BET_TIERS = [10, 50, 100, 200, 300, 500, 1000, 2000, 5000, 10000, 50000, 100000, 250000, 500000, 1000000];
 
 function getNextBet(current) {
@@ -28,7 +28,8 @@ function getPrevBet(current) {
 
 function generateLine(forceWin = false) {
     if (forceWin) {
-        const winSymbols = ['🪙', '🪙', '🪙', '💰', '💰', '🍀', '🍀', '🧧', '🏮', '🐯'];
+        // 👇 DIFICULDADE AUMENTADA: Mais moedas comuns, tornando o prêmio máximo raro
+        const winSymbols = ['🪙', '🪙', '🪙', '🪙', '💰', '💰', '💰', '🍀', '🍀', '🧧', '🏮', '🐯'];
         const chosenSymbol = winSymbols[Math.floor(Math.random() * winSymbols.length)];
         return [chosenSymbol, chosenSymbol, chosenSymbol];
     }
@@ -68,7 +69,8 @@ module.exports = {
             gameMessage = await channel.send({ components: [initContainer, disabledRow], flags: [MessageFlags.IsComponentsV2] });
         }
 
-        const isLucky = Math.random() < 0.35; 
+        // 👇 DIFICULDADE AUMENTADA: Taxa de vitória forçada caiu de 35% para 18%
+        const isLucky = Math.random() < 0.18; 
         const luckyRowIndex = Math.floor(Math.random() * 3); 
 
         let finalGrid = [];
@@ -143,7 +145,6 @@ module.exports = {
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(receiptDisplay);
 
-        // 🧮 USA AS NOVAS FÓRMULAS PARA OS BOTÕES
         const decreaseBet = getPrevBet(betAmount); 
         const increaseBet = getNextBet(betAmount);
 

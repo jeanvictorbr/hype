@@ -51,7 +51,7 @@ async function generateRankingImage(players, page, totalPages, guildName) {
         
         // Desenha o Texto logo a seguir
         ctx.textAlign = 'left';
-        ctx.shadowColor = '#0000FF'; ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 15;
         ctx.fillText(titleText, startX + logoWidth + 20, 50);
         ctx.shadowBlur = 0;
 
@@ -82,7 +82,7 @@ async function generateRankingImage(players, page, totalPages, guildName) {
                         isTop2 ? 'rgba(161, 161, 170, 0.15)' : 
                         isTop3 ? 'rgba(180, 83, 9, 0.15)' : 'rgba(255, 255, 255, 0.03)';
         
-        const strokeColor = isTop1 ? '#fbff00' : isTop2 ? '#d4d4d8' : isTop3 ? '#b45309' : '#333333';
+        const strokeColor = isTop1 ? '#eeff00' : isTop2 ? '#d4d4d8' : isTop3 ? '#b45309' : '#333333';
 
         ctx.save();
         ctx.fillStyle = bgColor;
@@ -111,7 +111,7 @@ async function generateRankingImage(players, page, totalPages, guildName) {
         }
 
         // Nome
-        ctx.fillStyle = isTop1 ? '#ffffff' : '#ffffff';
+        ctx.fillStyle = isTop1 ? '#0000FF' : '#ffffff';
         ctx.textAlign = 'left';
         ctx.font = isTop1 ? 'bold 22px Arial' : 'bold 20px Arial';
         let name = p.username.length > 18 ? p.username.substring(0, 18) + '...' : p.username;

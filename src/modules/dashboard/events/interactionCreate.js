@@ -6,6 +6,11 @@ module.exports = {
             // ==========================================
             // 1. ROTEADOR DE COMANDOS DE BARRA (/hype, /devpanel)
             // ==========================================
+            // 👇 ADICIONE ESTA TRAVA AQUI 👇
+        if (interaction.isButton() && ['opt1', 'opt2', 'opt3', 'heist_', 'choice_', 'race_', 'hap_', 'eco_'].some(prefix => interaction.customId.startsWith(prefix))) {
+            return; // Ignora globalmente para o coletor local resolver!
+        }
+        // 👆 FIM DA TRAVA 👆
             if (interaction.isChatInputCommand()) {
                 const command = client.commands.get(interaction.commandName);
                 if (!command) return;
@@ -22,7 +27,7 @@ module.exports = {
                 // Se o ID do botão for da ajuda ou das apostas, este roteador ignora e sai.
                 // Isso evita o erro de "Unknown interaction" e conflitos com o messageCreate.
                 if (interaction.customId) {
-                    const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator','roleta_', 'rank_'];
+                    const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator','roleta_', 'rank_','race_bet_','heist_', 'choice_'];
                     if (inlineIds.some(id => interaction.customId.startsWith(id))) {
                         return; // Aborta silenciosamente e deixa o messageCreate trabalhar
                     }

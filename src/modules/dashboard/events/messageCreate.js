@@ -30,6 +30,10 @@ module.exports = {
 
             let aposta = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(aposta) || aposta <= 0) return message.reply('❌ **Valor de aposta inválido.**');
+            
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 1 MILHÃO (1KK)
+            if (aposta > 1000000) aposta = 1000000;
+
             if (userProfile.carteira < aposta) return message.reply(`❌ Não tens **R$ ${aposta.toLocaleString('pt-BR')}** na carteira!`);
 
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
@@ -73,6 +77,10 @@ module.exports = {
 
             let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌╺╸**Valor de aposta inválido.**');
+            
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 1 MILHÃO (1KK)
+            if (betAmount > 1000000) betAmount = 1000000;
+
             if (userProfile.carteira < betAmount) return message.reply(`❌╺╸Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
 
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
@@ -148,13 +156,22 @@ module.exports = {
             let valorAposta = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(valorAposta) || valorAposta < 100) return message.reply('❌ A aposta mínima para abrir a mesa é de **R$ 100**.');
 
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 1 MILHÃO (1KK)
+            if (valorAposta > 1000000) valorAposta = 1000000;
+
             const dono = message.author;
             
-            // Verifica se o dono tem o valor (embora ele só pague ao clicar)
+            // Verifica se o dono tem o valor
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
             if (!userProfile || userProfile.carteira < valorAposta) {
                 return message.reply(`❌╺╸Você não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira para garantires a tua cadeira.`);
             }
+
+            // 👇 DESCONTA A APOSTA DO DONO IMEDIATAMENTE (CORREÇÃO DO POTE) 👇
+            await prisma.hypeUser.update({
+                where: { id: dono.id },
+                data: { carteira: { decrement: valorAposta } }
+            });
 
             const donoData = {
                 id: dono.id,
@@ -166,7 +183,7 @@ module.exports = {
             const mesa = {
                 donoId: dono.id,
                 valorAposta: valorAposta,
-                pot: 0, 
+                pot: valorAposta, // 👈 O POTE AGORA JÁ NASCE COM O DINHEIRO DO CRIADOR!
                 players: [donoData], 
                 estado: 'lobby'
             };
@@ -194,7 +211,14 @@ module.exports = {
             } catch (error) {
                 console.error('❌╺╸Erro a gerar Lobby da Roleta:', error);
                 client.activeRoleta.delete(canalId); 
-                await loadingMsg.edit('❌╺╸Erro a montar a mesa.');
+                
+                // Em caso de erro na imagem, devolve o dinheiro ao dono!
+                await prisma.hypeUser.update({
+                    where: { id: dono.id },
+                    data: { carteira: { increment: valorAposta } }
+                });
+
+                await loadingMsg.edit('❌╺╸Erro a montar a mesa. O seu dinheiro foi devolvido.');
             }
         }
         // ==========================================
@@ -353,10 +377,10 @@ module.exports = {
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
             const attachment = new AttachmentBuilder(randomGif, { name: 'animacao.gif' });
             
-            let extraMsg = vipLevel > 0 ? `\n💎╺╸**Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
+            let extraMsg = vipLevel > 0 ? `\n💎╺╸**Bónus VIP** Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
 
             return message.reply({ 
-                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:****R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)${extraMsg}`, 
+                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:**R$ ${rewardAmount.toLocaleString('pt-BR')}** (Caiu na tua Carteira!)${extraMsg}`, 
                 files: [attachment] 
             });
         }
@@ -461,11 +485,676 @@ if (command === 'loja' || command === 'mercado') {
                 await loadingMsg.edit('❌╺╸**O fornecedor desapareceu nas sombras.**');
             }
         }
+        // ==========================================
+        // 🏎️ GAME: Corrida Clandestina (hcorrida)
+        // ==========================================
+        if (command === 'corrida' || command === 'race') {
+            const betInput = args[0];
+            const canalId = message.channel.id;
+
+            if (!betInput) return message.reply('❌╺╸**Uso correto:** `hcorrida <valor_entrada>` (Ex: `hcorrida 10k`)');
+
+            if (!client.activeRaces) client.activeRaces = new Map();
+            if (client.activeRaces.has(canalId)) {
+                return message.reply('❌╺╸Os carros já estão na pista neste canal! Esperem a corrida acabar.');
+            }
+
+            let valorAposta = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            if (isNaN(valorAposta) || valorAposta < 100) return message.reply('❌ A aposta mínima para o ingresso é de **R$ 100**.');
+
+            // LIMITADOR: MÁXIMO 1 MILHÃO (1KK)
+            if (valorAposta > 1000000) valorAposta = 1000000;
+
+            const dono = message.author;
+            const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
+            if (!userProfile || userProfile.carteira < valorAposta) {
+                return message.reply(`❌╺╸Você não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira para criar a corrida.`);
+            }
+
+            // Inicia os dados da corrida
+            const raceData = {
+                pot: 0,
+                bets: { 'red': [], 'blue': [], 'green': [], 'yellow': [] },
+                cars: [
+                    { color: 'red', progress: 0, name: 'Vermelho' },
+                    { color: 'blue', progress: 0, name: 'Azul' },
+                    { color: 'green', progress: 0, name: 'Verde' },
+                    { color: 'yellow', progress: 0, name: 'Amarelo' }
+                ]
+            };
+            
+            client.activeRaces.set(canalId, true); // Tranca o canal
+
+            // ==========================================
+            // LOBBY (APOSTAS - 30 SEGUNDOS)
+            // ==========================================
+            const { generateRaceImage } = require('../../../utils/canvasCorrida');
+            let imgBuffer = await generateRaceImage('lobby', raceData.cars);
+            let attachment = new AttachmentBuilder(imgBuffer, { name: 'corrida.png' });
+
+            const rowLobby = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('race_bet_red').setLabel('Vermelho').setStyle(ButtonStyle.Danger).setEmoji('🔴'),
+                new ButtonBuilder().setCustomId('race_bet_blue').setLabel('Azul').setStyle(ButtonStyle.Primary).setEmoji('🔵'),
+                new ButtonBuilder().setCustomId('race_bet_green').setLabel('Verde').setStyle(ButtonStyle.Success).setEmoji('🟢'),
+                new ButtonBuilder().setCustomId('race_bet_yellow').setLabel('Amarelo').setStyle(ButtonStyle.Secondary).setEmoji('🟡')
+            );
+
+            // Função para gerar o texto limpo FORA do embed
+            const formatLobbyText = (pot, corredores) => {
+                return `# 🏎️ CORRIDA CLANDESTINA\nA garagem foi aberta por <@${dono.id}>!\n\n💰 **Ingresso:** R$ ${valorAposta.toLocaleString('pt-BR')}\n🔥 **Pote Acumulado:** R$ ${pot.toLocaleString('pt-BR')}\n👥 **Corredores:** ${corredores}\n\n⏳ *Escolha o seu carro abaixo! Os motores ligam em 30 segundos.*`;
+            };
+
+            const lobbyMsg = await message.reply({ 
+                content: formatLobbyText(0, 0), 
+                components: [rowLobby], 
+                files: [attachment] 
+            });
+
+            const collector = lobbyMsg.createMessageComponentCollector({ time: 30000 });
+            
+            // 👇 SISTEMA DE GESTÃO DE CONCORRÊNCIA E ANTI-SPAM (EM MEMÓRIA)
+            let allParticipants = [];
+            let processingUsers = new Set(); 
+
+            collector.on('collect', async i => {
+                const colorBet = i.customId.replace('race_bet_', '');
+                if (!['red', 'blue', 'green', 'yellow'].includes(colorBet)) return;
+
+                // 1. BARREIRA SÍNCRONA: Bloqueia double clicks instantaneamente na memória
+                if (allParticipants.includes(i.user.id) || processingUsers.has(i.user.id)) {
+                    return i.reply({ 
+                        content: '🏎️💨╺╸**Calma, piloto! Você já carimbou o seu ingresso nesta corrida! Agora é torcer!**', 
+                        flags: [MessageFlags.Ephemeral] 
+                    }).catch(()=>{});
+                }
+
+                // 2. Tranca o usuário para processamento
+                processingUsers.add(i.user.id);
+
+                // 3. Responde AO DISCORD IMEDIATAMENTE (Acaba com o erro "Unknown Interaction")
+                await i.deferReply({ flags: [MessageFlags.Ephemeral] }).catch(()=>{}); 
+
+                // 4. Vai à Base de Dados com calma
+                const pProfile = await prisma.hypeUser.findUnique({ where: { id: i.user.id } });
+                if (!pProfile || pProfile.carteira < valorAposta) {
+                    processingUsers.delete(i.user.id); // Destranca o usuário
+                    return i.editReply({ 
+                        content: `❌ Você não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira!` 
+                    }).catch(()=>{});
+                }
+
+                // 5. Desconta e regista
+                await prisma.hypeUser.update({ where: { id: i.user.id }, data: { carteira: { decrement: valorAposta } } });
+                raceData.bets[colorBet].push(i.user.id);
+                allParticipants.push(i.user.id);
+                raceData.pot += valorAposta;
+                
+                processingUsers.delete(i.user.id); // Transação concluída, destranca!
+
+                // 6. Dá o feedback amigável no privado do jogador
+                await i.editReply({ 
+                    content: `✅ **Transação Aprovada!** Você colocou **R$ ${valorAposta.toLocaleString('pt-BR')}** no carro **${colorBet.toUpperCase()}**.` 
+                }).catch(()=>{});
+
+                // 7. Atualiza o painel de corrida geral (pot e quantidade de players)
+                await lobbyMsg.edit({ content: formatLobbyText(raceData.pot, allParticipants.length) }).catch(()=>{});
+            });
+
+            collector.on('end', async () => {
+                if (allParticipants.length === 0) {
+                    client.activeRaces.delete(canalId);
+                    return lobbyMsg.edit({ content: '😔╺╸**A polícia chegou. A corrida foi cancelada por falta de pilotos.**', components: [], files: [], attachments: [] }).catch(()=>{});
+                }
+
+                // ==========================================
+                // LOOP DA CORRIDA (ANGÚSTIA EXTREMA - MAIS LENTA)
+                // ==========================================
+                let finished = false;
+                let winner = null;
+                let eventText = "🟢 LUZ VERDE! Os motores roncaram!";
+
+                // Remove os botões antes da corrida iniciar
+                await lobbyMsg.edit({ components: [] }).catch(()=>{});
+
+                while (!finished) {
+                    await new Promise(r => setTimeout(r, 2500)); // Delay seguro
+
+                    let highestProgress = 0;
+                    
+                    raceData.cars.forEach(car => {
+                        // Sorteia um avanço curto (0 a 8% por frame no máximo)
+                        let advance = Math.random() * 8; 
+
+                        // 💥 Falha no Motor (10% chance)
+                        if (Math.random() < 0.10 && car.progress > 10) {
+                            advance = 0;
+                            eventText = `💥 O Carro ${car.name} teve uma falha no motor e quase parou!`;
+                        }
+                        // 🔥 NITRO (10% chance) - Pulo menor
+                        else if (Math.random() < 0.10) {
+                            advance += 10;
+                            eventText = `🚀 O Carro ${car.name} ativou o NITRO ILÍCITO!`;
+                        }
+
+                        car.progress += advance;
+                        if (car.progress >= 100) {
+                            car.progress = 100;
+                            finished = true;
+                            if (!winner) winner = car; // Quem passar primeiro leva
+                        }
+                        if (car.progress > highestProgress) highestProgress = car.progress;
+                    });
+
+                    // Renderiza a nova posição
+                    imgBuffer = await generateRaceImage(finished ? 'finished' : 'racing', raceData.cars);
+                    attachment = new AttachmentBuilder(imgBuffer, { name: 'corrida.png' });
+                    
+                    let raceContent = `# 🏎️ CORRIDA CLANDESTINA\n💰 **Pote em Jogo:** R$ ${raceData.pot.toLocaleString('pt-BR')}\n📡 **Locutor:** *"${eventText}"*`;
+
+                    await lobbyMsg.edit({ content: raceContent, files: [attachment], attachments: [] }).catch(()=>{});
+                    eventText = "Reta de asfalto, os motores estão no limite..."; // Reseta o texto
+                }
+
+                // ==========================================
+                // RESULTADO E PAGAMENTO
+                // ==========================================
+                const apostadoresGanhadores = raceData.bets[winner.color];
+                let descFinal = `# 🏁 A BANDEIRA QUADRICULADA DESCEU!\n🏆 **CARRO VENCEDOR:** ${winner.name} (${winner.color.toUpperCase()})\n💰 **Pote Distribuído:** R$ ${raceData.pot.toLocaleString('pt-BR')}\n\n`;
+
+                if (apostadoresGanhadores.length > 0) {
+                    const premioPorCabeca = Math.floor(raceData.pot / apostadoresGanhadores.length);
+                    descFinal += `**🎉 Magnatas Vencedores (Levaram R$ ${premioPorCabeca.toLocaleString('pt-BR')} cada):**\n`;
+                    
+                    for (const wp of apostadoresGanhadores) {
+                        descFinal += `<@${wp}> `;
+                        // Paga o lucro na carteira
+                        await prisma.hypeUser.update({ where: { id: wp }, data: { carteira: { increment: premioPorCabeca } } });
+                    }
+                } else {
+                    descFinal += `💀 **O Cassino Sorri!**\nNinguém acreditou no carro ${winner.name}. Todo o pote ficou com a Banca!`;
+                }
+
+                await lobbyMsg.edit({ content: descFinal }).catch(()=>{});
+                client.activeRaces.delete(canalId);
+            });
+            return;
+        }
+// ==========================================
+        // 🏦 GAME: Assalto ao Banco (hassalto) - RPG DE QUEBRADA THE ENDGAME
+        // ==========================================
+        if (command === 'assalto' || command === 'heist') {
+            const betInput = args[0];
+            const canalId = message.channel.id;
+
+            if (!betInput) return message.reply('❌╺╸**Mete a marcha direito parça:** `hassalto <taxa_entrada>` (Ex: `hassalto 50k`)');
+
+            if (!client.activeHeists) client.activeHeists = new Map();
+            if (client.activeHeists.has(canalId)) {
+                return message.reply('❌╺╸Os bota tão patrulhando esse canal. Pera a poeira baixar pra organizar outro assalto.');
+            }
+
+            let valorAposta = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            if (isNaN(valorAposta) || valorAposta < 500) return message.reply('❌ O caixinha pros esquipamento é no mínimo **R$ 500**.');
+            if (valorAposta > 1000000) valorAposta = 1000000;
+
+            const dono = message.author;
+            const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
+            if (!userProfile || userProfile.carteira < valorAposta) {
+                return message.reply(`❌╺╸Tu tá liso, mano! Não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira pra bancar a operação.`);
+            }
+
+            const getAvatarBuffer = async (user) => {
+                try {
+                    const url = user.displayAvatarURL({ extension: 'png', size: 128 });
+                    const res = await require('axios').get(url, { responseType: 'arraybuffer' });
+                    return Buffer.from(res.data);
+                } catch(e) { return null; }
+            };
+
+            const donoAvatar = await getAvatarBuffer(dono);
+            await prisma.hypeUser.update({ where: { id: dono.id }, data: { carteira: { decrement: valorAposta } } });
+
+            const heistData = {
+                liderId: dono.id,
+                pot: valorAposta,
+                players: [{ id: dono.id, name: dono.username, role: 'Cérebro', isDead: false, avatarBuffer: donoAvatar }]
+            };
+            
+            client.activeHeists.set(canalId, true);
+
+            const { generateHeistImage } = require('../../../utils/canvasAssalto');
+            let imgBuffer = await generateHeistImage('lobby', heistData.players, heistData.pot);
+            let attachment = new AttachmentBuilder(imgBuffer, { name: 'assalto.png' });
+
+            const rowLobby = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('heist_join_atirador').setLabel('Atirador (Bala)').setStyle(ButtonStyle.Danger).setEmoji('🔫'),
+                new ButtonBuilder().setCustomId('heist_join_hacker').setLabel('Hacker (Nerd)').setStyle(ButtonStyle.Primary).setEmoji('💻'),
+                new ButtonBuilder().setCustomId('heist_join_piloto').setLabel('Piloto (Fuga)').setStyle(ButtonStyle.Secondary).setEmoji('🏎️'),
+                new ButtonBuilder().setCustomId('heist_start').setLabel('METER MARCHA').setStyle(ButtonStyle.Success).setEmoji('▶️')
+            );
+
+            const formatLobbyMsg = () => {
+                return `# 🏦 PLANEJAMENTO DA QUADRILHA\n<@${dono.id}> tá montando o bonde pra descarregar o caixa forte!\n\n💰 **Entrada:** R$ ${valorAposta.toLocaleString('pt-BR')}\n🔥 **Malote Atual:** R$ ${heistData.pot.toLocaleString('pt-BR')}\n👥 **Bonde [${heistData.players.length}/4]**\n\n*(Paga e entra no carro! Só o Líder arranca).*`;
+            };
+
+            const lobbyMsg = await message.reply({ content: formatLobbyMsg(), components: [rowLobby], files: [attachment] });
+
+            const collector = lobbyMsg.createMessageComponentCollector({ time: 60000 });
+            let isStarted = false;
+            let processingUsers = new Set();
+
+            collector.on('collect', async i => {
+                const action = i.customId;
+
+                if (action === 'heist_start') {
+                    if (i.user.id !== dono.id) return i.reply({ content: '❌ Sai fora zé ruela, só o Chefe pode dar o sinal verde!', flags: [MessageFlags.Ephemeral] }).catch(()=>{});
+                    if (heistData.players.length < 2) return i.reply({ content: '❌ Tá querendo ir sozinho? Arruma pelo menos +1 parceiro!', flags: [MessageFlags.Ephemeral] }).catch(()=>{});
+                    
+                    isStarted = true;
+                    collector.stop('started');
+                    return i.deferUpdate().catch(()=>{});
+                }
+
+                if (action.startsWith('heist_join_')) {
+                    if (heistData.players.find(p => p.id === i.user.id) || processingUsers.has(i.user.id)) {
+                        return i.reply({ content: '❌ Já tá no esquema, sossega o facho!', flags: [MessageFlags.Ephemeral] }).catch(()=>{});
+                    }
+                    if (heistData.players.length >= 4) {
+                        return i.reply({ content: '❌ A van lotou pai! Fica pra próxima.', flags: [MessageFlags.Ephemeral] }).catch(()=>{});
+                    }
+
+                    processingUsers.add(i.user.id);
+                    await i.deferReply({ flags: [MessageFlags.Ephemeral] }).catch(()=>{});
+
+                    const pProfile = await prisma.hypeUser.findUnique({ where: { id: i.user.id } });
+                    if (!pProfile || pProfile.carteira < valorAposta) {
+                        processingUsers.delete(i.user.id);
+                        return i.editReply({ content: `❌ Tu tá quebrado truta! Não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na mão!` }).catch(()=>{});
+                    }
+
+                    const roleSelected = action.split('_')[2]; 
+                    const roleName = roleSelected.charAt(0).toUpperCase() + roleSelected.slice(1);
+
+                    if (heistData.players.some(p => p.role === roleName)) {
+                        processingUsers.delete(i.user.id);
+                        return i.editReply({ content: `❌ O bonde já tem um ${roleName}! Pega outra função ae.` }).catch(()=>{});
+                    }
+
+                    await prisma.hypeUser.update({ where: { id: i.user.id }, data: { carteira: { decrement: valorAposta } } });
+                    const pAvatar = await getAvatarBuffer(i.user);
+                    heistData.players.push({ id: i.user.id, name: i.user.username, role: roleName, isDead: false, avatarBuffer: pAvatar });
+                    heistData.pot += valorAposta;
+
+                    imgBuffer = await generateHeistImage('lobby', heistData.players, heistData.pot);
+                    attachment = new AttachmentBuilder(imgBuffer, { name: 'assalto.png' });
+
+                    await lobbyMsg.edit({ content: formatLobbyMsg(), files: [attachment], attachments: [] }).catch(()=>{});
+                    await i.editReply({ content: `✅ Entrou pro crime como **${roleName}**! Prepara a peça.` }).catch(()=>{});
+                    processingUsers.delete(i.user.id);
+                }
+            });
+
+            collector.on('end', async (collected, reason) => {
+                if (reason !== 'started') {
+                    for (const p of heistData.players) { await prisma.hypeUser.update({ where: { id: p.id }, data: { carteira: { increment: valorAposta } } }); }
+                    client.activeHeists.delete(canalId);
+                    return lobbyMsg.edit({ content: '🕒╺╸**Os bota passaram. Abortar missão!** O bonde desandou, dinheiro foi devolvido.', components: [], files: [], attachments: [] }).catch(()=>{});
+                }
+
+                const sleep = ms => new Promise(r => setTimeout(r, ms));
+                
+                const getDecider = (turnIndex) => {
+                    const vivos = heistData.players.filter(p => !p.isDead);
+                    if (vivos.length === 0) return null;
+                    return vivos[turnIndex % vivos.length];
+                };
+
+                const executePhase = async (phaseId, title, desc, turnIndex, optionsMap) => {
+                    const decider = getDecider(turnIndex);
+                    if (!decider) return false;
+
+                    const row = new ActionRowBuilder();
+                    for (const [id, opt] of Object.entries(optionsMap)) {
+                        row.addComponents(new ButtonBuilder().setCustomId(id).setLabel(opt.label).setStyle(opt.style));
+                    }
+
+                    imgBuffer = await generateHeistImage(phaseId, heistData.players, heistData.pot);
+                    attachment = new AttachmentBuilder(imgBuffer, { name: 'assalto.png' });
+
+                    const fullText = `# ${title}\n${desc}\n\n🗣️ **A Responsabilidade é Tua:** Acorda <@${decider.id}> (${decider.role})! O bagulho tá tenso, decide a fita em 45s.`;
+                    await lobbyMsg.edit({ content: fullText, components: [row], files: [attachment], attachments: [] }).catch(()=>{});
+
+                    let chosenId = null;
+                    try {
+                        const filter = async (x) => {
+                            if (!['opt1', 'opt2', 'opt3'].includes(x.customId)) return false;
+                            if (x.user.id !== decider.id) {
+                                await x.reply({ 
+                                    content: '🚫╺╸**Mete o pé curioso! O turno de decisão é do parceiro ali, não teu! Assiste de longe!**', 
+                                    flags: [MessageFlags.Ephemeral] 
+                                }).catch(()=>{});
+                                return false; 
+                            }
+                            return true;
+                        };
+
+                        const i = await lobbyMsg.awaitMessageComponent({ filter, time: 45000 });
+                        chosenId = i.customId;
+                        await i.deferUpdate().catch(()=>{});
+                    } catch(e) { 
+                        const keys = Object.keys(optionsMap);
+                        chosenId = keys[Math.floor(Math.random() * keys.length)]; 
+                        await lobbyMsg.channel.send(`⚠️ <@${decider.id}> gelou na base! O bonde agiu no instinto de sobrevivência!`).catch(()=>{});
+                    }
+
+                    const choice = optionsMap[chosenId];
+                    await lobbyMsg.edit({ components: [] }).catch(()=>{});
+
+                    // 🎬 ANIMAÇÃO FRAME 1: A Preparação
+                    let actionImg1 = await generateHeistImage(choice.actionId, [], 0, 1);
+                    await lobbyMsg.edit({ content: `⏳ *${decider.name} tá engatilhando a jogada...*`, files: [new AttachmentBuilder(actionImg1, {name:'action1.png'})], attachments: [] }).catch(()=>{});
+                    await sleep(3500);
+
+                    // 🎬 ANIMAÇÃO FRAME 2: O Clímax
+                    let actionImg2 = await generateHeistImage(choice.actionId, [], 0, 2);
+                    await lobbyMsg.edit({ content: `🎬 *${choice.actionText}*`, files: [new AttachmentBuilder(actionImg2, {name:'action2.png'})], attachments: [] }).catch(()=>{});
+                    await sleep(4000);
+
+                    let chance = choice.baseChance;
+                    if (heistData.players.some(p => choice.bonusRoles.includes(p.role) && !p.isDead)) chance += 45; 
+
+                    let roll = Math.floor(Math.random() * 100);
+                    if (heistData.players.some(p => choice.bonusRoles.includes(p.role) && !p.isDead)) roll -= 35;
+                    if (roll < 0) roll = 0;
+
+                    let oIdx = 0;
+                    if (roll <= 15) oIdx = 0; 
+                    else if (roll <= 50) oIdx = 1; 
+                    else if (roll <= 70) oIdx = 2; 
+                    else if (roll <= 85) oIdx = 3; 
+                    else oIdx = 4; 
+
+                    const outcome = choice.outcomes[oIdx];
+                    let outcomeText = outcome.text;
+
+                    if (outcome.type === 'multiplier') {
+                        heistData.pot = Math.floor(heistData.pot * outcome.value);
+                    } else if (outcome.type === 'moneyLoss') {
+                        const lost = Math.floor(heistData.pot * outcome.value);
+                        heistData.pot = Math.max(0, heistData.pot - lost);
+                        outcomeText = outcomeText.replace('{v}', `**R$ ${lost.toLocaleString('pt-BR')}**`);
+                    } else if (outcome.type === 'death') {
+                        const vivos = heistData.players.filter(p => !p.isDead);
+                        const morto = vivos[Math.floor(Math.random() * vivos.length)];
+                        if (morto) {
+                            morto.isDead = true;
+                            outcomeText = outcomeText.replace('{m}', `**${morto.name}**`);
+                        }
+                    }
+
+                    await lobbyMsg.edit({ content: `# 🎬 CONFRONTO DIRETO:\n${outcomeText}` }).catch(()=>{});
+                    await sleep(4500);
+
+                    return !heistData.players.every(p => p.isDead);
+                };
+
+                const scenarioPool = {
+                    fase1: [
+                        { id: 'entrance', title: '🏦 F1: PORTA DA FRENTE', desc: 'Tá cheio de câmera e dois guarda armado com 12 no saguão. Como nóis fura essa linha?', options: {
+                            'opt1': { label: 'Tiroteio de Cria', style: ButtonStyle.Danger, actionId: 'action_shoot', actionText: '🔫 Papoco comendo solto na entrada...', baseChance: 35, bonusRoles: ['Atirador'], outcomes: [
+                                { text: "🤑 O Atirador varou os cana na precisão cirúrgica e achou o malote do carro forte na portaria!", type: "multiplier", value: 1.3 },
+                                { text: "✅ Trocamo tiro, os bota recuou e entramo limpo.", type: "success" },
+                                { text: "⚠️ Rasgou a bolsa do mano no tiroteio. Deixamo {v} nas escadas!", type: "moneyLoss", value: 0.15 },
+                                { text: "❌ Deu merda! Um cana tava mocado e soltou o aço. {m} caiu duro na calçada!", type: "death" },
+                                { text: "❌ A ROTA brotou do bueiro atirando. {m} virou peneira cobrindo a entrada. F.", type: "death" }
+                            ]},
+                            'opt2': { label: 'Hackear Câmeras', style: ButtonStyle.Primary, actionId: 'action_hack', actionText: '💻 Subindo bypass na rede deles...', baseChance: 35, bonusRoles: ['Hacker'], outcomes: [
+                                { text: "🤑 Hacker dominou tudo! Apagou as câmera e transferiu um bônus do caixa pra nóis!", type: "multiplier", value: 1.2 },
+                                { text: "✅ Entramo igual fantasma. Sistema cego.", type: "success" },
+                                { text: "⚠️ O alarme secundário gritou. Queimamo {v} subornando o vigia da rua de trás.", type: "moneyLoss", value: 0.1 },
+                                { text: "❌ A trava guilhotina desceu cortando a perna de {m}! Os cana pegaram ele na hora.", type: "death" },
+                                { text: "❌ Curto de alta tensão no painel! Fritou {m} igual carne no espeto.", type: "death" }
+                            ]},
+                            'opt3': { label: 'Disfarce de Rico', style: ButtonStyle.Secondary, actionId: 'action_disguise', actionText: '👔 Vestindo os terno de grife...', baseChance: 40, bonusRoles: ['Cérebro'], outcomes: [
+                                { text: "🤑 O Cérebro meteu tanto caô no gerente que ele ofereceu champanhe e um extra de agrado!", type: "multiplier", value: 1.4 },
+                                { text: "✅ Passamo parecendo milionário, ninguém viu nada.", type: "success" },
+                                { text: "⚠️ Um guarda cresceu o olho. Molhamo a mão dele com {v} pra ele não abrir a boca.", type: "moneyLoss", value: 0.2 },
+                                { text: "❌ A calça rasgou e a arma caiu no chão! O guarda percebeu e atirou no peito do {m}!", type: "death" },
+                                { text: "❌ O dono da conta falsa tava no banco! Denunciou nóis na hora, e {m} tomou coronhada e foi preso.", type: "death" }
+                            ]}
+                        }},
+                        { id: 'entrance', title: '🏦 F1: DESCIDA PELO TETO', desc: 'Tamo no terraço do banco à noite. Tem uma grade no duto de ar e um cabo de aço.', options: {
+                            'opt1': { label: 'Rapel Tático', style: ButtonStyle.Primary, actionId: 'action_rapel', actionText: '🪢 Amarrando a corda no concreto...', baseChance: 35, bonusRoles: ['Piloto'], outcomes: [
+                                { text: "🤑 Descemos diretão na sala dos diretores, catamos uns maços de nota limpa escondida lá!", type: "multiplier", value: 1.3 },
+                                { text: "✅ Aterrissamos suave, silencioso igual gato.", type: "success" },
+                                { text: "⚠️ A corda balançou, a bolsa bateu no vidro e abriu. Chuva de {v} na calçada pros mendigo.", type: "moneyLoss", value: 0.15 },
+                                { text: "❌ A corda era vagabunda! Arrebentou e {m} despencou 3 andares e quebrou o pescoço.", type: "death" },
+                                { text: "❌ O helicóptero da polícia civil flagrou nóis descendo e fuzilou o {m} no meio do ar!", type: "death" }
+                            ]},
+                            'opt2': { label: 'C4 no Teto', style: ButtonStyle.Danger, actionId: 'action_c4', actionText: '🧨 Colando os explosivo no gesso...', baseChance: 40, bonusRoles: ['Atirador'], outcomes: [
+                                { text: "🤑 O teto cedeu revelando uma sala de obras de arte que não tava na planta! Raspamo tudo!", type: "multiplier", value: 1.4 },
+                                { text: "✅ Buraco feito, poeira pra caralho mas a gente desceu.", type: "success" },
+                                { text: "⚠️ Explosão grande demais. Parte do nosso equipamento pegou fogo, preju de {v}.", type: "moneyLoss", value: 0.2 },
+                                { text: "❌ A laje cedeu inteira e soterrou {m} no andar de baixo. A gente teve que abandonar ele.", type: "death" },
+                                { text: "❌ O pino emperrou, o explosivo detonou no colo de {m}. Sem cabeça.", type: "death" }
+                            ]},
+                            'opt3': { label: 'Sniper nos Vigias', style: ButtonStyle.Secondary, actionId: 'action_snipe', actionText: '🎯 Calculando a queda da bala...', baseChance: 30, bonusRoles: ['Atirador'], outcomes: [
+                                { text: "🤑 Double kill com uma bala! E os cana morto tava com a chave mestra do cofre extra!", type: "multiplier", value: 1.5 },
+                                { text: "✅ Os vigias caíram silenciosos, caminho livre pra descer.", type: "success" },
+                                { text: "⚠️ O tiro pegou no alarme do carro da rua. Tivemos que gastar {v} pagando os nóia pra fazer barreira e atrasar a PM.", type: "moneyLoss", value: 0.1 },
+                                { text: "❌ Errou feio! O vigia viu, mandou rajada de fuzil pra cima e pegou no ombro do {m} que rodou da beirada.", type: "death" },
+                                { text: "❌ O cana era rápido, mandou granada cega no teto. {m} caiu do prédio tonto e virou patê.", type: "death" }
+                            ]}
+                        }}
+                    ],
+                    fase2: [
+                        { id: 'hostage', title: '👥 F2: O DOMÍNIO DA MASSA', desc: 'No saguão principal tem 30 reféns em pânico. Um engravatado fdp tá filmando tudo pro insta!', options: {
+                            'opt1': { label: 'Bala pro Alto', style: ButtonStyle.Danger, actionId: 'action_shoot', actionText: '💥 "GERAL DEITADO C*RALHO!"', baseChance: 40, bonusRoles: ['Atirador'], outcomes: [
+                                { text: "🤑 Um político deitou e jogou a maleta de propina dele pra gente pedindo arrego! O pote estourou!", type: "multiplier", value: 1.3 },
+                                { text: "✅ Todo mundo deitou mudo e chorando baixinho. Controle total.", type: "success" },
+                                { text: "⚠️ O tiro furou o cano, molhou a bolsa de pano. As notas rasgaram, lá se foram {v}.", type: "moneyLoss", value: 0.15 },
+                                { text: "❌ Um segurança de folga pulou no pescoço do {m}, a arma disparou e ele próprio tomou a bala!", type: "death" },
+                                { text: "❌ O teto de vidro estilhaçou com o tiro e guilhotinou o {m} no meio do salão!", type: "death" }
+                            ]},
+                            'opt2': { label: 'Lábia / Ameaça', style: ButtonStyle.Success, actionId: 'action_talk', actionText: '🗣️ "Pelo amor à vida de vocês, fiquem quietos..."', baseChance: 35, bonusRoles: ['Cérebro'], outcomes: [
+                                { text: "🤑 A galera aplaudiu o discurso anti-banco! Uma tia rica ainda passou o anel de diamante pra nós!", type: "multiplier", value: 1.4 },
+                                { text: "✅ Desenrolamo, pegamo os celular sem bater em ninguém.", type: "success" },
+                                { text: "⚠️ O cara não parava de gritar. Tivemo que dar {v} pra ele e uma coronhada pra ele desmaiar quieto.", type: "moneyLoss", value: 0.1 },
+                                { text: "❌ O terror virou pânico! Multidão correu igual manada de búfalo, {m} foi pisoteado até virar pó.", type: "death" },
+                                { text: "❌ O gerente aproveitou a conversa mole, pegou o taser e eletrocutou {m} até o infarto.", type: "death" }
+                            ]},
+                            'opt3': { label: 'EMP (Bloquear Sinal)', style: ButtonStyle.Primary, actionId: 'action_emp', actionText: '📡 Ligando bloqueador de 5G militar...', baseChance: 35, bonusRoles: ['Hacker'], outcomes: [
+                                { text: "🤑 O pulso do EMP abriu as gavetas automáticas de 5 caixas eletrônicos! Recolhemo uma grana extra foda!", type: "multiplier", value: 1.5 },
+                                { text: "✅ Zero 5G, zero rádio. Ninguém vai chamar os cana tão cedo.", type: "success" },
+                                { text: "⚠️ O jammer esquentou que quase explodiu, abafamo o fogo com maços de nota. Perdemo {v} do lucro.", type: "moneyLoss", value: 0.1 },
+                                { text: "❌ A onda do EMP travou a trava magnética do corredor esmagando a cabeça de {m}! Cena horrível.", type: "death" },
+                                { text: "❌ Deu pau na bateria! O bagulho explodiu igual bomba no peito do {m}.", type: "death" }
+                            ]}
+                        }}
+                    ],
+                    fase3: [
+                        { id: 'vault', title: '🏦 F3: O COFRE TITÂNICO', desc: 'Chegamo na fonte! Porta redonda de aço blindado, com tranca tripla e sensores.', options: {
+                            'opt1': { label: 'Plantando a C4', style: ButtonStyle.Danger, actionId: 'action_c4', actionText: '🧨 Colando os explosivo na dobradiça...', baseChance: 40, bonusRoles: ['Atirador', 'Piloto'], outcomes: [
+                                { text: "🤑 **O POTE ESTOUROU!** A explosão revelou barras de ouro puro! Nóis tá milionário caraio!", type: "multiplier", value: 3.5 },
+                                { text: "✅ BUMM! Porta despencou pra trás, vamo encher as mochila rapaziada!", type: "success" },
+                                { text: "⚠️ Botou muito pó! O fogo derreteu {v} do nosso malote. Mas o resto da grana tá safe.", type: "moneyLoss", value: 0.25 },
+                                { text: "❌ O teto cedeu com o impacto e soterrou {m} vivo nas pedra! Deixamo um irmão debaixo dos entulho.", type: "death" },
+                                { text: "❌ Errou o timer... Estourou na cara do {m} que virou purpurina e osso.", type: "death" }
+                            ]},
+                            'opt2': { label: 'Bruteforce USB', style: ButtonStyle.Primary, actionId: 'action_hack', actionText: '💻 Quebrando a senha mestra...', baseChance: 30, bonusRoles: ['Hacker'], outcomes: [
+                                { text: "🤑 **DEUS DA MATRIZ!** Destrancou o cofre e transferiu 3 carteiras frias de Bitcoin dos magnata! PQP!", type: "multiplier", value: 4.5 },
+                                { text: "✅ Painel fez 'bip' e o aço girou lisinho. Trampo de profissional.", type: "success" },
+                                { text: "⚠️ Sistema limpou o cache pra evitar roubo digital. Perdemos {v} na rede corrompida.", type: "moneyLoss", value: 0.2 },
+                                { text: "❌ O cofre ativou um sistema de gás do sono no duto! {m} não tava de máscara, capotou e vai acordar na prisão!", type: "death" },
+                                { text: "❌ A maçaneta soltou descarga elétrica de 10 mil volts! {m} fritou com a mão grudada lá.", type: "death" }
+                            ]},
+                            'opt3': { label: 'Maçarico Térmico', style: ButtonStyle.Secondary, actionId: 'action_drill', actionText: '🔥 Fritando o aço no talento de soldador...', baseChance: 50, bonusRoles: ['Piloto', 'Cérebro'], outcomes: [
+                                { text: "🤑 A chama derreteu um fundo falso no cofre cheio de joias não declaradas! Fortuna absurda!", type: "multiplier", value: 2.5 },
+                                { text: "✅ Suamo igual cuscuz, mas a porra da dobradiça cedeu. Entra!", type: "success" },
+                                { text: "⚠️ Faltou gás, botamo fogo em {v} das nossas próprias nota pra manter a chama alta.", type: "moneyLoss", value: 0.2 },
+                                { text: "❌ O cilindro do maçarico explodiu! Estourou nas fuça e {m} voou espatifado no teto.", type: "death" },
+                                { text: "❌ A porta caiu pra frente em vez de pra trás e esmagou {m} igual um mosquito!", type: "death" }
+                            ]}
+                        }}
+                    ],
+                    fase4: [
+                        { id: 'ambush', title: '🚨 F4: O CERCO DA SWAT', desc: 'As sacola tão transbordando, mas a tropa de choque inteira já tá no saguão com escudo de ferro!', options: {
+                            'opt1': { label: 'Enfrentar de Peito', style: ButtonStyle.Danger, actionId: 'action_shoot', actionText: '🔫 Sacando o fuzil da bolsa, vamo varar escudo!', baseChance: 35, bonusRoles: ['Atirador'], outcomes: [
+                                { text: "🤑 O Atirador parecia o Rambo! Eles recuaram e nóis ainda abriu os caixa rápido pelo caminho faturando extra!", type: "multiplier", value: 1.3 },
+                                { text: "✅ Trocamo bala pra cacete, mas o corredor abriu. Corre pra van!", type: "success" },
+                                { text: "⚠️ Rasgou a mala principal na rajada inimiga. Voou {v} em grana pros ares, mas tamos vivos.", type: "moneyLoss", value: 0.3 },
+                                { text: "❌ Sniper do águia no telhado vizinho. Mirou na testa do {m} e apertou. Caixão lacrado.", type: "death" },
+                                { text: "❌ Eles atropelaram de escudo e imprensaram o {m} no pilar. Fuzilamento covarde à queima-roupa.", type: "death" }
+                            ]},
+                            'opt2': { label: 'Gás de Fumaça', style: ButtonStyle.Secondary, actionId: 'action_smoke', actionText: '💨 Puxando o pino e jogando a fumaça cega...', baseChance: 45, bonusRoles: ['Cérebro', 'Hacker'], outcomes: [
+                                { text: "🤑 Tática ninja perfeita! Os cana cegaram, passamo liso e ainda arrombamos o guichê de penhores no escuro!", type: "multiplier", value: 1.4 },
+                                { text: "✅ O BOPE foi pra esquerda tossindo, a gente meteu o pé pra direita. Tchau.", type: "success" },
+                                { text: "⚠️ Na neblina cega, tropeçamos e a mala vomitou {v} pro chão. Não deu pra recolher.", type: "moneyLoss", value: 0.2 },
+                                { text: "❌ O vento devolveu o gás pra nós! {m} desorientou, correu pra cima dos PM e tomou bala de borracha até apagar.", type: "death" },
+                                { text: "❌ O pino prendeu, a química ferveu a lata. Estourou na calça do {m} derretendo a perna dele.", type: "death" }
+                            ]},
+                            'opt3': { label: 'Explodir a Parede', style: ButtonStyle.Primary, actionId: 'action_c4', actionText: '🧨 Colando C4 na parede da padaria do lado...', baseChance: 30, bonusRoles: ['Piloto'], outcomes: [
+                                { text: "🤑 A parede caiu direto no cofre do mercadinho vizinho! Limpamos eles também e saímos pelo fundo de boa!", type: "multiplier", value: 1.5 },
+                                { text: "✅ Criamos uma porta nova no prédio! Os cana ficou na frente igual idiota e nós saímos pelos fundos.", type: "success" },
+                                { text: "⚠️ O tijolo caiu em cima dos nossos sacos amassarndo o ouro e rasgando {v} do malote.", type: "moneyLoss", value: 0.35 },
+                                { text: "❌ A parede era de sustentação estrutural! Desabou metade do teto em cima de {m}. Virou cimento.", type: "death" },
+                                { text: "❌ Explosão chamou atenção de um atirador que tava de folga tomando café ali. Deu na orelha do {m}.", type: "death" }
+                            ]}
+                        }}
+                    ],
+                    fase5: [
+                        { id: 'escape', title: '🚓 F5: A FUGA PELA PISTA', desc: 'Pula na Van! Tem 15 viatura, sirene rasgando o asfalto e dois águia no céu. Pra onde truta?', options: {
+                            'opt1': { label: 'Autoestrada (Top Speed)', style: ButtonStyle.Primary, actionId: 'action_drive', actionText: '🛣️ Jogando a quinta marcha pra colar o ponteiro...', baseChance: 30, bonusRoles: ['Piloto'], outcomes: [
+                                { text: "🤑 O Piloto cortou caminhão no grau, duas blazer bateram de frente, sumimos com os bolso cheio multiplicando o giro!", type: "multiplier", value: 1.5 },
+                                { text: "✅ Prego a fundo, motor urrou e deixamo os cana cheirando gás de escape longe.", type: "success" },
+                                { text: "⚠️ Pneu estourou! Tivemos que andar no aro faiscando, a trepidação rasgou a mala e perdemos {v} na rodovia.", type: "moneyLoss", value: 0.3 },
+                                { text: "❌ Curva do diabo! A van derrapou no óleo, bateu na mureta e {m} voou pelo vidro e virou saudade.", type: "death" },
+                                { text: "❌ O águia no céu não perdoou, rajada de .50 varou o teto e rachou {m} no meio! Sangue pra todo lado.", type: "death" }
+                            ]},
+                            'opt2': { label: 'Fuga de Cria (Becos)', style: ButtonStyle.Secondary, actionId: 'action_alleys', actionText: '🏘️ Cavalo de pau e ladeira raspando o muro...', baseChance: 40, bonusRoles: ['Piloto', 'Atirador'], outcomes: [
+                                { text: "🤑 Nós é cria! Viela apertada, a polícia engastalhou o carro no poste e o tráfico local abençoou a nossa fuga com uma porcentagem!", type: "multiplier", value: 1.4 },
+                                { text: "✅ Cortamo no drift no barro, paramos a van debaixo de telha brasilit, o helicóptero perdeu o rasto total.", type: "success" },
+                                { text: "⚠️ Ralou a lataria feio no muro, a porta abriu com a pancada e despejou {v} na calçada da favela.", type: "moneyLoss", value: 0.4 },
+                                { text: "❌ Beco sem saída do caralho! Fuga a pé pelo muro quebrado, {m} enganchou no arame e os cão da PM pegaram ele.", type: "death" },
+                                { text: "❌ Entramo na rua de uma facção rival achando que era atalho, os cara sentou o dedo na van achando que era troia. {m} morreu por fogo amigo.", type: "death" }
+                            ]},
+                            'opt3': { label: 'Troca de Carro', style: ButtonStyle.Success, actionId: 'action_swap', actionText: '🚛 Parando no breu do galpão pra trocar de nave...', baseChance: 55, bonusRoles: ['Cérebro', 'Hacker'], outcomes: [
+                                { text: "🤑 O Cérebro já deixou uma ambulância fria esperando. Ligamos a sirene da fuga e passamos pela blitz da PM dando bom dia! Lendas!", type: "multiplier", value: 1.6 },
+                                { text: "✅ Taca álcool na van e risca o fósforo. Entramos no Sedan reserva e fugimos de boa, zero BO.", type: "success" },
+                                { text: "⚠️ O moleque que guardou o carro pra nós caguetou a gente cobrando propina. Tivemos que dar {v} pra calar ele ali.", type: "moneyLoss", value: 0.25 },
+                                { text: "❌ O Sedan tinha rastreador das antigas! Os cana rastrearam a placa na hora e emboscaram. {m} tomou bala tentando cobrir nós.", type: "death" },
+                                { text: "❌ Galpão trancado! Antes de conseguirmos arrombar a grade o cerco fechou. Fuzilaram o {m} nas costas.", type: "death" }
+                            ]}
+                        }},
+                        { id: 'escape', title: '🚤 F5: A FUGA NO PORTO', desc: 'Chegamo no cais escuro. Tem um barco e um heliponto. A luz do helicóptero da polícia já tá na nossa cara.', options: {
+                            'opt1': { label: 'Lancha Clandestina', style: ButtonStyle.Primary, actionId: 'action_boat', actionText: '🚤 Ligando o motor de polpa V8 duplo...', baseChance: 40, bonusRoles: ['Piloto'], outcomes: [
+                                { text: "🤑 O barco voou pelas águas, atracamo num iate de luxo parceiro nosso e comemoramo a fuga mais cara do ano!", type: "multiplier", value: 1.5 },
+                                { text: "✅ Água molhada na cara, desviando das bóias, os barco da marinha comeram onda. Fuga de cinema.", type: "success" },
+                                { text: "⚠️ O motor do barco falhou um cilindro, jogamos umas bolsa de {v} na água pra aliviar o peso e ganhar velocidade.", type: "moneyLoss", value: 0.3 },
+                                { text: "❌ O barco patrulha abalroou nossa lancha! Ela partiu no meio, {m} não sabia nadar e afogou com a bolsa cheia pesando nas costas.", type: "death" },
+                                { text: "❌ Sniper no farol do cais. Varou o vidro da lancha e tirou os miolos do {m}. Água virou sangue.", type: "death" }
+                            ]},
+                            'opt2': { label: 'Roubar Helicóptero', style: ButtonStyle.Secondary, actionId: 'action_heli', actionText: '🚁 Rodando as pás do pássaro de aço...', baseChance: 35, bonusRoles: ['Piloto', 'Hacker'], outcomes: [
+                                { text: "🤑 Decolamo na calada da noite com o rádio transponder clonado. Ganhamos os céus de patrão com o lucro máximo!", type: "multiplier", value: 1.4 },
+                                { text: "✅ Levantou voo liso! Passamo debaixo da ponte estaiada e sumimos no radar deles.", type: "success" },
+                                { text: "⚠️ Vento forte do mar. A porta lateral tava solta e {v} das bolsa voaram pro oceano. Só choro.", type: "moneyLoss", value: 0.2 },
+                                { text: "❌ O helicóptero da polícia mirou um holofote na nossa cara e cegou o piloto. Batemos no guindaste e {m} foi esmagado no choque.", type: "death" },
+                                { text: "❌ Rajada anti-aérea rasgou o assoalho do helicóptero. {m} caiu por um buraco lá de cima até a morte.", type: "death" }
+                            ]},
+                            'opt3': { label: 'Mergulhar com Tubos', style: ButtonStyle.Success, actionId: 'action_vents', actionText: '🤿 Roubando os tanque de oxigênio do porto...', baseChance: 45, bonusRoles: ['Atirador', 'Cérebro'], outcomes: [
+                                { text: "🤑 Ideia de gênio! Passamos por baixo da água direto pros esgotos da cidade e achamo mercadoria contrabandeada pelo tráfico!", type: "multiplier", value: 1.6 },
+                                { text: "✅ Escuro total no rio. Nadamo até o outro lado da cidade sem levantar uma marola.", type: "success" },
+                                { text: "⚠️ O tanque de ar tinha um furo. Tivemo que abandonar os sacos mais pesados no fundo do rio, perdemo {v}.", type: "moneyLoss", value: 0.4 },
+                                { text: "❌ Correnteza cabulosa no fundo! Puxou o {m} pras turbina da balsa comercial, ele virou suco vermelho.", type: "death" },
+                                { text: "❌ A marinha jogou granada de concussão na água! A onda de choque estourou os pulmões do {m} ali no fundo.", type: "death" }
+                            ]}
+                        }}
+                    ]
+                };
+
+                let alive = true;
+                const s1 = scenarioPool.fase1[Math.floor(Math.random() * scenarioPool.fase1.length)];
+                const s2 = scenarioPool.fase2[Math.floor(Math.random() * scenarioPool.fase2.length)];
+                const s3 = scenarioPool.fase3[Math.floor(Math.random() * scenarioPool.fase3.length)];
+                const s4 = scenarioPool.fase4[Math.floor(Math.random() * scenarioPool.fase4.length)];
+                const s5 = scenarioPool.fase5[Math.floor(Math.random() * scenarioPool.fase5.length)];
+
+                if (alive) alive = await executePhase(s1.id, s1.title, s1.desc, 0, s1.options);
+                if (alive) alive = await executePhase(s2.id, s2.title, s2.desc, 1, s2.options);
+                if (alive) alive = await executePhase(s3.id, s3.title, s3.desc, 2, s3.options);
+                if (alive) alive = await executePhase(s4.id, s4.title, s4.desc, 3, s4.options);
+                if (alive) alive = await executePhase(s5.id, s5.title, s5.desc, 0, s5.options);
+
+                // ==========================================
+                // RESULTADO FINAL: GERADOR DE 375 MENSAGENS DIFERENTES
+                // ==========================================
+                const getHeistFinalText = (type, pot, fatia, vivos, mortos) => {
+                    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+                    
+                    const introsP = ["🎉 O ROUBO DO SÉCULO, C*RALHO!", "💸 ZERAMOS O COFRE DA CIDADE, TRUTA!", "🏆 TUDO NOSSO, NADA DELES!", "🔥 SAÍMOS MILIONÁRIOS, ESQUECE!", "🤑 DEU BOM DEMAIS PRA NÓS!"];
+                    const middlesP = ["Passamo o rodo no sistema e tamo de volta na base da favela, tomando banho de uísque com as nota espalhada na mesa!", "A polícia ficou comendo poeira, e o dinheiro do banco agora tá na nossa conta pra gastar em puta e nave!", "Os engravatado vão chorar muito hoje, o malote é nosso e a tropa tá de nave zero km!", "Fizemos a limpa com sucesso. É churrasco, piscina e paco de nota 100 hoje pra rapaziada!", "Foi trampo de profissional. Tamo de volta na base rindo da cara do governador vendo o datena!"];
+                    const outrosP = ["O crime compensa pra quem tem visão.", "Respeita o bonde mais brabo da cidade.", "Ninguém segura a nossa tropa.", "Já vamo planejar o próximo, porque o faro por dinheiro não para.", "Os cana vai ter que nascer de novo pra pegar nóis."];
+
+                    const introsL = ["📉 FUGA COM PREJUÍZO, QUE MERDA...", "⚠️ SOBREVIVEMOS, MAS A QUE CUSTO TRUTA?", "🤕 DEU RUIM NO FINANCEIRO PRA C*RALHO!", "💸 FUGA MISERÁVEL DE PASSAR FOME!", "🤦‍♂️ ROUBAMOS E SAÍMOS NO PREJUÍZO MANO!"];
+                    const middlesL = ["Tamo vivo, mas deixamos quase tudo pra trás no desespero de fugir. Gastamos mais com o planejamento e os fuzil do que aquilo que roubamos!", "O bagulho foi louco, perdemos o malote caindo no asfalto e tamo voltando pra casa com o bolso vazio e a van furada de bala.", "Fugimos da cadeia e do necrotério, mas o lucro foi pro ralo da pia. O prejuízo foi monstro, rapaziada.", "Os cana apertou o cerco de verdade, a gente teve que largar o dinheiro e correr igual rato. Sobrou só as migalhas pra dividir na boca.", "É, parceiro... A vida continua, mas hoje o banco que assaltou a gente."];
+                    const outrosL = ["Pelo menos não tamo na tranca de Bangu.", "Vamo ter que trampar dobrado no iFood pra recuperar essa grana.", "O importante é respirar ar puro, o dinheiro a gente rouba de novo amanhã.", "Ficou a lição de cria: da próxima vez não vamo ser tão cabaço.", "Melhor liso bebendo corote na rua do que milionário comendo na cadeia."];
+
+                    const introsJ = ["🚨 A CASA CAIU, DEU RUIM PRA CARALHO!", "💀 OPERAÇÃO DESASTRE, SÓ SANGUE!", "🚔 TODOS NO CAMBURÃO DA ROTA!", "🩸 BANHO DE SANGUE NO BANCO, FUDEU!", "⛓️ FIM DA LINHA PRA TROPA, PERDEMO!"];
+                    const middlesJ = ["A operação foi um fiasco de filme de terror. O bonde rodou legal, tão tudo assinando B.O na civil ou comendo grama pela raiz no cemitério. O banco recuperou tudo e os jornal adorou a tragédia!", "Subestimamos a SWAT e os cara preto. Cercaram a gente por todos os lados. Ninguém sobreviveu pra contar história num bar e o malote voltou pro cofre fedendo a sangue.", "Deu tudo errado do início ao fim, mano. A inteligência falhou e agora a tropa inteira tá dividindo marmita na solitária ou na vala.", "Força Tática não perdoou a ousadia. Choveram bala de fuzil pra cima do nosso bonde. Fim da picada, perdemos absolutamente tudo.", "O plano vazou ou fomos burros mesmo, papo reto. Resultado: algema apertando o pulso, buraco de bala no peito e zero dinheiro no bolso da família."];
+                    const outrosJ = ["O crime não perdoa falhas, truta.", "F pro bonde que tentou ser maior que o sistema.", "RIP pra rapaziada. O governo e o Datena venceram dessa vez.", "Foi bom enquanto durou a ilusão.", "A rua cobra caro, e hoje a conta chegou com juros."];
+
+                    let text = "";
+                    if (type === 'profit') {
+                        text += `# ${pick(introsP)}\n${pick(middlesP)}\n*${pick(outrosP)}*\n\n💰 **Malote Resgatado:** R$ ${pot.toLocaleString('pt-BR')}\n💸 **Parte de Cada Chefe:** R$ ${fatia.toLocaleString('pt-BR')}\n\n**Tropa dos Vivos (Tão Ricos):**\n`;
+                        vivos.forEach(v => text += `✅ <@${v.id}> (${v.role})\n`);
+                    } else if (type === 'loss') {
+                        text += `# ${pick(introsL)}\n${pick(middlesL)}\n*${pick(outrosL)}*\n\n💰 **Migalhas que sobraram:** R$ ${pot.toLocaleString('pt-BR')}\n💸 **Parte de Cada (Tristeza):** R$ ${fatia.toLocaleString('pt-BR')}\n\n**Tropa dos Vivos (Tão Lisos):**\n`;
+                        vivos.forEach(v => text += `✅ <@${v.id}> (${v.role})\n`);
+                    } else {
+                        text += `# ${pick(introsJ)}\n${pick(middlesJ)}\n*${pick(outrosJ)}*\n\n`;
+                    }
+
+                    if (mortos.length > 0) {
+                        text += `\n💀 **Rodaram na Missão (Foram de arrasta pra cima/Presos):**\n`;
+                        mortos.forEach(m => text += `❌ ${m.name} (${m.role})\n`);
+                    }
+                    return text;
+                };
+
+                const totalInvestido = valorAposta * heistData.players.length;
+
+                if (!alive) {
+                    const finalTxt = getHeistFinalText('jail', heistData.pot, 0, [], heistData.players);
+                    imgBuffer = await generateHeistImage('final_jail', heistData.players, heistData.pot);
+                    attachment = new AttachmentBuilder(imgBuffer, { name: 'assalto.png' });
+                    await lobbyMsg.edit({ content: finalTxt, files: [attachment], attachments: [] }).catch(()=>{});
+                } else {
+                    const vivos = heistData.players.filter(p => !p.isDead);
+                    const mortos = heistData.players.filter(p => p.isDead);
+                    const fatia = Math.floor(heistData.pot / vivos.length);
+
+                    for (const v of vivos) {
+                        await prisma.hypeUser.update({ where: { id: v.id }, data: { carteira: { increment: fatia } } });
+                    }
+
+                    const resultType = heistData.pot > totalInvestido ? 'profit' : 'loss';
+                    const finalTxt = getHeistFinalText(resultType, heistData.pot, fatia, vivos, mortos);
+                    
+                    imgBuffer = await generateHeistImage(`final_${resultType}`, heistData.players, heistData.pot);
+                    attachment = new AttachmentBuilder(imgBuffer, { name: 'assalto.png' });
+                    
+                    await lobbyMsg.edit({ content: finalTxt, files: [attachment], attachments: [] }).catch(()=>{});
+                }
+
+                client.activeHeists.delete(canalId);
+            });
+            return;
+        }
  // ==========================================
         // 🎲 COMANDO: hap / hapostar (Sistema de Apostas)
         // ==========================================
-        if (command === 'ap' || command === 'apostar') {
-            const betValueStr = args[0]?.toLowerCase();
+        if (command === 'ap' || command === 'apostar' || command === 'coinflip') {
+            const betValueStr = args.find(a => !a.startsWith('<@'))?.toLowerCase();
             
             // 1. Tenta pegar a menção normal (@usuario)
             let targetUser = message.mentions.users.first();
@@ -498,6 +1187,10 @@ if (command === 'loja' || command === 'mercado') {
             }
 
             if (isNaN(amount) || amount <= 0) return message.reply('❌╺╸**Valor de aposta inválido!**');
+            
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 1 MILHÃO (1KK)
+            if (amount > 1000000) amount = 1000000;
+
             if (amount > userProfile.carteira) return message.reply(`❌╺╸Você só tem **R$ ${userProfile.carteira.toLocaleString('pt-BR')}** na mão! Vá ao banco sacar mais se quiser apostar isso.`);
 
             // ==========================================
@@ -522,11 +1215,13 @@ if (command === 'loja' || command === 'mercado') {
                     components: [row]
                 });
 
-                // Filtro para garantir que só o alvo pode clicar nos botões
-                const filter = i => i.user.id === targetUser.id;
-                const collector = msg.createMessageComponentCollector({ filter, time: 15000 });
+                const collector = msg.createMessageComponentCollector({ time: 15000 });
 
                 collector.on('collect', async i => {
+                    if (i.user.id !== targetUser.id) {
+                        return i.reply({ content: '👀╺╸**Ei! Esta aposta não é para ti. Fica na tua!**', flags: [MessageFlags.Ephemeral] });
+                    }
+
                     // Checagem anti-fraude: Verifica o saldo na hora exata do clique
                     const [p1, p2] = await Promise.all([
                         prisma.hypeUser.findUnique({ where: { id: message.author.id } }),
@@ -560,7 +1255,7 @@ if (command === 'loja' || command === 'mercado') {
 
                         const embed = new EmbedBuilder()
                             .setColor('#FEE75C')
-                            .setTitle('🎲 RESULTADO: CARA OU COROA')
+                            .setTitle('🪙 RESULTADO: COINFLIP (CARA OU COROA)')
                             .setDescription(`A moeda girou no ar...\n\n🏆 **VENCEDOR:** <@${winnerId}>\n💸 **LEVOU:** R$ ${pot.toLocaleString('pt-BR')}\n\n💀 *<@${loserId}> perdeu R$ ${amount.toLocaleString('pt-BR')} nessa brincadeira.*`)
                             .setThumbnail('https://media.giphy.com/media/26n6WgBtzm9n5W1oY/giphy.gif');
 
@@ -577,11 +1272,14 @@ if (command === 'loja' || command === 'mercado') {
 
                 return;
             }
-            // 👇 NOVA TRAVA: Ignora os botões que são processados ao vivo (Coletores Inline)
-                if (typeof interaction !== 'undefined' && interaction.customId) {
-                    const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator'];
-                    if (inlineIds.some(id => interaction.customId.startsWith(id))) return;
-                }            // ==========================================
+            
+            // 👇 NOVA TRAVA SEGURA: Ignora os botões que são processados ao vivo (Coletores Inline)
+            if (typeof interaction !== 'undefined' && interaction.customId) {
+                const inlineIds = ['hap_', 'next_help', 'prev_help', 'page_indicator'];
+                if (inlineIds.some(id => interaction.customId.startsWith(id))) return;
+            }            
+            
+            // ==========================================
             // 🌐 MODO 2: LOBBY GLOBAL (Sem Menção/Sem Resposta)
             // ==========================================
             const row = new ActionRowBuilder().addComponents(
@@ -721,7 +1419,7 @@ if (command === 'loja' || command === 'mercado') {
                 create: createData
             });
 
-            let extraMsg = vipLevel > 0 ? `\n\n💎╺╸**Bónus VIP Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
+            let extraMsg = vipLevel > 0 ? `\n\n💎╺╸**Bónus VIP** Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
 
             const embed = new EmbedBuilder()
                 .setColor(embedColor)
@@ -920,6 +1618,10 @@ if (command === 'loja' || command === 'mercado') {
 
             let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌╺╸Valor de aposta inválido.');
+            
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 1 MILHÃO (1KK)
+            if (betAmount > 1000000) betAmount = 1000000;
+
             if (userProfile.carteira < betAmount) return message.reply(`❌╺╸Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira! (Vai ao banco sacar)`);
 
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
@@ -994,6 +1696,10 @@ if (command === 'loja' || command === 'mercado') {
 
             let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
+            
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 1 MILHÃO (1KK)
+            if (betAmount > 1000000) betAmount = 1000000;
+
             if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
 
             if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
@@ -1426,7 +2132,7 @@ if (command === 'loja' || command === 'mercado') {
 
             return;
         }
-// ==========================================
+        // ==========================================
         // 🚀 COMANDO: hperfil
         // ==========================================
         if (command === 'perfil') {
@@ -1453,18 +2159,9 @@ if (command === 'loja' || command === 'mercado') {
                 
                 if (isOwnProfile) {
                     const row = new ActionRowBuilder().addComponents(
-                        // Adicionamos a "tranca" (ID do dono) também no botão de Editar Bio
-                        new ButtonBuilder().setCustomId(`eco_profile_bio_${targetUser.id}`).setLabel('Editar Bio').setStyle(ButtonStyle.Secondary).setEmoji('✏️')
+                        new ButtonBuilder().setCustomId('eco_profile_bio').setLabel('Editar Bio').setStyle(ButtonStyle.Secondary).setEmoji('✏️'),
+                        new ButtonBuilder().setCustomId('btn_perfil_cor').setLabel('Cores de Perfil').setStyle(userData.vipLevel > 0 ? ButtonStyle.Primary : ButtonStyle.Secondary).setEmoji('🎨').setDisabled(userData.vipLevel === 0) 
                     );
-
-                    // 👇 O Botão de Cores AGORA SÓ APARECE se a pessoa for de facto VIP!
-                    if (userData.vipLevel > 0) {
-                        // O ID do botão agora leva o ID do dono para trancar a execução!
-                        row.addComponents(
-                            new ButtonBuilder().setCustomId(`btn_perfil_cor_${targetUser.id}`).setLabel('Cores de Perfil').setStyle(ButtonStyle.Primary).setEmoji('🎨')
-                        );
-                    }
-                    
                     components.push(row);
                 } else {
                     const row = new ActionRowBuilder().addComponents(
@@ -1473,7 +2170,7 @@ if (command === 'loja' || command === 'mercado') {
                     components.push(row);
                 }
 
-                await loadingMsg.edit({ content: `✨╺╸**Perfil de** <@${targetUser.id}>`, embeds: [embed], files: [attachment], components: components });
+                await loadingMsg.edit({ content: `Perfil de <@${targetUser.id}>`, embeds: [embed], files: [attachment], components: components });
             } catch (err) {
                 console.error(err);
                 await loadingMsg.edit('❌ Erro ao gerar o perfil.');

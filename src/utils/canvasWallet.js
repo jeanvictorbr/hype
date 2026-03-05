@@ -121,9 +121,9 @@ async function generateWalletImage(userDiscord, userData) {
     ctx.fillText(`R$ ${carteiraValor}`, cardX + 28, cardY + 65);
 
     drawRoundRectPath(ctx, cardX + cardW - 100, cardY + 32, 70, 24, 6);
-    ctx.fillStyle = 'rgba(239, 68, 68, 0.15)'; ctx.fill();
+    ctx.fillStyle = 'rgba(2, 85, 23, 0.15)'; ctx.fill();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ef4444'; ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#00ff2a'; ctx.font = 'bold 12px Arial';
     ctx.fillText('RISCO', cardX + cardW - 65, cardY + 44);
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctx.lineWidth = 1;

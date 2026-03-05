@@ -10,7 +10,7 @@ module.exports = {
 
     async execute(interaction) {
         const canalId = interaction.channel.id;
-        const mesa = ActiveTables.get(canalId) || interaction.client.activeRoleta?.get(canalId);
+        const mesa = ActiveTables?.get(canalId) || interaction.client.activeRoleta?.get(canalId);
 
         if (!mesa) return interaction.reply({ content: '❌ A mesa já não existe ou o jogo já acabou.', flags: [MessageFlags.Ephemeral] });
         
@@ -32,15 +32,11 @@ module.exports = {
         await interaction.editReply({ components: [] });
 
         try {
-            let alivePlayers = mesa.players.filter(p => !p.isDead);
+            let alivePlayers = mesa.players.filter(p => p && !p.isDead);
 
             while (alivePlayers.length > 1) {
-                const randomAliveIndex = Math.floor(Math.random() * alivePlayers.length);
-                const vitima = alivePlayers[randomAliveIndex];
-                
-                const targetIndexCanvas = mesa.players.findIndex(p => p.id === vitima.id);
-
-                let imgBuffer = await generateRoletaImage('spinning', mesa.players, targetIndexCanvas, mesa.pot);
+                // 1. GIRA O TAMBOR
+                let imgBuffer = await generateRoletaImage('spinning', mesa.players, -1, mesa.pot);
                 let attachment = new AttachmentBuilder(imgBuffer, { name: 'roleta.png' });
                 let embed = new EmbedBuilder()
                     .setColor('#f59e0b') 
@@ -50,23 +46,35 @@ module.exports = {
                 
                 await sleep(3000); 
 
-                vitima.isDead = true; 
-                
-                imgBuffer = await generateRoletaImage('shoot', mesa.players, targetIndexCanvas, mesa.pot);
-                attachment = new AttachmentBuilder(imgBuffer, { name: 'roleta.png' });
-                embed = new EmbedBuilder()
-                    .setColor('#ef4444') 
-                    .setImage('attachment://roleta.png');
+                // 2. DISPARA! A bala pode ir para qualquer cadeira de 0 a 5
+                const targetIndex = Math.floor(Math.random() * 6);
+                const vitima = mesa.players[targetIndex];
 
-                await interaction.editReply({ embeds: [embed], files: [attachment], attachments: [] }).catch(() => {});
-                
-                await sleep(2500); 
+                if (vitima && !vitima.isDead) {
+                    // Acertou em alguém VIVO (Morte confirmada)
+                    vitima.isDead = true; 
+                    
+                    imgBuffer = await generateRoletaImage('shoot', mesa.players, targetIndex, mesa.pot);
+                    attachment = new AttachmentBuilder(imgBuffer, { name: 'roleta.png' });
+                    embed = new EmbedBuilder().setColor('#ef4444').setImage('attachment://roleta.png');
 
-                alivePlayers = mesa.players.filter(p => !p.isDead);
+                    await interaction.editReply({ embeds: [embed], files: [attachment], attachments: [] }).catch(() => {});
+                    await sleep(3000); 
+                } else {
+                    // Acertou numa cadeira VAZIA ou já MORTA (Clique falso)
+                    imgBuffer = await generateRoletaImage('click', mesa.players, targetIndex, mesa.pot);
+                    attachment = new AttachmentBuilder(imgBuffer, { name: 'roleta.png' });
+                    embed = new EmbedBuilder().setColor('#10b981').setImage('attachment://roleta.png');
+
+                    await interaction.editReply({ embeds: [embed], files: [attachment], attachments: [] }).catch(() => {});
+                    await sleep(2500); 
+                }
+
+                alivePlayers = mesa.players.filter(p => p && !p.isDead);
             }
 
             const vencedor = alivePlayers[0];
-            const winnerIndexCanvas = mesa.players.findIndex(p => p.id === vencedor.id);
+            const winnerIndexCanvas = mesa.players.findIndex(p => p && p.id === vencedor.id);
 
             // Paga a fortuna toda na CARTEIRA do sobrevivente!
             await prisma.hypeUser.update({
@@ -85,12 +93,12 @@ module.exports = {
             await interaction.editReply({ embeds: [finalEmbed], files: [finalAttachment], attachments: [] }).catch(() => {});
 
             if (interaction.client.activeRoleta) interaction.client.activeRoleta.delete(canalId);
-            ActiveTables.delete(canalId);
+            if (ActiveTables) ActiveTables.delete(canalId);
 
         } catch (error) {
             console.error('❌ Erro no loop da Roleta:', error);
             if (interaction.client.activeRoleta) interaction.client.activeRoleta.delete(canalId);
-            ActiveTables.delete(canalId);
+            if (ActiveTables) ActiveTables.delete(canalId);
         }
     }
 };
