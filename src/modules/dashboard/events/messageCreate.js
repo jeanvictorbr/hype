@@ -2075,7 +2075,7 @@ await trackContract(dono.id, 'play_roleta', 1);
             return;
         }
       // ==========================================
-        // 📖 COMANDO: hajuda / hhelp (Menu V2 Profissional)
+        // 📖 COMAsNDO: hajuda / hhelp (Menu V2 Profissional)
         // ==========================================
         if (command === 'ajuda' || command === 'help') {
             const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, MessageFlags } = require('discord.js');
