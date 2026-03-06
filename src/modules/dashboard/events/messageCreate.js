@@ -2007,7 +2007,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                     .setColor('#0059ff') // Azul Hype Padrão
                     .setTitle('📖 MANUAL TÁTICO - BEM-VINDO')
                     .setDescription('Bem-vindo ao submundo, truta. Aqui o dinheiro fala mais alto, a polícia não entra e só os espertos sobrevivem. Leia este guia com atenção para dominar a cidade e não falir no primeiro dia.\n\n> 🔑 **Prefixo Oficial:** `h` (Use antes de qualquer comando)\n> 💳 **Regra de Ouro:** O teu dinheiro de risco fica na **Carteira** (pronto para gastar, apostar ou ser roubado). O dinheiro intocável fica no **Banco**.')
-                    .setFooter({ text: 'Sistema Hype • Parte 1/7' }),
+                    .setFooter({ text: 'Sistema Hype •' }),
 
                 new EmbedBuilder()
                     .setColor('#4ade80')
@@ -2019,7 +2019,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                         { name: '🏧 Banco Central', value: '> `hdepositar <valor>` (ou `all`) - Guarda na conta (protege contra roubos).\n> `hsacar <valor>` (ou `all`) - Tira pro bolso pra poder apostar.\n> `hpix @usuario <valor>` - Transfere dinheiro limpo pra um parceiro.' },
                         { name: '🏆 A Elite', value: '> `hrank` - Pódio dos magnatas do servidor local.\n> `hrankglobal` - Pódio dos mais ricos de TODOS os servidores.' }
                     )
-                    .setFooter({ text: 'Sistema Hype • Parte 2/7' }),
+                    .setFooter({ text: 'Sistema Hype •' }),
 
                 new EmbedBuilder()
                     .setColor('#FEE75C')
@@ -2029,9 +2029,9 @@ await trackContract(dono.id, 'play_roleta', 1);
                         { name: '🐯 Máquina do Tigrinho', value: '> `htigrinho <valor>`\n> Gira a máquina. Se a sorte bater e os bônus alinharem, o Tigre paga pesadíssimo!' },
                         { name: '💣 Campo Minado (Mines)', value: '> `hmines <valor>`\n> Clica nos quadrados para achar os diamantes. \n> *Dica: Use a Lanterna Tática para escanear e ver as bombas antes de clicar!*' },
                         { name: '🚀 O Foguetão (Crash)', value: '> `hcrash <valor>`\n> O multiplicador sobe sem parar... Pula fora do foguete e saca o lucro antes que ele exploda!' },
-                        { name: '🃏 Blackjack (21)', value: '> `hbj <valor>`\n> Desafia o Agiota no carteado. Pede carta pra chegar perto do 21, mas se passar você perde tudo.' }
+                        { name: '🃏 Blackjack (21)', value: '> `hblackjack <valor>`\n> Desafia o Agiota no carteado. Pede carta pra chegar perto do 21, mas se passar você perde tudo.' }
                     )
-                    .setFooter({ text: 'Sistema Hype • Parte 3/7' }),
+                    .setFooter({ text: 'Sistema Hype •' }),
 
                 new EmbedBuilder()
                     .setColor('#ef4444')
@@ -2044,7 +2044,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                         { name: '🔫 Roleta Russa', value: '> `hroleta <valor>`\n> 6 Cadeiras, 1 Bala. Sentem na mesa, girem o tambor e quem sobrar leva o prêmio!' },
                         { name: '🥷 Crime de Rua & PvP', value: '> `hroubar @usuario` - Tenta passar a mão na carteira (use disfarce ou pé de cabra).\n> `hap <valor> @usuario` - Desafia um rival pro X1 cara a cara.' }
                     )
-                    .setFooter({ text: 'Sistema Hype • Parte 4/7' }),
+                    .setFooter({ text: 'Sistema Hype •' }),
 
                 new EmbedBuilder()
                     .setColor('#ec4899')
@@ -2055,7 +2055,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                         { name: '🥊 Porradaria & Treta', value: '> `hsocar @user` | `htapa @user` | `hchutar @user` | `hmorder @user`' },
                         { name: '🥂 Festas & Comemoração', value: '> `hdancar @user` | `hbrindar @user`' }
                     )
-                    .setFooter({ text: 'Sistema Hype • Parte 5/7' }),
+                    .setFooter({ text: 'Sistema Hype • ' }),
 
                 new EmbedBuilder()
                     .setColor('#a855f7')
@@ -2064,19 +2064,11 @@ await trackContract(dono.id, 'play_roleta', 1);
                     .addFields(
                         { name: '💳 Painel Black', value: '> `hvip` - Abre a gestão do seu Cartão VIP Black.\n> `/comprarvip` - Ver as tabelas e como adquirir VIP na cidade.' },
                         { name: '🎨 Customização Exclusiva', value: '> Troque a cor do seu Perfil (`hperfil`), mude o fundo, ganhe um ícone de luxo e salários astronômicos.' },
-                        { name: '🔥 Ações de Chefe (Via Menu)', value: '> **💰 Chuva de Dinheiro:** Jogue grana no chat pra galera disputar aos tapas.\n> **🔇 Mordaça VIP:** Dê timeout (castigo) num rival chato pelo menu.' }
+                        { name: '🔥 Ações de Chefe (Via Menu)', value: '> **💰 Chuva de Dinheiro:** Jogue grana no chat pra galera disputar aos tapas.\n> **🔇 Mordaça VIP:** Dê timeout (castigo) num rival chato pelo menu, entre varios outros beneficios.' }
                     )
-                    .setFooter({ text: 'Sistema Hype • Parte 6/7' }),
+                    .setFooter({ text: 'Sistema Hype • ' }),
 
-                new EmbedBuilder()
-                    .setColor('#3b82f6')
-                    .setTitle('📞 UTILIDADES DA CIDADE')
-                    .setDescription('Sistemas automáticos para facilitar a vida do seu bonde.')
-                    .addFields(
-                        { name: '🎙️ Auto-Voice (Salas Privadas)', value: '> Basta entrar no canal de "Criar Sala" e o bot cria uma call no seu nome instantaneamente.\n> Use o **Painel Hype** na sua Call para Trancar, Expulsar, Limitar Vagas ou Renomear a sala para os seus negócios.' },
-                        { name: '🎫 Sistema de Atendimento', value: '> Precisa falar com a Prefeitura ou a Polícia? Vá ao canal de Tickets, clique em abrir e a nossa equipe vai resolver o seu problema num canal privado.' }
-                    )
-                    .setFooter({ text: 'Sistema Hype • Parte 7/7' })
+  
             ];
 
             await message.channel.send({ embeds: embeds });
