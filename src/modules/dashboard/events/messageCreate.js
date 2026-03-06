@@ -492,7 +492,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                             .setValue('disfarce'),
                             new StringSelectMenuOptionBuilder() // 👇 NOVA OPÇÃO AQUI
             .setLabel('Lanterna Tática')
-            .setDescription('R$ 100.000 - Revela casas no Mines.')
+            .setDescription('R$ 1.000.000 - Revela casas no Mines.')
             .setEmoji('🔦')
             .setValue('lanterna')
     
