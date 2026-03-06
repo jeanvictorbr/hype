@@ -70,7 +70,7 @@ module.exports = {
             gameMessage = await channel.send({ components: [initContainer, disabledRow], flags: [MessageFlags.IsComponentsV2] });
         }
 
-        // 👇 DIFICULDADE AUMENTADA: Taxa de vitória forçada caiu de 35% para 18%
+        // 👇 DIFICULDSADE AUMENTADA: Taxa de vitória forçada caiu de 35% para 18%
         const isLucky = Math.random() < 0.18; 
         const luckyRowIndex = Math.floor(Math.random() * 3); 
 
