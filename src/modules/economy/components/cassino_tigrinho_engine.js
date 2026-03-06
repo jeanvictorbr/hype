@@ -115,7 +115,7 @@ module.exports = {
                 where: { id: user.id },
                 data: { carteira: { increment: wonAmount } }
             });
-            await trackContract(autor.id, 'win_tiger', 1);
+            await trackContract(user.id, 'win_tiger', 1);
             newBalance += wonAmount;
 
             if (hitTigerBonus) {
