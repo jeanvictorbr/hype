@@ -1992,7 +1992,7 @@ await trackContract(dono.id, 'play_roleta', 1);
             return;
         }
 
-        // ==========================================
+ // ==========================================
         // 🛠️ COMANDO ADMIN: hsetupmanual (O Manual Definitivo do Jogador)
         // ==========================================
         if (command === 'setupmanual') {
@@ -2004,20 +2004,20 @@ await trackContract(dono.id, 'play_roleta', 1);
 
             const embeds = [
                 new EmbedBuilder()
-                    .setColor('#2b2d31')
-                    .setTitle('📖 MANUAL DO HYPE BOT - BEM-VINDO')
-                    .setDescription('Bem-vindo ao submundo. Aqui o dinheiro fala mais alto e só os espertos sobrevivem. Leia este guia para entender como a cidade funciona e não falir no primeiro dia.\n\n> 🔑 **Prefixo Oficial:** `h` (Use antes de qualquer comando)\n> 💳 **Regra de Ouro:** O teu dinheiro da mão fica na **Carteira** (pronto para gastar, mas em risco). O dinheiro guardado fica no **Banco** (100% seguro).')
+                    .setColor('#0059ff') // Azul Hype Padrão
+                    .setTitle('📖 MANUAL TÁTICO - BEM-VINDO')
+                    .setDescription('Bem-vindo ao submundo, truta. Aqui o dinheiro fala mais alto, a polícia não entra e só os espertos sobrevivem. Leia este guia com atenção para dominar a cidade e não falir no primeiro dia.\n\n> 🔑 **Prefixo Oficial:** `h` (Use antes de qualquer comando)\n> 💳 **Regra de Ouro:** O teu dinheiro de risco fica na **Carteira** (pronto para gastar, apostar ou ser roubado). O dinheiro intocável fica no **Banco**.')
                     .setFooter({ text: 'Sistema Hype • Parte 1/7' }),
 
                 new EmbedBuilder()
                     .setColor('#4ade80')
-                    .setTitle('🏦 SISTEMA FINANCEIRO E BANCO')
-                    .setDescription('Como recolher e movimentar o seu malote com segurança.')
+                    .setTitle('🏦 SISTEMA FINANCEIRO E SINDICATO')
+                    .setDescription('Aprenda a recolher, lavar e movimentar o seu malote com segurança.')
                     .addFields(
-                        { name: '💼 O Seu Bolso', value: '> `hcarteira` (ou `hc`) - Vê o saldo da sua mão e do banco.\n> `hperfil` - Mostra o seu RG, VIP, status e permite editar a Bio.\n> `hextrato` - Puxa a ficha de todas as suas transações.\n> `htempo` (ou `hcd`) - Mostra o tempo de recarga dos seus comandos.' },
-                        { name: '💰 Auxílios e Salários', value: '> `hdiario` - Pega a grana do dia (a cada 24h).\n> `hsemanal` - Bônus suado da semana.\n> `hmensal` - O grande malote mensal.\n> `hcontratos` - Missões diárias da Máfia que dão Maletas!' },
-                        { name: '🏧 Movimentações', value: '> `hdepositar <valor>` (ou `all`) - Guarda na conta.\n> `hsacar <valor>` (ou `all`) - Tira pro bolso pra apostar.\n> `hpix @usuario <valor>` - Transfere dinheiro limpo pra um parceiro.' },
-                        { name: '🏆 A Elite', value: '> `hrank` (ou `htopmoney`) - Pódio dos magnatas mais ricos do servidor.' }
+                        { name: '💼 O Seu Bolso', value: '> `hcarteira` (ou `hc`) - Vê o saldo da sua mão e do banco.\n> `hperfil` - Mostra o seu RG, nível VIP, status e permite editar a Bio.\n> `hextrato` - Puxa a ficha de todas as suas transações na cidade.\n> `htempo` (ou `hcd`) - Mostra o tempo de recarga dos seus comandos.' },
+                        { name: '💰 Renda e Contratos', value: '> `hdiario` - Pega a grana do dia (a cada 24h).\n> `hsemanal` - Bônus suado da semana.\n> `hmensal` - O grande malote mensal.\n> `hcontratos` - Cumpra as tarefas do Sindicato.\n> `hcontratos entregar` - Resgata a recompensa se concluir tudo!' },
+                        { name: '🏧 Banco Central', value: '> `hdepositar <valor>` (ou `all`) - Guarda na conta (protege contra roubos).\n> `hsacar <valor>` (ou `all`) - Tira pro bolso pra poder apostar.\n> `hpix @usuario <valor>` - Transfere dinheiro limpo pra um parceiro.' },
+                        { name: '🏆 A Elite', value: '> `hrank` - Pódio dos magnatas do servidor local.\n> `hrankglobal` - Pódio dos mais ricos de TODOS os servidores.' }
                     )
                     .setFooter({ text: 'Sistema Hype • Parte 2/7' }),
 
@@ -2026,23 +2026,23 @@ await trackContract(dono.id, 'play_roleta', 1);
                     .setTitle('🎰 CASSINO HYPE - JOGOS SOLO')
                     .setDescription('Quer multiplicar a grana rápido? O Cassino cobra o valor direto da sua **CARTEIRA**. Limite de aposta: **R$ 1.000.000**.')
                     .addFields(
-                        { name: '🐯 Máquina do Tigrinho', value: '> `htigrinho <valor>`\n> Gira a máquina. Se a sorte bater, o Tigre te paga **10x** o valor!' },
-                        { name: '💣 Campo Minado (Mines)', value: '> `hmines <valor>`\n> Clica nos quadrados. Acha diamante e o multiplicador sobe. Saca antes de pisar na bomba!' },
-                        { name: '🚀 O Foguetão (Crash)', value: '> `hcrash <valor>`\n> O multiplicador sobe sem parar... Pula fora do foguete antes que ele exploda!' },
-                        { name: '🃏 Blackjack (21)', value: '> `hbj <valor>`\n> Desafia a banca no carteado. Pede carta, mas se passar de 21 você perde tudo.' }
+                        { name: '🐯 Máquina do Tigrinho', value: '> `htigrinho <valor>`\n> Gira a máquina. Se a sorte bater e os bônus alinharem, o Tigre paga pesadíssimo!' },
+                        { name: '💣 Campo Minado (Mines)', value: '> `hmines <valor>`\n> Clica nos quadrados para achar os diamantes. \n> *Dica: Use a Lanterna Tática para escanear e ver as bombas antes de clicar!*' },
+                        { name: '🚀 O Foguetão (Crash)', value: '> `hcrash <valor>`\n> O multiplicador sobe sem parar... Pula fora do foguete e saca o lucro antes que ele exploda!' },
+                        { name: '🃏 Blackjack (21)', value: '> `hbj <valor>`\n> Desafia o Agiota no carteado. Pede carta pra chegar perto do 21, mas se passar você perde tudo.' }
                     )
                     .setFooter({ text: 'Sistema Hype • Parte 3/7' }),
 
                 new EmbedBuilder()
                     .setColor('#ef4444')
-                    .setTitle('🔫 SUBMUNDO - CRIME E MULTIPLAYER')
-                    .setDescription('Chama os amigos pra call, aposta alto ou corre risco de vida e cadeia.')
+                    .setTitle('🔫 SUBMUNDO E INVENTÁRIO TÁTICO')
+                    .setDescription('Chama os amigos pra call, compra equipamentos, aposta alto ou corre risco de vida e cadeia.')
                     .addFields(
-                        { name: '🏦 Assalto ao Banco (RPG)', value: '> `hassalto <valor>`\n> O maior evento da cidade! Reúna até 4 amigos, escolham classes e tentem roubar o cofre.' },
-                        { name: '🏎️ Corrida Clandestina', value: '> `hcorrida <valor>`\n> Abre um lobby. Apostem nos carros e assistam à disputa insana com nitro!' },
-                        { name: '🔫 Roleta Russa', value: '> `hroleta <valor>`\n> 6 Cadeiras, 1 Bala. Sentem na mesa, girem o tambor e quem sobreviver leva o dinheiro.' },
-                        { name: '🎲 Cara ou Coroa (Apostas)', value: '> `hap <valor>` - Cria um lobby livre.\n> `hap <valor> @usuario` - Desafia um rival pro X1 direto.' },
-                        { name: '🥷 Mercado Negro e Roubo', value: '> `hroubar @usuario` - Tenta furtar a carteira alheia.\n> `hloja` - Compra Itens pro inventário.\n> `hmochila` - Vê seus itens.\n> `husar <item>` - Equipa um item antes do crime.' }
+                        { name: '🎒 Seu Equipamento (NOVO)', value: '> `hloja` - O Mercado Negro. Compra Colete, Pé de Cabra, Máscara ou Lanterna.\n> `hmochila` - Abre teu Inventário Tático visual e vê teus itens.\n> `husar <item>` - Prepara um item pra usar nas ruas.\n> `habrir maleta` - Abre a Maleta da Máfia se você tiver uma!' },
+                        { name: '🏦 Assalto ao Banco (RPG)', value: '> `hassalto <valor>`\n> O maior evento da cidade! Reúna até 4 amigos, escolham papéis (Piloto, Hacker, Atirador) e tentem roubar o cofre.' },
+                        { name: '🏎️ Corrida Clandestina', value: '> `hcorrida <valor>`\n> Abre um lobby. Apostem nos carros e assistam à disputa com nitro!' },
+                        { name: '🔫 Roleta Russa', value: '> `hroleta <valor>`\n> 6 Cadeiras, 1 Bala. Sentem na mesa, girem o tambor e quem sobrar leva o prêmio!' },
+                        { name: '🥷 Crime de Rua & PvP', value: '> `hroubar @usuario` - Tenta passar a mão na carteira (use disfarce ou pé de cabra).\n> `hap <valor> @usuario` - Desafia um rival pro X1 cara a cara.' }
                     )
                     .setFooter({ text: 'Sistema Hype • Parte 4/7' }),
 
@@ -2062,9 +2062,9 @@ await trackContract(dono.id, 'play_roleta', 1);
                     .setTitle('💎 HYPE VIP & OSTENTAÇÃO')
                     .setDescription('Para os donos da cidade. Benefícios exclusivos de quem patrocina o servidor.')
                     .addFields(
-                        { name: '💳 Painel VIP', value: '> `hvip` - Abre a gestão do seu Cartão Black.\n> `/comprarvip` - Ver como adquirir VIP.' },
-                        { name: '🎨 Customização Exclusiva', value: '> Troque a cor do seu Perfil e das suas mensagens, ganhe um ícone de luxo e salários astronômicos.' },
-                        { name: '🔥 Ações de Chefe (Via Menu)', value: '> **💰 Chuva de Dinheiro:** Jogue grana no chat pra galera disputar.\n> **🔪 O Agiota:** Invista e recupere com juros pesados.' }
+                        { name: '💳 Painel Black', value: '> `hvip` - Abre a gestão do seu Cartão VIP Black.\n> `/comprarvip` - Ver as tabelas e como adquirir VIP na cidade.' },
+                        { name: '🎨 Customização Exclusiva', value: '> Troque a cor do seu Perfil (`hperfil`), mude o fundo, ganhe um ícone de luxo e salários astronômicos.' },
+                        { name: '🔥 Ações de Chefe (Via Menu)', value: '> **💰 Chuva de Dinheiro:** Jogue grana no chat pra galera disputar aos tapas.\n> **🔇 Mordaça VIP:** Dê timeout (castigo) num rival chato pelo menu.' }
                     )
                     .setFooter({ text: 'Sistema Hype • Parte 6/7' }),
 
@@ -2073,8 +2073,8 @@ await trackContract(dono.id, 'play_roleta', 1);
                     .setTitle('📞 UTILIDADES DA CIDADE')
                     .setDescription('Sistemas automáticos para facilitar a vida do seu bonde.')
                     .addFields(
-                        { name: '🎙️ Auto-Voice (Salas Privadas)', value: '> Basta entrar no canal de "Criar Sala" e o bot cria uma call no seu nome.\n> Use o **Painel na sua Call** para Trancar, Expulsar, Limitar Vagas ou Renomear a sala.' },
-                        { name: '🎫 Sistema de Atendimento', value: '> Precisa falar com a Staff (Prefeitura)? Vá ao canal de Tickets, clique em abrir e nossa equipe vai resolver seu problema no privado.' }
+                        { name: '🎙️ Auto-Voice (Salas Privadas)', value: '> Basta entrar no canal de "Criar Sala" e o bot cria uma call no seu nome instantaneamente.\n> Use o **Painel Hype** na sua Call para Trancar, Expulsar, Limitar Vagas ou Renomear a sala para os seus negócios.' },
+                        { name: '🎫 Sistema de Atendimento', value: '> Precisa falar com a Prefeitura ou a Polícia? Vá ao canal de Tickets, clique em abrir e a nossa equipe vai resolver o seu problema num canal privado.' }
                     )
                     .setFooter({ text: 'Sistema Hype • Parte 7/7' })
             ];
@@ -2082,7 +2082,6 @@ await trackContract(dono.id, 'play_roleta', 1);
             await message.channel.send({ embeds: embeds });
             return;
         }
-
       // ==========================================
         // 📖 COMANDO: hajuda / hhelp (Menu V2 Profissional)
         // ==========================================
