@@ -42,7 +42,7 @@ async function generateContratosImage(user, contratos) {
     ctx.fillText(`AGENTE RESPONSÁVEL: @${user.username.toUpperCase()}`, 180, 120);
     
     ctx.fillStyle = '#71717a'; ctx.font = 'italic 18px Arial';
-    ctx.fillText('Cumpra as missões finalizando utilize "hcontratos entregar"para receber a maleta.', 180, 150);
+    ctx.fillText('Finalizando as missões utilize "hcontratos entregar" e ganhe 1 mala.', 180, 150);
     
 
 
