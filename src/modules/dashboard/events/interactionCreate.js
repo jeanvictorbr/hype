@@ -8,12 +8,12 @@ module.exports = {
             // ==========================================
             // 1. TRAVA CIRÚRGICA (SÓ PARA JOGOS INLINE)
             // ==========================================
-            if (interaction.isButton()) {
+            if (interaction.isMessageComponent()) {
                 const inlineIds = [
                     'opt1', 'opt2', 'opt3', 'heist_', 'choice_', // Assalto
                     'race_bet_', // Corrida
                     'hap_', // Apostas Cara ou Coroa
-                    'prev_help', 'next_help', 'page_indicator' // Paginador de Ajuda
+                    'prev_help', 'next_help', 'page_indicator', 'help_select_menu' // Paginador de Ajuda
                 ];
                 
                 // Se o ID do botão for um destes de cima, o roteador ignora e deixa o minigame rodar!

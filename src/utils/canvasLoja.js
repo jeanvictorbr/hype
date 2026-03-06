@@ -1,23 +1,18 @@
 const { createCanvas, loadImage } = require('canvas');
-const path = require('path');
 
 async function generateShopCatalog() {
-    const canvas = createCanvas(700, 700);
+    const canvas = createCanvas(700, 920); // Altura aumentada para respirar melhor
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#050505';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    const grad = ctx.createRadialGradient(350, 350, 100, 350, 350, 450);
-    grad.addColorStop(0, '#11112b'); 
-    grad.addColorStop(1, '#000000');
+    ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const grad = ctx.createRadialGradient(350, 460, 100, 350, 460, 600);
+    grad.addColorStop(0, '#11112b'); grad.addColorStop(1, '#000000');
     ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.strokeStyle = '#001aff'; ctx.lineWidth = 10;
     ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
-
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 50px sans-serif';
-    ctx.textAlign = 'center'; ctx.fillText('MERCADO NEGRO', canvas.width / 2, 80);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 50px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('MERCADO NEGRO', canvas.width / 2, 80);
 
     const drawRoundedRect = (x, y, w, h, r) => {
         ctx.beginPath(); ctx.moveTo(x + r, y); ctx.lineTo(x + w - r, y);
@@ -29,37 +24,35 @@ async function generateShopCatalog() {
 
     const drawItem = async (name, price, desc, y, imgUrl) => {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-        drawRoundedRect(50, y, 600, 140, 15);
-        ctx.fill(); ctx.strokeStyle = '#fffcfc'; ctx.stroke();
-
+        drawRoundedRect(50, y, 600, 130, 15);
+        ctx.fill(); ctx.strokeStyle = '#0059ff'; ctx.lineWidth = 1; ctx.stroke();
         try {
             const icon = await loadImage(imgUrl);
-            ctx.drawImage(icon, 70, y + 25, 90, 90);
+            ctx.drawImage(icon, 70, y + 20, 90, 90);
         } catch (e) {
             ctx.fillStyle = '#fff'; ctx.font = '40px serif'; ctx.fillText('?', 110, y + 80);
         }
-
         ctx.textAlign = 'left'; ctx.font = 'bold 24px sans-serif'; ctx.fillStyle = '#0059ff';
-        ctx.fillText(name, 180, y + 45);
-
+        ctx.fillText(name, 180, y + 40);
         ctx.font = '18px sans-serif'; ctx.fillStyle = '#cccccc';
-        const words = desc.split(' '); let line = ''; let ty = y + 75;
-        for(let word of words) {
-            if ((line + word).length > 40) { ctx.fillText(line, 180, ty); line = word + ' '; ty += 25; } 
-            else { line += word + ' '; }
-        }
-        ctx.fillText(line, 180, ty);
-
+        ctx.fillText(desc, 180, y + 70);
         ctx.font = 'bold 26px sans-serif'; ctx.fillStyle = '#57F287'; ctx.textAlign = 'right';
-        ctx.fillText(`R$ ${price.toLocaleString('pt-BR')}`, 630, y + 120);
+        ctx.fillText(`R$ ${price.toLocaleString('pt-BR')}`, 630, y + 110);
     };
 
-    // 👇 NOVOS PREÇOS, DESCRIÇÕES E ÍCONES REALISTAS
-    await drawItem('COLETE BALÍSTICO', 150000, 'Proteção total contra todos os assaltos por 15 minutos.', 150, 'https://img.icons8.com/color/256/body-armor.png');
-    await drawItem('PÉ DE CABRA', 50000, 'Aumenta em 15% a chance de roubo por 15 minutos.', 320, 'https://img.icons8.com/color/256/crowbar.png');
-    await drawItem('KIT DISFARCE', 30000, 'Corta 50% do valor de 3 multas policiais.', 490, 'https://img.icons8.com/color/256/anonymous-mask.png');
+    await drawItem('COLETE BALÍSTICO', 150000, 'Proteção total contra assaltos (15min).', 120, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/armor.png');
+    await drawItem('PÉ DE CABRA', 50000, 'Aumenta em 15% chance de roubo (15min).', 260, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/weapon_crowbar.png');
+    await drawItem('KIT DISFARCE', 30000, 'Corta 50% do valor de 3 multas.', 400, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/id_card.png');
+    await drawItem('LANTERNA TÁTICA', 100000, 'Revela 3 casas no Mines antes de clicar.', 540, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/weapon_flashlight.png');
 
-    return canvas.toBuffer();
+    // 👇 AVISO POSICIONADO MAIS ABAIXO (y: 740) PARA NÃO COBRIR O ÚLTIMO ITEM 👇
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.1)'; ctx.fillRect(10, 740, canvas.width - 20, 140);
+    ctx.fillStyle = '#facc15'; ctx.font = '900 24px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('⚠️ ATENÇÃO: INVENTÁRIO TÁTICO', canvas.width / 2, 780);
+    ctx.fillStyle = '#ffffff'; ctx.font = '18px Arial';
+    ctx.fillText('Os itens comprados vão diretos para a sua HMochila.', canvas.width / 2, 810);
+    ctx.fillText('Digite HUSAR <ITEM> para equipar!', canvas.width / 2, 835);
+
+    return canvas.toBuffer('image/png');
 }
-
 module.exports = { generateShopCatalog };

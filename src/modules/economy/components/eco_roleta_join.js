@@ -1,6 +1,7 @@
 const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
 const { generateRoletaImage } = require('../../../utils/canvasRoletaRussa');
+const { trackContract } = require('../../../utils/contratosTracker');
 // Puxa o mapa de mesas ativas
 const { ActiveTables } = require('../commands/roletarussa');
 
@@ -60,7 +61,7 @@ module.exports = {
             await interaction.message.edit({ embeds: [embed], files: [attachment], attachments: [] });
 
             await interaction.editReply(`✅ Pagou **R$ ${mesa.valorAposta.toLocaleString('pt-BR')}** e sentou-se na mesa. Boa sorte...`);
-
+await trackContract(interaction.user.id, 'play_roleta', 1);
         } catch (error) {
             console.error('❌ Erro a entrar na mesa:', error);
             await interaction.editReply('❌ Erro ao tentar processar o pagamento.');

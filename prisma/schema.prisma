@@ -56,6 +56,8 @@ model HypeUser {
   customColor2 String?
   customVipColor1 String?
   customVipColor2 String?
+  invLanternas  Int  @default(0)
+  lanternaAtiva   Boolean @default(false)
   lastGame     DateTime?
   wins         Int      @default(0)
   losses       Int      @default(0)
@@ -79,6 +81,15 @@ model HypeUser {
   lastCafune   DateTime?
   lastSemanal  DateTime?
   lastMensal   DateTime?
+  // 👇 SISTEMA DO SINDICATO E INVENTÁRIO
+  contratosData Json?      // Guarda o JSON com as 3 missões do dia e o progresso
+  lastContrato  DateTime?  // Cooldown diário para pegar missões novas
+  maletas       Int        @default(0) // Quantas maletas do sindicato ele tem pra abrir
+  
+  // Itens na Mochila (Em vez de ativar na hora, guarda aqui)
+  invColetes    Int        @default(0) 
+  invPedeCabra  Int        @default(0)
+  invDisfarces  Int        @default(0)
   updatedAt     DateTime @updatedAt
   banRequestsCount Int       @default(0)
   cardNumber       String?   @unique

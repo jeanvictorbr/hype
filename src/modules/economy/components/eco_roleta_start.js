@@ -2,6 +2,7 @@ const { AttachmentBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
 const { generateRoletaImage } = require('../../../utils/canvasRoletaRussa');
 const { ActiveTables } = require('../commands/roletarussa');
+const { trackContract } = require('../../../utils/contratosTracker');
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -91,7 +92,7 @@ module.exports = {
                 .setImage('attachment://roleta.png');
 
             await interaction.editReply({ embeds: [finalEmbed], files: [finalAttachment], attachments: [] }).catch(() => {});
-
+            await trackContract(vencedor.id, 'win_roleta', 1);
             if (interaction.client.activeRoleta) interaction.client.activeRoleta.delete(canalId);
             if (ActiveTables) ActiveTables.delete(canalId);
 

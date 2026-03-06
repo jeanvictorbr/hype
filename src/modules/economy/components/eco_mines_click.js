@@ -52,6 +52,10 @@ module.exports = {
                         style = idx === tileIndex ? ButtonStyle.Danger : ButtonStyle.Secondary;
                     } else if (game.clicked.includes(idx)) {
                         style = ButtonStyle.Success; 
+                    } else if (game.scanned && game.scanned.includes(idx)) {
+                        // Mantém a varredura da lanterna visível mesmo na morte
+                        style = ButtonStyle.Primary;
+                        emoji = game.grid[idx] === 'bomb' ? '⚠️' : '💎';
                     }
 
                     row.addComponents(new ButtonBuilder().setCustomId(`dead_${idx}`).setStyle(style).setEmoji(emoji).setDisabled(true));
@@ -83,6 +87,7 @@ module.exports = {
             return row;
         });
 
+        // 🔘 RECRIANDO A BARRA DE AÇÕES (Saque e Lanterna)
         const actionRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(`eco_mines_cashout_${ownerId}`)
@@ -90,6 +95,21 @@ module.exports = {
                 .setStyle(ButtonStyle.Success)
                 .setDisabled(false) 
         );
+
+        // 👇 O PULO DO GATO: Puxa o botão da Lanterna da mensagem anterior e o recria! 👇
+        const oldActionRow = interaction.message.components[5]; // Linha 5 é onde ficam os botões de controle
+        if (oldActionRow) {
+            const lanternBtnOld = oldActionRow.components.find(btn => {
+                const cId = btn.customId || btn.data?.custom_id;
+                return cId && cId.startsWith('eco_mines_lanterna_');
+            });
+            
+            // Se ele tinha o botão, adiciona ele de volta!
+            if (lanternBtnOld) {
+                actionRow.addComponents(ButtonBuilder.from(lanternBtnOld));
+            }
+        }
+
         rows.push(actionRow);
 
         const stats = new TextDisplayBuilder().setContent(`**Aposta:** R$ ${game.bet.toLocaleString('pt-BR')}\n**Multiplicador:** ${currentMultiplier.toFixed(2)}x\n**Lucro Acumulado:** +R$ ${(currentProfit - game.bet).toLocaleString('pt-BR')}`);

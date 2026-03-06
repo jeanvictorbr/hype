@@ -1,5 +1,6 @@
 const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
+const { trackContract } = require('../../../utils/contratosTracker');
 
 const SYMBOLS = ['🪙', '💰', '🍀', '🧧', '🏮', '🐯']; 
 
@@ -114,6 +115,7 @@ module.exports = {
                 where: { id: user.id },
                 data: { carteira: { increment: wonAmount } }
             });
+            await trackContract(autor.id, 'win_tiger', 1);
             newBalance += wonAmount;
 
             if (hitTigerBonus) {
