@@ -143,7 +143,7 @@ async function generateWalletImage(userDiscord, userData) {
     drawRoundRectPath(ctx, cardX + cardW - 100, cardY + 197, 70, 24, 6);
     ctx.fillStyle = 'rgba(6, 87, 3, 0.15)'; ctx.fill();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#0004ff'; ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#00ff40'; ctx.font = 'bold 12px Arial';
     ctx.fillText('SEGURO', cardX + cardW - 65, cardY + 209);
 
     // 6. RODAPÉ
