@@ -4,6 +4,7 @@ const { generateProfileImage } = require('../../../utils/canvasProfile');
 const { generateBlackjackTable } = require('../../../utils/canvasBlackjack');
 const { generateRoletaImage } = require('../../../utils/canvasRoletaRussa');
 const { generateCrashImage } = require('../../../utils/canvasCrash');
+const { addTransaction } = require('../../../utils/extratoManager');
 
 // Mapa global para guardar as mesas ativas por canal da Roleta Russa
 const ActiveTables = new Map();
@@ -62,6 +63,7 @@ module.exports = {
                                 c.completed = true;
                                 // Paga a recompensa da missão silenciosamente na carteira
                                 await prisma.hypeUser.update({ where: { id: userId }, data: { carteira: { increment: c.reward } } });
+                                await addTransaction(userId, 'IN', c.reward, `Recompensa: Contrato ${actionId}`);
                             }
                             atualizou = true;
                         }
@@ -72,6 +74,39 @@ module.exports = {
                 }
             } catch (e) {} // Falhas no tracker não afetam o jogo
         };
+
+        // ==========================================
+        // 🧾 COMANDO: hextrato / historico (NOVO)
+        // ==========================================
+        if (command === 'extrato' || command === 'historico') {
+            const { generateExtratoImage } = require('../../../utils/canvasExtrato');
+            const { getTransactions } = require('../../../utils/extratoManager');
+            
+            const targetUser = message.mentions.users.first() || message.author;
+            // Se for ver o extrato de outro, só admin pode
+            if (targetUser.id !== message.author.id && !message.member.permissions.has('Administrator')) {
+                return message.reply('❌╺╸O Sigilo Bancário não permite que você veja o extrato dos outros!');
+            }
+
+            const loadingMsg = await message.reply('🔍╺╸**Solicitando papéis ao Banco Central...**');
+            
+            try {
+                const { data, totalPages } = await getTransactions(targetUser.id, 1, 6);
+                const buffer = await generateExtratoImage(targetUser, data, 1, totalPages);
+                const attachment = new AttachmentBuilder(buffer, { name: 'extrato.png' });
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId(`extrato_prev_${targetUser.id}_1`).setLabel('Página Anterior').setStyle(ButtonStyle.Primary).setEmoji('⬅️').setDisabled(true),
+                    new ButtonBuilder().setCustomId(`extrato_next_${targetUser.id}_1`).setLabel('Próxima Página').setStyle(ButtonStyle.Primary).setEmoji('➡️').setDisabled(totalPages <= 1)
+                );
+
+                await loadingMsg.edit({ content: '', files: [attachment], components: totalPages > 1 ? [row] : [] });
+            } catch (e) {
+                console.log(e);
+                await loadingMsg.edit('❌ Falha ao imprimir o extrato.');
+            }
+            return;
+        }
 
         // ==========================================
         // 🎰 GAME: Tigrinho (htigrinho)
@@ -430,6 +465,9 @@ module.exports = {
                 return message.reply(`✨╺╸**QUASE!**\n${failMsg}\n*(O tempo de descanso foi ativado, tente novamente em breve!)*`);
             }
 
+            // LANÇA NO EXTRATO
+            await addTransaction(authorId, 'IN', rewardAmount, `Recompensa de RP Social: ${action.type}`);
+
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
             const attachment = new AttachmentBuilder(randomGif, { name: 'animacao.gif' });
             let extraMsg = vipLevel > 0 ? `\n💎╺╸**Bónus VIP** Nível ${vipLevel}: \`x${vipMultiplier}\` Aplicado!` : '';
@@ -724,6 +762,8 @@ module.exports = {
                     for (const wp of apostadoresGanhadores) {
                         descFinal += `<@${wp}> `;
                         await prisma.hypeUser.update({ where: { id: wp }, data: { carteira: { increment: premioPorCabeca } } });
+                        // LANÇA NO EXTRATO
+                        await addTransaction(wp, 'IN', premioPorCabeca, `Lucro da Corrida Clandestina`);
                     }
                 } else {
                     descFinal += `💀 **O Cassino Sorri!**\nNinguém acreditou no carro ${winner.name}. Todo o pote ficou com a Banca!`;
@@ -1197,6 +1237,8 @@ module.exports = {
 
                     for (const v of vivos) {
                         await prisma.hypeUser.update({ where: { id: v.id }, data: { carteira: { increment: fatia } } });
+                        // LANÇA NO EXTRATO
+                        await addTransaction(v.id, 'IN', fatia, `Lucro da Cota do Assalto ao Banco`);
                     }
 
                     const resultType = heistData.pot > totalInvestido ? 'profit' : 'loss';
@@ -1229,7 +1271,7 @@ module.exports = {
             }
 
             if (!betValueStr) {
-                return message.reply('❌╺╸**Como usar:**\n1️⃣ `hap <valor>` - Cria uma aposta global no chat.\n2️⃣ `hap <valor> @usuario` (Ou responda à mensagem dele) - Desafia para 1v1.');
+                return message.reply('❌╺╸**Como usar:**\n1️⃣ `hap <valor>` - Cria uma aposta global no chat.\n2️⃣ `hap <valor> @usuario` - Desafia para 1v1.');
             }
 
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
@@ -1241,7 +1283,6 @@ module.exports = {
 
             if (isNaN(amount) || amount <= 0) return message.reply('❌╺╸**Valor de aposta inválido!**');
             
-            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
             if (amount > 10000000) amount = 10000000;
             
             if (amount > userProfile.carteira) return message.reply(`❌╺╸Você só tem **R$ ${userProfile.carteira.toLocaleString('pt-BR')}** na mão! Vá ao banco sacar mais se quiser apostar isso.`);
@@ -1305,6 +1346,9 @@ module.exports = {
                         const loserId = winnerId === message.author.id ? targetUser.id : message.author.id;
 
                         await prisma.hypeUser.update({ where: { id: winnerId }, data: { carteira: { increment: pot } } });
+
+                        // LANÇA NO EXTRATO DO GANHADOR
+                        await addTransaction(winnerId, 'IN', pot, `Aposta PvP Vencida contra ${loserId === message.author.id ? message.author.username : targetUser.username}`);
 
                         const embed = new EmbedBuilder()
                             .setColor('#FEE75C')
@@ -1391,6 +1435,9 @@ module.exports = {
                 
                 await prisma.hypeUser.update({ where: { id: winnerId }, data: { carteira: { increment: totalPot } } });
 
+                // LANÇA NO EXTRATO DO GANHADOR GLOBAL
+                await addTransaction(winnerId, 'IN', totalPot, `Pote Global Coinflip (${participants.length}x Jogadores)`);
+
                 const losersText = losers.map(p => `<@${p}>`).join(', ');
 
                 const winnerEmbed = new EmbedBuilder()
@@ -1411,7 +1458,6 @@ module.exports = {
         if (command === 'diario' || command === 'semanal' || command === 'mensal') {
             const { AttachmentBuilder } = require('discord.js');
             const { generateRewardImage } = require('../../../utils/canvasDaily');
-
 
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
@@ -1473,6 +1519,9 @@ module.exports = {
                 update: updateData,
                 create: createData
             });
+
+            // Regista a entrada de dinheiro no Extrato Bancário dele
+            await addTransaction(userId, 'IN', rewardAmount, `Depósito de ${nomePremio}`);
 
             // Gera a imagem e envia!
             const buffer = await generateRewardImage(message.author, nomePremio, rewardAmount, vipMultiplier, embedColor);
@@ -1538,6 +1587,11 @@ module.exports = {
 
                 const txId = 'HYP-' + Math.random().toString(36).substring(2, 10).toUpperCase();
                 
+                // Lança no Extrato de Quem Enviou
+                await addTransaction(senderId, 'OUT', amount, `Pix enviado para @${targetUser.username}`);
+                // Lança no Extrato de Quem Recebeu
+                await addTransaction(receiverId, 'IN', amount, `Pix recebido de @${message.author.username}`);
+
                 const { generatePixReceipt } = require('../../../utils/canvasPix');
                 const imageBuffer = await generatePixReceipt(message.author, targetUser, amount, txId);
                 const attachment = new AttachmentBuilder(imageBuffer, { name: 'comprovante_pix.png' });
@@ -1619,6 +1673,10 @@ module.exports = {
                     prisma.hypeUser.update({ where: { id: targetUser.id }, data: { carteira: { decrement: valorFinal } } })
                 ]);
 
+                // Regista no extrato dos dois
+                await addTransaction(authorId, 'IN', valorFinal, `Assalto a @${targetUser.username}`);
+                await addTransaction(targetUser.id, 'OUT', valorFinal, `Furtado por @${message.author.username}`);
+
                 // Gera a imagem de Sucesso
                 const buffer = await generateRouboImage(message.author, targetUser, true, valorFinal, msgItemCanvas);
                 const attachment = new AttachmentBuilder(buffer, { name: 'roubo_sucesso.png' });
@@ -1652,6 +1710,9 @@ module.exports = {
                         lastRob: new Date() 
                     } 
                 });
+
+                // Regista no extrato do Ladrão
+                await addTransaction(authorId, 'OUT', multaFinal, `Fiança Policial (Assalto Falho a @${targetUser.username})`);
 
                 // Gera a imagem de Prisão
                 const buffer = await generateRouboImage(message.author, targetUser, false, multaFinal, msgItemCanvas);
@@ -1838,6 +1899,9 @@ module.exports = {
                 if (finalState.multiplier >= 2.0) {
                     await trackContract(userId, 'win_crash_2x', 1);
                 }
+                
+                // LANÇA O LUCRO NO EXTRATO
+                await addTransaction(userId, 'IN', profit, `Lucro Crash (${finalState.multiplier.toFixed(2)}x)`);
 
                 embed.setColor('#57F287')
                      .setTitle('💸 RETIRADA SEGURA!')
@@ -2034,6 +2098,9 @@ module.exports = {
                         where: { id: userId },
                         data: { hypeCash: { increment: prize } }
                     });
+                    
+                    // LANÇA A RECOMPENSA NO EXTRATO
+                    await addTransaction(userId, 'IN', prize, `Prêmio Evento Maleta Criptografada`);
 
                     const winMsg = await m.reply('🔐╺╸`Criptografia quebrada! Autenticando e gerando o recibo de Magnata... Aguarde.`');
                     
@@ -2162,7 +2229,7 @@ module.exports = {
                     .setTitle('🏦 Hype Economy - Guia de Sobrevivência')
                     .setDescription('**Prefixo Oficial:** `h`\nAqui na cidade, o dinheiro move tudo. O teu dinheiro de risco fica na **Carteira**, o dinheiro intocável fica no **Banco**.')
                     .addFields(
-                        { name: '💼 Gerenciamento Pessoal', value: '`hcarteira` (ou `hc`) - Vê o saldo que tens em mãos.\n`hperfil` - Vê o teu nível VIP, status e edita a tua bio.\n`htempo` (ou `hcd`) - Verifica os tempos de recarga de tudo.' },
+                        { name: '💼 Gerenciamento Pessoal', value: '`hcarteira` (ou `hc`) - Vê o saldo que tens em mãos.\n`hperfil` - Vê o teu nível VIP, status e edita a tua bio.\n`hextrato` - Consulta as tuas últimas movimentações de grana limpa.\n`htempo` (ou `hcd`) - Verifica os tempos de recarga de tudo.' },
                         { name: '💰 Renda & Sindicato', value: '`hdiario` - Recolhe a tua grana a cada 24 horas.\n`hsemanal` - Bônus suado a cada 7 dias.\n`hmensal` - O grande malote a cada 30 dias.\n`hcontratos` - Cumpra tarefas para a máfia.\n`hcontratos entregar` - Resgata a sua Maleta da Máfia ao concluir missões.' },
                         { name: '🏧 Banco Central', value: '`hdepositar <valor>` (ou `hdep all`) - Guarda na conta (protegido contra roubos).\n`hsacar <valor>` (ou `hsacar all`) - Tira pro bolso.\n`hpix @usuario <valor>` - Transfere grana segura pra um truta.' }
                     ),
