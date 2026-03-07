@@ -512,7 +512,36 @@ await trackContract(dono.id, 'play_roleta', 1);
                 await loadingMsg.edit('❌╺╸**O fornecedor desapareceu nas sombras.**');
             }
         }
+// ==========================================
+        // 🛠️ COMANDO ADMIN: havisoloja (Aviso da Loja VIP/Coins)
+        // ==========================================
+        if (command === 'avisoloja' || command === 'setupstore') {
+            
+            // 1. Bloqueio de Segurança: Apenas Administradores
+            if (!message.member.permissions.has('Administrator')) {
+                return message.reply('❌╺╸Apenas administradores da alta cúpula podem usar este comando.');
+            }
 
+            // 2. Apaga a mensagem de quem digitou (para o canal ficar 100% limpo)
+            message.delete().catch(() => {});
+
+            const { EmbedBuilder } = require('discord.js');
+
+            // 3. Monta a Embed Premium
+            const embed = new EmbedBuilder()
+                .setTitle('💎 CENTRAL DE VENDAS HYPE')
+                .setDescription('> *O cofre do submundo está a ser abastecido...*\n\nEm breve, o nosso sistema de **Vendas Automáticas** estará 100% online. Você poderá adquirir **Planos VIP** com poderes exclusivos e **Pacotes de Hype Coins** para dominar a economia.\n\n💸 Tudo será processado via **PIX**, com entrega automática na mesma hora!\n\n⏳ **Prepare a sua carteira e aguarde o anúncio oficial da Staff.**')
+                .setColor('#facc15') // Dourado Premium
+                .setImage('https://i.imgur.com/B94L2U9.gif') // GIF temático de dinheiro/cofre
+                .setFooter({ 
+                    text: 'Hype Network • Banco Central', 
+                    iconURL: message.guild.iconURL({ dynamic: true }) 
+                })
+                .setTimestamp();
+
+            // 4. Envia o painel no canal onde o comando foi digitado
+            return message.channel.send({ embeds: [embed] });
+        }
         // ==========================================
         // 🏎️ GAME: Corrida Clandestina (hcorrida)
         // ==========================================
