@@ -13,7 +13,7 @@ async function generateHeistImage(state, players = [], pot = 0, frame = 1) {
     const canvas = createCanvas(width, height); const ctx = canvas.getContext('2d');
 
     // ==========================================
-    // 1. ANIMAÇÕES PROCEDURAIS DE AÇÃO (FRAME 1 E FRAME 2)
+    // 1. ANIMAÇÕES PROCEDsURAIS DE AÇÃO (FRAME 1 E FRAME 2)
     // ==========================================
     if (state.startsWith('action_')) {
         ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, width, height);

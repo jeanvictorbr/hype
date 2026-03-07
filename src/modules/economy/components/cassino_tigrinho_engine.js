@@ -1,6 +1,7 @@
 const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const { prisma } = require('../../../core/database');
 const { trackContract } = require('../../../utils/contratosTracker');
+const { addTransaction } = require('../../../utils/extratoManager'); // 👈 EXTRATO ADICIONADO AQUI!
 
 const SYMBOLS = ['🪙', '💰', '🍀', '🧧', '🏮', '🐯']; 
 
@@ -13,8 +14,8 @@ const PAYTABLE = {
     '🐯': 10.0  // Limitado a 10x
 };
 
-// 📈 TABELA PADRÃO DE APOSTAS (O máximo já era 1kk aqui)
-const BET_TIERS = [10, 50, 100, 200, 300, 500, 1000, 2000, 5000, 10000, 50000, 100000, 250000, 500000, 1000000];
+// 📈 TABELA PADRÃO DE APOSTAS (O máximo aumentou para 10kk)
+const BET_TIERS = [10, 50, 100, 200, 300, 500, 1000, 2000, 5000, 10000, 50000, 100000, 250000, 500000, 1000000, 2000000, 5000000, 10000000];
 
 function getNextBet(current) {
     let idx = BET_TIERS.findIndex(b => b > current);
@@ -70,7 +71,7 @@ module.exports = {
             gameMessage = await channel.send({ components: [initContainer, disabledRow], flags: [MessageFlags.IsComponentsV2] });
         }
 
-        // 👇 DIFICULDSADE AUMENTADA: Taxa de vitória forçada caiu de 35% para 18%
+        // 👇 DIFICULDADE AUMENTADA: Taxa de vitória forçada caiu de 35% para 18%
         const isLucky = Math.random() < 0.18; 
         const luckyRowIndex = Math.floor(Math.random() * 3); 
 
@@ -116,6 +117,10 @@ module.exports = {
                 data: { carteira: { increment: wonAmount } }
             });
             await trackContract(user.id, 'win_tiger', 1);
+            
+            // 👈 LANÇA NO EXTRATO
+            await addTransaction(user.id, 'IN', wonAmount, `Lucro Fortune Tiger (${totalMultiplier}x)`);
+
             newBalance += wonAmount;
 
             if (hitTigerBonus) {

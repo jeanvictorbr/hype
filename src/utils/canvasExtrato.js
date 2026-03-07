@@ -12,32 +12,25 @@ function drawRoundRectPath(ctx, x, y, w, h, radius) {
 }
 
 async function generateExtratoImage(userDiscord, transactions, page, totalPages) {
-    const width = 800; const height = 750; // Documento Longo
+    const width = 800; const height = 750;
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Fundo Escuro Hype
     ctx.fillStyle = '#070709';
     ctx.fillRect(0, 0, width, height);
 
-    // Grid Leve Cibernética
     ctx.lineWidth = 1;
     for (let i = 0; i < height; i += 40) {
         ctx.strokeStyle = `rgba(255, 255, 255, 0.02)`;
         ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke();
     }
 
-    // Moldura Fina (Documento Confidencial)
     ctx.save();
     ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,255,255, 0.15)';
     drawRoundRectPath(ctx, 15, 15, width - 30, height - 30, 15); ctx.stroke();
     ctx.restore();
 
-    // ==========================================
-    // CABEÇALHO DO EXTRATO
-    // ==========================================
     const headerY = 60;
-    
     try {
         const logo = await loadImage(path.join(__dirname, 'logo.png'));
         const logoW = 80; const logoH = logoW * (logo.height / logo.width);
@@ -51,11 +44,7 @@ async function generateExtratoImage(userDiscord, transactions, page, totalPages)
     ctx.fillStyle = '#aaaaaa'; ctx.font = '16px Arial';
     ctx.fillText(`DOCUMENTO CONFIDENCIAL - PÁGINA ${page} DE ${totalPages}`, 140, headerY + 25);
 
-    // ==========================================
-    // INFO DO TITULAR
-    // ==========================================
     const titularY = 150;
-    
     ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
     drawRoundRectPath(ctx, 40, titularY, width - 80, 80, 10); ctx.fill();
 
@@ -72,13 +61,9 @@ async function generateExtratoImage(userDiscord, transactions, page, totalPages)
     ctx.fillStyle = '#888888'; ctx.font = '14px Arial';
     ctx.fillText(`ID de Registo: ${userDiscord.id}`, 135, titularY + 55);
 
-    // ==========================================
-    // LISTA DE TRANSAÇÕES
-    // ==========================================
     const listStartY = 270;
     const rowHeight = 70;
 
-    // Cabeçalhos da Tabela
     ctx.fillStyle = '#555555'; ctx.font = 'bold 12px Arial';
     ctx.fillText('TIPO / DATA', 50, listStartY - 15);
     ctx.fillText('DESCRIÇÃO DA MOVIMENTAÇÃO', 200, listStartY - 15);
@@ -94,35 +79,26 @@ async function generateExtratoImage(userDiscord, transactions, page, totalPages)
     transactions.forEach((tx, i) => {
         const rowY = listStartY + (i * rowHeight);
         
-        // Fundo Zebra (Sim e Não)
         if (i % 2 === 0) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
             ctx.fillRect(40, rowY - 10, width - 80, rowHeight - 5);
         }
 
-        // Ícone / Tipo
         ctx.textAlign = 'left';
         if (tx.type === 'IN') {
-            ctx.fillStyle = '#57F287'; // Verde
-            ctx.font = 'bold 16px Arial';
-            ctx.fillText('➕ ENTRADA', 50, rowY + 10);
+            ctx.fillStyle = '#57F287'; ctx.font = 'bold 16px Arial'; ctx.fillText('➕ ENTRADA', 50, rowY + 10);
         } else {
-            ctx.fillStyle = '#ef4444'; // Vermelho
-            ctx.font = 'bold 16px Arial';
-            ctx.fillText('➖ SAÍDA', 50, rowY + 10);
+            ctx.fillStyle = '#ef4444'; ctx.font = 'bold 16px Arial'; ctx.fillText('➖ SAÍDA', 50, rowY + 10);
         }
 
-        // Data e Hora
         ctx.fillStyle = '#888888'; ctx.font = '12px Arial';
         const dateStr = new Date(tx.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' });
         ctx.fillText(dateStr, 50, rowY + 30);
 
-        // Descrição (No meio)
         ctx.fillStyle = '#ffffff'; ctx.font = 'bold 18px "InterCustom", Arial';
         const shortDesc = tx.description.length > 40 ? tx.description.substring(0, 38) + '...' : tx.description;
         ctx.fillText(shortDesc, 200, rowY + 20);
 
-        // Valor (À direita)
         ctx.textAlign = 'right';
         ctx.fillStyle = tx.type === 'IN' ? '#57F287' : '#ef4444';
         ctx.font = '900 22px "Arial Black", Arial';

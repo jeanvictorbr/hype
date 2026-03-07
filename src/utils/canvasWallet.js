@@ -32,7 +32,7 @@ async function generateWalletImage(userDiscord, userData) {
     ctx.fillStyle = topGlow; ctx.fillRect(0, 0, width, height);
 
     const bottomGlow = ctx.createRadialGradient(0, height, 0, 0, height, 500);
-    bottomGlow.addColorStop(0, 'rgba(0, 38, 255, 0.1)'); // Verde
+    bottomGlow.addColorStop(0, 'rgba(87, 242, 135, 0.10)'); // Verde
     bottomGlow.addColorStop(1, 'transparent');
     ctx.fillStyle = bottomGlow; ctx.fillRect(0, 0, width, height);
     ctx.globalCompositeOperation = 'source-over';
@@ -143,7 +143,7 @@ async function generateWalletImage(userDiscord, userData) {
     drawRoundRectPath(ctx, cardX + cardW - 100, cardY + 197, 70, 24, 6);
     ctx.fillStyle = 'rgba(6, 87, 3, 0.15)'; ctx.fill();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#00ff40'; ctx.font = 'bold 12px Arial';
+    ctx.fillStyle = '#0004ff'; ctx.font = 'bold 12px Arial';
     ctx.fillText('SEGURO', cardX + cardW - 65, cardY + 209);
 
     // 6. RODAPÉ

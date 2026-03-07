@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Tabela base da Guilda
+// Tabela sbase da Guilda
 model Guild {
   id              String   @id
   autoVoiceConfig AutoVoiceConfig?
@@ -50,9 +50,9 @@ model HypeUser {
   carteira   Int      @default(0) // 👈 ADICIONA ISTO: Dinheiro na mão
   createdAt     DateTime @default(now())
   // Cooldowns Sociais (Independentes)
-  extratoData Json?
   // Cooldowns de Jogos
   // Cores Customizadas do Perfil
+  extratoData      Json?
   customColor1 String?
   customColor2 String?
   customVipColor1 String?
