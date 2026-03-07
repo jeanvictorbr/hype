@@ -50,6 +50,7 @@ model HypeUser {
   carteira   Int      @default(0) // 👈 ADICIONA ISTO: Dinheiro na mão
   createdAt     DateTime @default(now())
   // Cooldowns Sociais (Independentes)
+  extratoData Json?
   // Cooldowns de Jogos
   // Cores Customizadas do Perfil
   customColor1 String?
