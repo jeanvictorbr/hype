@@ -549,11 +549,26 @@ module.exports = {
                     .setCustomId(`eco_shop_buy_${message.author.id}`)
                     .setPlaceholder('Escolha o item que deseja comprar...')
                     .addOptions(
-                        new StringSelectMenuOptionBuilder()
+new StringSelectMenuOptionBuilder()
                             .setLabel('Colete Balístico')
-                            .setDescription('R$ 150.000 - Imunidade a roubos')
+                            .setDescription('R$ 150.000 - Imunidade a roubos (Vai p/ Mochila)')
                             .setEmoji('🛡️')
-                            .setValue('colete')
+                            .setValue('colete'),
+                        new StringSelectMenuOptionBuilder()
+                            .setLabel('Pé de Cabra')
+                            .setDescription('R$ 50.000 - Buff de roubo (Vai p/ Mochila)')
+                            .setEmoji('🔨')
+                            .setValue('pecabra'),
+                        new StringSelectMenuOptionBuilder()
+                            .setLabel('Kit de Disfarce')
+                            .setDescription('R$ 30.000 - 50% de desconto em multas (Vai p/ Mochila)')
+                            .setEmoji('🎭')
+                            .setValue('disfarce'),
+                        new StringSelectMenuOptionBuilder() 
+                            .setLabel('Lanterna Tática')
+                            .setDescription('R$ 100.000 - Revela Bombas no Mines.')
+                            .setEmoji('🔦')
+                            .setValue('lanterna')
                     );
 
                 const row = new ActionRowBuilder().addComponents(select);
