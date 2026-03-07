@@ -105,7 +105,7 @@ module.exports = {
         // Se passou (esperou 5s ou é VIP 2+), atualiza o tempo do último uso na memória
         client.globalCooldowns.set(userId, Date.now());
         // ==========================================
-        // ==========================================
+// ==========================================
         // 🧾 COMANDO: hextrato / historico (Extrato Bancário)
         // ==========================================
         if (command === 'extrato' || command === 'historico') {
@@ -113,7 +113,6 @@ module.exports = {
             const { getTransactions } = require('../../../utils/extratoManager');
             
             const targetUser = message.mentions.users.first() || message.author;
-            // Se for ver o extrato de outro, só admin pode
             if (targetUser.id !== message.author.id && !message.member.permissions.has('Administrator')) {
                 return message.reply('❌╺╸O Sigilo Bancário não permite que veja o extrato de terceiros!');
             }
@@ -125,15 +124,42 @@ module.exports = {
                 const buffer = await generateExtratoImage(targetUser, data, 1, totalPages);
                 const attachment = new AttachmentBuilder(buffer, { name: 'extrato.png' });
 
-                const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId(`extrato_prev_${targetUser.id}_1`).setLabel('Página Anterior').setStyle(ButtonStyle.Primary).setEmoji('⬅️').setDisabled(true),
-                    new ButtonBuilder().setCustomId(`extrato_next_${targetUser.id}_1`).setLabel('Próxima Página').setStyle(ButtonStyle.Primary).setEmoji('➡️').setDisabled(totalPages <= 1)
-                );
+                const getRow = (page, total) => {
+                    return new ActionRowBuilder().addComponents(
+                        new ButtonBuilder().setCustomId(`extrato_prev_${targetUser.id}_1`).setLabel('Página Anterior').setStyle(ButtonStyle.Primary).setEmoji('⬅️').setDisabled(page <= 1),
+                        new ButtonBuilder().setCustomId(`extrato_next_${targetUser.id}_1`).setLabel('Próxima Página').setStyle(ButtonStyle.Primary).setEmoji('➡️').setDisabled(page >= total)
+                    );
+                };
 
-                await loadingMsg.edit({ content: '', files: [attachment], components: totalPages > 1 ? [row] : [] });
+                await loadingMsg.edit({ content: '', files: [attachment], components: totalPages > 1 ? [getRow(1, totalPages)] : [] });
+
+                if (totalPages > 1) {
+                    let currentExPage = 1;
+                    const collector = loadingMsg.createMessageComponentCollector({ time: 60000 });
+                    
+                    collector.on('collect', async i => {
+                        // Responde IMEDIATAMENTE ao discord para evitar o erro Unknown Interaction
+                        await i.deferUpdate().catch(() => {});
+
+                        if (i.user.id !== message.author.id) {
+                            return i.followUp({ content: '❌╺╸O extrato não é teu!', flags: [MessageFlags.Ephemeral] }).catch(()=>{});
+                        }
+
+                        if (i.customId.startsWith('extrato_prev') && currentExPage > 1) currentExPage--;
+                        if (i.customId.startsWith('extrato_next') && currentExPage < totalPages) currentExPage++;
+
+                        const { data: newData } = await getTransactions(targetUser.id, currentExPage, 6);
+                        const newBuffer = await generateExtratoImage(targetUser, newData, currentExPage, totalPages);
+                        const newAttachment = new AttachmentBuilder(newBuffer, { name: 'extrato.png' });
+
+                        await loadingMsg.edit({ content: '', files: [newAttachment], components: [getRow(currentExPage, totalPages)], attachments: [] }).catch(()=>{});
+                    });
+
+                    collector.on('end', () => { loadingMsg.edit({ components: [] }).catch(()=>{}); });
+                }
             } catch (e) {
                 console.log(e);
-                await loadingMsg.edit('❌ Falha ao imprimir o extrato.');
+                await loadingMsg.edit('❌ Falha ao imprimir o extrato.').catch(()=>{});
             }
             return;
         }
@@ -1668,7 +1694,7 @@ new StringSelectMenuOptionBuilder()
             await gameMessage.edit({ embeds: [embed], components: [], files: [attachment], attachments: [] }).catch(() => {});
         }
         
-        // ==========================================
+ // ==========================================
         // 🏆 COMANDOS: hrank / htop / hrankglobal
         // ==========================================
         if (command === 'rank' || command === 'top' || command === 'rankglobal') {
@@ -1678,32 +1704,25 @@ new StringSelectMenuOptionBuilder()
             
             const msg = await message.reply({ content: '⏳╺╸`**Lendo a lista de habitantes e desenhando a galeria de Magnatas...**`' });
 
-            // Se for global, busca top 30 geral. Se for local, busca os 500 mais ricos (depois a gente filtra quem tá no server)
             const allUsersRaw = await prisma.hypeUser.findMany({ 
                 where: { hypeCash: { gt: 0 } },
                 orderBy: { hypeCash: 'desc' }, 
                 take: isGlobal ? 30 : 500 
             });
 
-            let sortedUsers = allUsersRaw.map(u => ({
-                id: u.id,
-                total: u.hypeCash || 0 
-            }));
+            let sortedUsers = allUsersRaw.map(u => ({ id: u.id, total: u.hypeCash || 0 }));
 
             if (!isGlobal) {
-                try { await message.guild.members.fetch(); } catch (e) { console.log('Aviso ao puxar membros no Rank.'); }
-                // Filtra para mostrar apenas as pessoas que estão neste servidor
+                try { await message.guild.members.fetch(); } catch (e) {}
                 sortedUsers = sortedUsers.filter(u => message.guild.members.cache.has(u.id)).slice(0, 30);
             } else {
                 sortedUsers = sortedUsers.slice(0, 30);
             }
 
-            if (sortedUsers.length === 0) return msg.edit({ content: '❌ Ninguém tem moedas depositadas no banco por aqui ainda...' });
+            if (sortedUsers.length === 0) return msg.edit({ content: '❌ Ninguém tem moedas depositadas no banco por aqui ainda...' }).catch(()=>{});
 
             const chunks = [];
-            for (let i = 0; i < sortedUsers.length; i += 10) {
-                chunks.push(sortedUsers.slice(i, i + 10));
-            }
+            for (let i = 0; i < sortedUsers.length; i += 10) chunks.push(sortedUsers.slice(i, i + 10));
 
             let currentPage = 0;
             const rankTitle = isGlobal ? 'GLOBAL (Mundo)' : message.guild.name.toUpperCase();
@@ -1712,7 +1731,6 @@ new StringSelectMenuOptionBuilder()
                 const pageData = chunks[pageIndex];
                 const players = await Promise.all(pageData.map(async (u, idx) => {
                     const globalRank = (pageIndex * 10) + idx + 1;
-                    
                     let username = 'Membro Desconhecido';
                     let avatarBuffer = null;
                     try {
@@ -1724,7 +1742,6 @@ new StringSelectMenuOptionBuilder()
                             avatarBuffer = Buffer.from(res.data);
                         }
                     } catch(e) {}
-
                     return { rank: globalRank, username, score: u.total, avatarBuffer };
                 }));
 
@@ -1734,29 +1751,30 @@ new StringSelectMenuOptionBuilder()
 
             const getRow = (page) => {
                 return new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('rank_prev').setLabel('Anterior').setStyle(ButtonStyle.Primary).setEmoji('⬅️').setDisabled(page === 0),
-                    new ButtonBuilder().setCustomId('rank_next').setLabel('Próxima').setStyle(ButtonStyle.Primary).setEmoji('➡️').setDisabled(page === chunks.length - 1)
+                    new ButtonBuilder().setCustomId(`rank_prev_loc_${message.author.id}`).setLabel('Anterior').setStyle(ButtonStyle.Primary).setEmoji('⬅️').setDisabled(page === 0),
+                    new ButtonBuilder().setCustomId(`rank_next_loc_${message.author.id}`).setLabel('Próxima').setStyle(ButtonStyle.Primary).setEmoji('➡️').setDisabled(page === chunks.length - 1)
                 );
             };
 
             try {
                 const firstAttachment = await renderPage(0);
-                await msg.edit({ content: '', files: [firstAttachment], components: chunks.length > 1 ? [getRow(0)] : [] });
+                await msg.edit({ content: '', files: [firstAttachment], components: chunks.length > 1 ? [getRow(0)] : [] }).catch(()=>{});
 
                 if (chunks.length > 1) {
                     const collector = msg.createMessageComponentCollector({ time: 60000 });
                     collector.on('collect', async i => {
+                        // 👇 DEFER IMEDIATO PARA NÃO DAR UNKNOWN INTERACTION 👇
+                        await i.deferUpdate().catch(() => {});
+
                         if (i.user.id !== message.author.id) {
-                            return i.reply({ content: '❌╺╸**Você não pode trocar a página deste ranking.**', flags: [MessageFlags.Ephemeral] });
+                            return i.followUp({ content: '❌╺╸**Você não pode trocar a página deste ranking.**', flags: [MessageFlags.Ephemeral] }).catch(()=>{});
                         }
 
-                        if (i.customId === 'rank_prev' && currentPage > 0) currentPage--;
-                        if (i.customId === 'rank_next' && currentPage < chunks.length - 1) currentPage++;
+                        if (i.customId.startsWith('rank_prev') && currentPage > 0) currentPage--;
+                        if (i.customId.startsWith('rank_next') && currentPage < chunks.length - 1) currentPage++;
 
-                        await i.update({ content: '⏳╺╸`**Desenhando a nova página...**`', files: [], components: [] });
-                        
                         const newAttachment = await renderPage(currentPage);
-                        await msg.edit({ content: '', files: [newAttachment], components: [getRow(currentPage)] });
+                        await msg.edit({ content: '', files: [newAttachment], components: [getRow(currentPage)], attachments: [] }).catch(()=>{});
                     });
 
                     collector.on('end', () => { msg.edit({ components: [] }).catch(()=>{}); });
