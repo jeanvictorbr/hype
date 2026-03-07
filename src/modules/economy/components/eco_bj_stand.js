@@ -1,17 +1,6 @@
-const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder, EmbedBuilder } = require('discord.js');
+const { MessageFlags, AttachmentBuilder } = require('discord.js');
 const { prisma } = require('../../../core/database');
-const { generateBlackjackTable } = require('../../../utils/canvasBlackjack');
-
-function calculateScore(hand) {
-    let score = 0; let aces = 0;
-    for (let card of hand) {
-        if (['J', 'Q', 'K'].includes(card.value)) score += 10;
-        else if (card.value === 'A') { score += 11; aces += 1; }
-        else score += parseInt(card.value);
-    }
-    while (score > 21 && aces > 0) { score -= 10; aces -= 1; }
-    return score;
-}
+const { generateBlackjackTable, getHandScore } = require('../../../utils/canvasBlackjack');
 
 module.exports = {
     customIdPrefix: 'eco_bj_stand_',
@@ -26,40 +15,35 @@ module.exports = {
 
         await interaction.deferUpdate();
 
-        let dealerScore = calculateScore(game.dealerHand);
-        const playerScore = calculateScore(game.playerHand);
+        let dealerScore = getHandScore(game.dealerHand);
+        const playerScore = getHandScore(game.playerHand);
 
-        // O Agiota tem de comprar até chegar a 17 ou mais
+        // O Agiota compra cartas automáticas até ter 17 ou mais
         while (dealerScore < 17) {
             game.dealerHand.push(game.deck.pop());
-            dealerScore = calculateScore(game.dealerHand);
+            dealerScore = getHandScore(game.dealerHand);
         }
 
         client.activeBlackjack.delete(ownerId);
 
-        let resultMsg = '';
-        let color = '#2b2d31';
+        let gameState = '';
         let finalPrize = 0;
 
         if (dealerScore > 21) {
-            resultMsg = `**O Agiota estourou com ${dealerScore} pontos!**\nVocê ganhou!`;
-            color = '#57F287'; // Verde
+            gameState = 'dealer_busted';
             finalPrize = game.bet * 2; 
         } else if (playerScore > dealerScore) {
-            resultMsg = `**Você (${playerScore}) venceu o Agiota (${dealerScore})!**`;
-            color = '#57F287';
+            gameState = 'win';
             finalPrize = game.bet * 2;
         } else if (playerScore === dealerScore) {
-            resultMsg = `**Empate! Ambos fizeram ${playerScore} pontos.**\nO dinheiro foi devolvido.`;
-            color = '#FEE75C'; // Amarelo
+            gameState = 'tie';
             finalPrize = game.bet; 
         } else {
-            resultMsg = `**O Agiota (${dealerScore}) venceu você (${playerScore}).**`;
-            color = '#ED4245'; // Vermelho
+            gameState = 'lose';
             finalPrize = 0;
         }
 
-        // Paga na CARTEIRA (se houver prémio)
+        // Paga apenas na CARTEIRA (sem sistema de extrato)
         if (finalPrize > 0) {
             await prisma.hypeUser.update({
                 where: { id: ownerId },
@@ -67,20 +51,10 @@ module.exports = {
             });
         }
 
-        const imageBuffer = await generateBlackjackTable(game.playerHand, game.dealerHand, true);
-        const attachment = new AttachmentBuilder(imageBuffer, { name: 'table.png' });
+        // Gera a imagem final quadrada
+        const imageBuffer = await generateBlackjackTable(interaction.user, game.bet, game.playerHand, game.dealerHand, gameState, finalPrize);
+        const attachment = new AttachmentBuilder(imageBuffer, { name: 'blackjack.png' });
 
-        let receiptText = `**Aposta:** R$ ${game.bet.toLocaleString('pt-BR')}\n`;
-        if (finalPrize > game.bet) receiptText += `**Lucro:** 💰 +R$ ${(finalPrize - game.bet).toLocaleString('pt-BR')}`;
-        else if (finalPrize === game.bet) receiptText += `**Devolvido:** R$ ${game.bet.toLocaleString('pt-BR')}`;
-        else receiptText += `**Perdeu:** 💸 -R$ ${game.bet.toLocaleString('pt-BR')}`;
-
-        const embed = new EmbedBuilder()
-            .setColor(color)
-            .setTitle('🃏 FIM DE JOGO')
-            .setDescription(`<@${ownerId}>\n\n${resultMsg}\n\n${receiptText}`)
-            .setImage('attachment://table.png');
-
-        await interaction.editReply({ embeds: [embed], components: [], files: [attachment], attachments: [] });
+        await interaction.editReply({ content: `<@${ownerId}>`, embeds: [], components: [], files: [attachment], attachments: [] });
     }
 };

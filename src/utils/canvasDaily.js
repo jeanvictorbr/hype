@@ -1,7 +1,20 @@
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage, registerFont } = require('canvas');
 const path = require('path');
 
-// Função auxiliar para criar a moldura
+// Tenta registar uma fonte mais imponente
+try { registerFont(path.join(__dirname, 'Inter-Variable.ttf'), { family: 'InterCustom' }); } catch (e) {}
+
+// Converte HEX para RGBA
+function hexToRgba(hex, alpha) {
+    hex = hex.replace('#', '');
+    let r = 0, g = 0, b = 0;
+    if (hex.length === 6) {
+        r = parseInt(hex.substring(0,2), 16); g = parseInt(hex.substring(2,4), 16); b = parseInt(hex.substring(4,6), 16);
+    }
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Desenha cantos arredondados
 function drawRoundRectPath(ctx, x, y, w, h, radius) {
     ctx.beginPath(); ctx.moveTo(x + radius, y); ctx.lineTo(x + w - radius, y);
     ctx.quadraticCurveTo(x + w, y, x + w, y + radius); ctx.lineTo(x + w, y + h - radius);
@@ -10,197 +23,169 @@ function drawRoundRectPath(ctx, x, y, w, h, radius) {
     ctx.quadraticCurveTo(x, y, x + radius, y); ctx.closePath();
 }
 
-// Filtro de Cor para pintar a tua logo de forma dinâmica!
-function tintLogo(ctx, img, x, y, width, height, colorStr) {
-    const tempCanvas = createCanvas(width, height);
-    const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.drawImage(img, 0, 0, width, height);
-    tempCtx.globalCompositeOperation = 'source-in';
-    tempCtx.fillStyle = colorStr;
-    tempCtx.fillRect(0, 0, width, height);
-    ctx.drawImage(tempCanvas, x, y, width, height);
-}
-
-async function generateDailyImage(status, amount = 0, timeString = '') {
-    const width = 800;
-    const height = 400;
+async function generateRewardImage(userDiscord, rewardName, rewardAmount, vipMultiplier, themeColorHex) {
+    const width = 900; const height = 400; 
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Carrega a Logo Hype
-    let logoImg = null;
-    try {
-        const logoPath = path.join(__dirname, 'logo.png');
-        logoImg = await loadImage(logoPath);
-    } catch (e) {
-        console.error("Erro ao carregar logo.png para o Daily");
-    }
-
     // ==========================================
-    // 1. FUNDO PREMIUM (Ambiente Noturno / Cofre)
+    // 1. FUNDO PREMIUM HYPE
     // ==========================================
-    const bgGrad = ctx.createRadialGradient(width/2, height/2, 50, width/2, height/2, width);
-    
-    if (status === 'detonating') {
-        bgGrad.addColorStop(0, '#450a0a'); // Vermelho Fogo
-        bgGrad.addColorStop(1, '#050505');
-    } else if (status === 'success') {
-        bgGrad.addColorStop(0, '#064e3b'); // Verde Esmeralda
-        bgGrad.addColorStop(1, '#022c22');
-    } else if (status === 'robbing') {
-        bgGrad.addColorStop(0, '#0f172a'); // Azul Profundo
-        bgGrad.addColorStop(1, '#020617');
-    } else {
-        bgGrad.addColorStop(0, '#1e1e24'); // Cinza/Azul escuro
-        bgGrad.addColorStop(1, '#09090b');
-    }
-    ctx.fillStyle = bgGrad;
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, width, height);
 
-    // Grelha de Segurança
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.02)';
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < width; i += 30) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke(); }
-    for (let i = 0; i < height; i += 30) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke(); }
+    // Efeito Néon Cibernético
+    const glow = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width/1.1);
+    glow.addColorStop(0, hexToRgba(themeColorHex, 0.15)); 
+    glow.addColorStop(1, 'transparent');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, width, height);
 
-    // ==========================================
-    // 2. LOGO GIGANTE NO FUNDO (Marca D'água)
-    // ==========================================
-    if (logoImg) {
-        const logoW = 400; 
-        const logoH = logoW * (logoImg.height / logoImg.width);
-        ctx.save();
-        ctx.globalAlpha = status === 'success' ? 0.08 : 0.03; 
-        ctx.globalCompositeOperation = 'screen';
-        ctx.drawImage(logoImg, (width - logoW) / 2, (height - logoH) / 2, logoW, logoH);
-        ctx.restore();
+    // Grid Leve
+    ctx.lineWidth = 1;
+    for(let i = 0; i < height; i += 30) {
+        ctx.strokeStyle = `rgba(255, 255, 255, 0.01)`; 
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(width, i); ctx.stroke();
     }
 
     // ==========================================
-    // 3. EFEITOS E ÍCONES PRINCIPAIS POR ESTADO
+    // 2. MOLDURA PRINCIPAL (Filéti Neon)
     // ==========================================
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // Tamanho do ícone central (a logo)
-    const iconW = 100;
-    const iconH = logoImg ? iconW * (logoImg.height / logoImg.width) : 100;
-    const iconX = (width - iconW) / 2;
-    const iconY = height / 2 - 90; // Sobe o ícone para dar espaço ao texto
-
-    if (status === 'cooldown') {
-        // ÍCONE CENTRAL VERMELHO
-        if (logoImg) {
-            ctx.shadowColor = '#ED4245'; ctx.shadowBlur = 40;
-            tintLogo(ctx, logoImg, iconX, iconY, iconW, iconH, '#ED4245');
-            ctx.shadowBlur = 0;
-        }
-
-        ctx.fillStyle = '#ED4245';
-        ctx.font = '900 45px "Arial Black", sans-serif';
-        ctx.fillText('ÁREA ISOLADA', width / 2, height / 2 + 20);
-        
-        ctx.fillStyle = '#a1a1aa';
-        ctx.font = 'bold 24px Arial';
-        ctx.fillText(`Próximo carro-forte em: ${timeString}`, width / 2, height / 2 + 70);
-    } 
-    else if (status === 'robbing') {
-        // ÍCONE CENTRAL AZUL NÉON
-        if (logoImg) {
-            ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 40;
-            tintLogo(ctx, logoImg, iconX, iconY, iconW, iconH, '#3b82f6');
-            ctx.shadowBlur = 0;
-        }
-        
-        ctx.fillStyle = '#3b82f6'; 
-        ctx.font = '900 40px "Arial Black", sans-serif';
-        ctx.fillText('HACKEANDO BLINDAGEM...', width / 2, height / 2 + 20);
-        
-        // BARRA DE PROGRESSO
-        const barW = 400; const barH = 20;
-        const barX = (width - barW) / 2; const barY = height / 2 + 70;
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(barX, barY, barW, barH); 
-        ctx.fillStyle = '#3b82f6';
-        ctx.shadowColor = '#3b82f6'; ctx.shadowBlur = 15;
-        ctx.fillRect(barX, barY, barW * 0.45, barH); 
-        ctx.shadowBlur = 0;
-    }
-    else if (status === 'detonating') {
-        // Efeito de Flash Vermelho
-        ctx.save();
-        ctx.beginPath(); ctx.arc(width/2, height/2, 250, 0, Math.PI * 2);
-        const flashGrad = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, 250);
-        flashGrad.addColorStop(0, 'rgba(239, 68, 68, 0.4)');
-        flashGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
-        ctx.fillStyle = flashGrad; ctx.fill(); ctx.restore();
-
-        // ÍCONE CENTRAL LARANJA (A Tremer)
-        if (logoImg) {
-            ctx.save();
-            ctx.translate(width / 2, iconY + iconH / 2);
-            ctx.rotate(0.1); // Dá uma leve inclinada de explosão
-            ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 50;
-            tintLogo(ctx, logoImg, -iconW/2, -iconH/2, iconW, iconH, '#f59e0b');
-            ctx.restore();
-        }
-        
-        ctx.fillStyle = '#f59e0b'; // Laranja
-        ctx.font = '900 50px "Arial Black", sans-serif';
-        ctx.fillText('DETONANDO PORTAS!', width / 2, height / 2 + 40);
-        
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 26px Arial';
-        ctx.fillText('O cofre está prestes a ceder...', width / 2, height / 2 + 90);
-    }
-    else if (status === 'success') {
-        // ÍCONE CENTRAL VERDE ESMERALDA
-        if (logoImg) {
-            ctx.shadowColor = '#57F287'; ctx.shadowBlur = 50;
-            tintLogo(ctx, logoImg, iconX, iconY - 10, iconW, iconH, '#57F287');
-            ctx.shadowBlur = 0;
-        }
-        
-        // Texto de Lucro com Gradiente Dourado
-        const textGrad = ctx.createLinearGradient(0, height / 2 + 10, 0, height / 2 + 90);
-        textGrad.addColorStop(0, '#fef08a'); textGrad.addColorStop(1, '#eab308');
-        
-        ctx.fillStyle = textGrad;
-        ctx.font = '900 65px "Arial Black", sans-serif';
-        ctx.fillText(`+ R$ ${amount.toLocaleString('pt-BR')}`, width / 2, height / 2 + 35);
-        
-        ctx.fillStyle = '#a7f3d0';
-        ctx.font = 'bold 24px Arial';
-        ctx.fillText('FUGA SUCEDIDA! MALOTES GARANTIDOS.', width / 2, height / 2 + 100);
-    }
-
-    // ==========================================
-    // 4. MOLDURA CINEMÁTICA
-    // ==========================================
-    ctx.save();
-    const borderGrad = ctx.createLinearGradient(0, 0, width, height);
-    if (status === 'success') {
-        borderGrad.addColorStop(0, '#fde047'); borderGrad.addColorStop(1, '#ca8a04'); // Ouro
-    } else if (status === 'detonating') {
-        borderGrad.addColorStop(0, '#ef4444'); borderGrad.addColorStop(1, '#991b1b'); // Vermelho
-    } else if (status === 'robbing') {
-        borderGrad.addColorStop(0, '#38bdf8'); borderGrad.addColorStop(1, '#1d4ed8'); // Azul
-    } else {
-        borderGrad.addColorStop(0, '#3f3f46'); borderGrad.addColorStop(1, '#18181b'); // Policial
-    }
+    const containerX = 20; const containerY = 20;
+    const containerW = width - 40; const containerH = height - 40;
     
-    ctx.strokeStyle = borderGrad;
-    ctx.lineWidth = 14;
-    drawRoundRectPath(ctx, 7, 7, width - 14, height - 14, 15);
-    ctx.stroke();
+    ctx.fillStyle = '#0a0a0c'; 
+    drawRoundRectPath(ctx, containerX, containerY, containerW, containerH, 20);
+    ctx.fill();
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 2;
-    drawRoundRectPath(ctx, 16, 16, width - 32, height - 32, 10);
+    ctx.save();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = hexToRgba(themeColorHex, 0.8);
+    ctx.shadowColor = themeColorHex;
+    ctx.shadowBlur = 10;
+    drawRoundRectPath(ctx, containerX, containerY, containerW, containerH, 20);
     ctx.stroke();
     ctx.restore();
+
+    // ==========================================
+    // 3. CABEÇALHO DO BANCO HYPE
+    // ==========================================
+    const headerY = containerY + 35;
+    const paddingX = containerX + 40;
+
+    try {
+        const logo = await loadImage(path.join(__dirname, 'logo.png'));
+        const logoW = 60;
+        const logoH = logoW * (logo.height / logo.width);
+        
+        ctx.drawImage(logo, paddingX, headerY - (logoH/2), logoW, logoH);
+        
+        ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 22px "InterCustom", sans-serif';
+        ctx.fillText('BANCO HYPE', paddingX + logoW + 15, headerY);
+
+        ctx.fillStyle = '#aaaaaa'; ctx.font = '16px "InterCustom", sans-serif';
+        ctx.fillText('Comprovante de Depósito Digital', paddingX + logoW + 15, headerY + 22);
+
+    } catch (e) {
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 28px "InterCustom", sans-serif';
+        ctx.fillText('BANCO HYPE', paddingX, headerY);
+    }
+
+    // ==========================================
+    // 4. DETALHES DA TRANSAÇÃO (Esquerda)
+    // ==========================================
+    const contentY = headerY + 70; // 125
+    
+    ctx.fillStyle = '#aaaaaa'; ctx.font = 'bold 15px "InterCustom", sans-serif'; ctx.textAlign = 'left';
+    ctx.fillText('STATUS RECOMPENSA', paddingX, contentY);
+    ctx.fillText('DATA E HORA', paddingX, contentY + 60);
+    ctx.fillText('REF. TRANSAÇÃO', paddingX, contentY + 120);
+
+    const dateFormatted = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' });
+    const refId = `#SYNC${Math.floor(Date.now() / 1000).toString(16).toUpperCase()}`;
+
+    ctx.fillStyle = '#ffffff'; ctx.font = '900 24px Arial, sans-serif'; 
+    ctx.fillText(rewardName.toUpperCase(), paddingX, contentY + 30);
+    
+    ctx.fillStyle = '#ffffff'; ctx.font = '700 18px Arial, sans-serif';
+    ctx.fillText(dateFormatted, paddingX, contentY + 85);
+    ctx.fillText(refId, paddingX, contentY + 145);
+
+    // ==========================================
+    // 5. VALOR E TITULAR (Direita) - SUBIMOS AS INFOS AQUI 👇
+    // ==========================================
+    const rightStartX = 480; 
+    const rightContentY = contentY - 15; // Movemos todo o bloco para cima!
+
+    // Avatar do Jogador
+    const avatarSize = 80; // Reduzimos de 90 para 80 para caber melhor
+    const avatarX = rightStartX; 
+    const avatarY = rightContentY;
+
+    ctx.save();
+    ctx.beginPath(); ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+    ctx.closePath(); ctx.clip(); 
+
+    try {
+        const avatarImg = await loadImage(userDiscord.displayAvatarURL({ extension: 'png', size: 256 }));
+        ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
+    } catch(e) {}
+    ctx.restore();
+
+    ctx.save();
+    ctx.shadowColor = hexToRgba(themeColorHex, 0.8); ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+    ctx.lineWidth = 2; ctx.strokeStyle = themeColorHex; ctx.stroke();
+    ctx.restore();
+
+    // Nome e ID
+    const textStartX = avatarX + 100;
+    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.font = '800 24px "InterCustom", sans-serif';
+    let username = userDiscord.username.length > 15 ? userDiscord.username.substring(0, 15) + '...' : userDiscord.username;
+    ctx.fillText(`@${username}`, textStartX, avatarY + (avatarSize/2) - 12);
+
+    ctx.fillStyle = themeColorHex; ctx.font = 'bold 15px Arial, sans-serif';
+    ctx.fillText(`ID: ${userDiscord.id.substring(0, 10)}...`, textStartX, avatarY + (avatarSize/2) + 12);
+
+    // Valor (Puxado para cima e alinhado)
+    const valorY = avatarY + 110; 
+    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.font = 'bold 15px "InterCustom", sans-serif';
+    ctx.fillText('VALOR DISPONÍVEL NA CARTEIRA', rightStartX, valorY);
+
+    ctx.fillStyle = '#57F287'; 
+    ctx.font = '900 52px "Arial Black", Arial, sans-serif'; 
+    ctx.save();
+    ctx.shadowColor = 'rgba(87, 242, 135, 0.3)'; ctx.shadowBlur = 8;
+    ctx.fillText(`+ R$ ${rewardAmount.toLocaleString('pt-BR')}`, rightStartX, valorY + 45);
+    ctx.restore();
+
+    // ==========================================
+    // 6. BARRA VIP FOOTER (Sem Emojis Bugados)
+    // ==========================================
+    if (vipMultiplier > 1) {
+        const footerY = containerY + containerH - 60;
+        
+        ctx.save();
+        ctx.fillStyle = 'rgba(212, 175, 55, 0.08)';
+        drawRoundRectPath(ctx, containerX + 20, footerY, containerW - 40, 50, 10);
+        ctx.fill();
+
+        ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)'; ctx.stroke();
+
+
+        // Texto Limpo e Profissional
+        ctx.fillStyle = '#FEE75C'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 15px "InterCustom", Arial, sans-serif';
+        ctx.fillText(`BÔNUS VIP ( X${vipMultiplier} ) APLICADO AO VALOR DA TRANSAÇÃO`, width/2 + 10, footerY + 25);
+        ctx.restore();
+    } else {
+        const footerY = containerY + containerH - 45;
+        ctx.fillStyle = '#555555'; ctx.textAlign = 'center'; ctx.font = '14px "InterCustom", Arial, sans-serif';
+        ctx.fillText(`*(Adquira um Cartão VIP para multiplicar automaticamente as suas transações)*`, width/2, footerY);
+    }
 
     return canvas.toBuffer('image/png');
 }
 
-module.exports = { generateDailyImage };
+module.exports = { generateRewardImage };

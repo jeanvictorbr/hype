@@ -29,20 +29,21 @@ function drawHypeSolidBox(ctx, x, y, w, h, radius, glowColorHex) {
     ctx.fill();
 
     ctx.lineWidth = 1;
-    ctx.strokeStyle = hexToRgba(glowColorHex, 0.3); 
-    ctx.shadowColor = hexToRgba(glowColorHex, 0.5); 
-    ctx.shadowBlur = 12; 
+    ctx.strokeStyle = hexToRgba(glowColorHex, 0.7); 
+    ctx.shadowColor = hexToRgba(glowColorHex, 0.9); 
+    ctx.shadowBlur = 4; 
     ctx.shadowOffsetY = 0;
     ctx.stroke(); 
     ctx.restore();
 }
 
 async function generateProfileImage(userDiscord, userData, userRank) {
-    const width = 1100; const height = 550;
+    // 👇 A MÁGICA FOI AQUI: Cortei os espaços vazios da imagem
+    const width = 1040; const height = 490;
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    let vipColor = '#3b82f6'; 
+    let vipColor = '#1d4ed8'; // Azul Escuro para Membros Comuns
     let vipName = 'Membro Comum'; let isVip = false;
     
     if (userData.vipLevel >= 5) { vipColor = '#ef4444'; vipName = 'VIP SUPREME'; isVip = true; }
@@ -54,27 +55,30 @@ async function generateProfileImage(userDiscord, userData, userRank) {
     const color1 = userData.customColor1 || vipColor;
     const color2 = userData.customColor2 || color1;
 
-    const radialBg = ctx.createRadialGradient(width/2, height/2, 50, width/2, height/2, width/1.2); 
-    radialBg.addColorStop(0, hexToRgba(color2, 0.15)); 
+    const radialBg = ctx.createRadialGradient(width/2, height/2, 50, width/2, height/2, width); 
+    radialBg.addColorStop(0, hexToRgba(color2, 0.2)); 
     radialBg.addColorStop(1, '#020202'); 
     ctx.fillStyle = radialBg;
     ctx.fillRect(0, 0, width, height);
 
-    const containerX = 40; const containerY = 40;
+    // 👇 CAIXA PRETA AGORA COMEÇA COLADA NA BORDA (Deixando só 10px de fresta pro Neon)
+    const containerX = 10; const containerY = 10;
     const containerW = 1020; const containerH = 470; 
     
+    // Fundo do container
     ctx.save();
-    ctx.shadowColor = hexToRgba(color1, 0.4); 
-    ctx.shadowBlur = 50; 
-    ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-    
     ctx.fillStyle = '#0a0a0a';
     drawRoundRectPath(ctx, containerX, containerY, containerW, containerH, 20);
     ctx.fill();
     ctx.restore();
 
+    // Borda fina principal do cartão inteiro (O Filéti de Neon)
     ctx.save();
-    ctx.lineWidth = 1; ctx.strokeStyle = hexToRgba(color1, 0.2);
+    ctx.lineWidth = 1.5; 
+    ctx.strokeStyle = hexToRgba(color1, 0.8);
+    ctx.shadowColor = color1; 
+    ctx.shadowBlur = 8; // Brilha exatamente nos 10px de fresta que deixamos
+    ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
     drawRoundRectPath(ctx, containerX, containerY, containerW, containerH, 20);
     ctx.stroke();
     ctx.restore();
@@ -82,11 +86,12 @@ async function generateProfileImage(userDiscord, userData, userRank) {
     const contentX = containerX + 40; const contentY = containerY + 40;
     const avatarSize = 120; const avatarX = contentX; const avatarY = contentY;
 
+    // Avatar Borda
     ctx.save();
-    ctx.shadowColor = hexToRgba(color1, 0.8); 
-    ctx.shadowBlur = 25; 
+    ctx.shadowColor = hexToRgba(color1, 0.9); 
+    ctx.shadowBlur = 5; 
     ctx.beginPath(); ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
-    ctx.lineWidth = 3; ctx.strokeStyle = color1;
+    ctx.lineWidth = 1.5; ctx.strokeStyle = color1;
     ctx.stroke();
     ctx.restore();
 
@@ -115,8 +120,8 @@ async function generateProfileImage(userDiscord, userData, userRank) {
     ctx.save();
     ctx.fillStyle = isVip ? color1 : 'rgba(255,255,255,0.1)';
     if(isVip) { 
-        ctx.shadowColor = hexToRgba(color1, 0.8); 
-        ctx.shadowBlur = 15; 
+        ctx.shadowColor = color1; 
+        ctx.shadowBlur = 5; 
     }
     drawRoundRectPath(ctx, textStartX, badgeY, badgeW, badgeH, badgeRadius);
     ctx.fill();
@@ -126,21 +131,21 @@ async function generateProfileImage(userDiscord, userData, userRank) {
     ctx.fillText(vipName, textStartX + (badgeW/2), badgeY + (badgeH/2));
 
     // ==========================================
-    // 💳 ALINHAMENTO MILIMÉTRICO (CORRIGIDO)
+    // 💳 ALINHAMENTO MILIMÉTRICO DOS CARDS
     // ==========================================
     const statY = avatarY + 160; 
-    const boxW = 220; // 4x 220 = 880
-    const gap = 20;   // 3x 20 = 60 (Total exato: 940px)
-    const totalBoxWidth = (boxW * 4) + (gap * 3); // Dá 940px perfeitos
+    const boxW = 220; 
+    const gap = 20;   
+    const totalBoxWidth = (boxW * 4) + (gap * 3); 
 
     function drawHypeStatCard(x, label, value, valueColor) {
         drawHypeSolidBox(ctx, x, statY, boxW, 110, 15, color1); 
         
         ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-        ctx.fillStyle = '#888888'; ctx.font = '600 14px "InterCustom", sans-serif';
+        ctx.fillStyle = '#aaaaaa'; ctx.font = 'bold 15px "InterCustom", sans-serif';
         ctx.fillText(label, x + 25, statY + 25); 
         
-        ctx.fillStyle = valueColor; ctx.font = '700 24px "InterCustom", sans-serif'; // Diminuí 2px a fonte pra encaixar perfeito
+        ctx.fillStyle = valueColor; ctx.font = '700 24px "InterCustom", sans-serif'; 
         ctx.fillText(value, x + 25, statY + 50);
     }
 
@@ -150,19 +155,18 @@ async function generateProfileImage(userDiscord, userData, userRank) {
     drawHypeStatCard(contentX + (boxW*3) + (gap*3), 'CURTIDAS', `${userData.rep || 0} Curtidas`, '#ff4d4d');
 
     // ==========================================
-    // ✍️ CAIXA SOBRE MIM (AMARRADA AO TAMANHO EXATO)
+    // ✍️ CAIXA SOBRE MIM 
     // ==========================================
     const bioY = statY + gap + 110; 
     const bioH = 100;
     
-    // A caixa bio agora usa o tamanho matematicamente exato das de cima (totalBoxWidth)
     drawHypeSolidBox(ctx, contentX, bioY, totalBoxWidth, bioH, 15, color1);
 
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillStyle = '#888888'; ctx.font = '600 14px "InterCustom", sans-serif';
+    ctx.fillStyle = '#aaaaaa'; ctx.font = 'bold 15px "InterCustom", sans-serif';
     ctx.fillText('SOBRE MIM', contentX + 25, bioY + 20);
 
-    ctx.fillStyle = '#cccccc'; ctx.font = 'italic 18px "InterCustom", sans-serif'; 
+    ctx.fillStyle = '#cccccc'; ctx.font = '18px "InterCustom", sans-serif'; 
     const bioText = userData.bio || "Hype no Topo! Use os botões abaixo para editar esta biografia.";
     
     if (ctx.measureText(`"${bioText}"`).width > (totalBoxWidth - 50)) {

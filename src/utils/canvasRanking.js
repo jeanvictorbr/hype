@@ -30,33 +30,28 @@ async function generateRankingImage(players, page, totalPages, guildName) {
     // 2. CABEÇALHO (LOGO + TÍTULO)
     // ==========================================
     ctx.fillStyle = '#ffffff'; 
-    ctx.font = '900 40px "Arial Black", sans-serif'; // Fonte um pouco menor para caber perfeito com a logo
+    ctx.font = '900 40px "Arial Black", sans-serif'; 
     ctx.textBaseline = 'middle';
     
     const titleText = 'RANKING DO(A)S MAGNATAS';
     const textWidth = ctx.measureText(titleText).width;
 
     try {
-        // Puxa a logo da Hype
         const logo = await loadImage(path.join(__dirname, 'logo.png'));
         const logoWidth = 55;
         const logoHeight = logoWidth * (logo.height / logo.width);
         
-        // Calcula o centro combinando o tamanho da Logo + Espaço + Texto
         const totalWidth = logoWidth + 20 + textWidth;
         const startX = (width - totalWidth) / 2;
 
-        // Desenha a Logo
         ctx.drawImage(logo, startX, 50 - (logoHeight / 2), logoWidth, logoHeight);
         
-        // Desenha o Texto logo a seguir
         ctx.textAlign = 'left';
         ctx.shadowColor = '#ffffff'; ctx.shadowBlur = 15;
         ctx.fillText(titleText, startX + logoWidth + 20, 50);
         ctx.shadowBlur = 0;
 
     } catch (e) {
-        // Se por acaso a logo não carregar, desenha só o texto centralizado
         ctx.textAlign = 'center';
         ctx.shadowColor = '#0000FF'; ctx.shadowBlur = 15;
         ctx.fillText(titleText, width/2, 50);
@@ -82,7 +77,7 @@ async function generateRankingImage(players, page, totalPages, guildName) {
                         isTop2 ? 'rgba(161, 161, 170, 0.15)' : 
                         isTop3 ? 'rgba(180, 83, 9, 0.15)' : 'rgba(255, 255, 255, 0.03)';
         
-        const strokeColor = isTop1 ? '#eeff00' : isTop2 ? '#d4d4d8' : isTop3 ? '#b45309' : '#333333';
+        const strokeColor = isTop1 ? '#f59e0b' : isTop2 ? '#d4d4d8' : isTop3 ? '#b45309' : '#333333';
 
         ctx.save();
         ctx.fillStyle = bgColor;
@@ -111,9 +106,9 @@ async function generateRankingImage(players, page, totalPages, guildName) {
         }
 
         // Nome
-        ctx.fillStyle = isTop1 ? '#0000FF' : '#ffffff';
+        ctx.fillStyle = isTop1 ? '#fbbf24' : '#ffffff'; // Ouro brilhante no Top 1
         ctx.textAlign = 'left';
-        ctx.font = isTop1 ? 'bold 22px Arial' : 'bold 20px Arial';
+        ctx.font = isTop1 ? '900 22px Arial' : 'bold 20px Arial';
         let name = p.username.length > 18 ? p.username.substring(0, 18) + '...' : p.username;
         ctx.fillText(name, 180, startY + 28);
 

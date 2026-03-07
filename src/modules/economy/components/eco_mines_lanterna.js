@@ -1,7 +1,6 @@
 const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ContainerBuilder, TextDisplayBuilder, SeparatorBuilder } = require('discord.js');
 const { prisma } = require('../../../core/database');
 
-// Função de cálculo de multiplicador para manter o status atualizado
 function getMultiplier(hits, total = 20, bombs = 3) {
     let m = 1.0;
     for (let i = 0; i < hits; i++) m *= (total - i) / (total - bombs - i);
@@ -29,20 +28,26 @@ module.exports = {
             return interaction.reply({ content: '❌ Você não tem Lanternas Táticas na mochila!', flags: [MessageFlags.Ephemeral] });
         }
 
-        // --- LÓGICA DA VARREDURA ---
-        // Pega as casas que AINDA NÃO FORAM clicadas
-        let indicesDisponiveis = [];
-        for(let i=0; i<20; i++){
-            if(!game.clicked.includes(i)) indicesDisponiveis.push(i);
+        // --- LÓGICA DO DETECTOR DE BOMBAS ---
+        // 1. Encontra todas as bombas que ainda NÃO foram clicadas
+        let unclickedBombs = [];
+        for(let i = 0; i < 20; i++){
+            if(!game.clicked.includes(i) && game.grid[i] === 'bomb') {
+                unclickedBombs.push(i);
+            }
         }
         
-        let reveal = [];
-        for (let i = 0; i < 3 && indicesDisponiveis.length > 0; i++) {
-            const rand = Math.floor(Math.random() * indicesDisponiveis.length);
-            reveal.push(indicesDisponiveis.splice(rand, 1)[0]);
+        // 2. Define quantas bombas revelar (1 garantida. 25% de chance de revelar 2 se houverem)
+        let numToReveal = 1;
+        if (unclickedBombs.length >= 2 && Math.random() < 0.25) {
+            numToReveal = 2;
         }
 
-        game.scanned = reveal; // Guarda os 3 índices revelados
+        // 3. Sorteia as bombas
+        unclickedBombs = unclickedBombs.sort(() => Math.random() - 0.5);
+        let reveal = unclickedBombs.slice(0, numToReveal);
+
+        game.scanned = reveal; // Guarda os índices das bombas reveladas
         client.activeMines.set(userId, game);
 
         // Consome 1 item da mochila
@@ -52,13 +57,12 @@ module.exports = {
         });
 
         // ========================================================
-        // RECONSTRUÇÃO VISUAL COMPLETA (MANTÉM O GAME INTACTO)
+        // RECONSTRUÇÃO VISUAL DO TABULEIRO
         // ========================================================
         
         const currentMultiplier = getMultiplier(game.hits);
         const currentProfit = game.hits === 0 ? 0 : Math.floor(game.bet * currentMultiplier);
 
-        // 1. Recria a parte de cima (Textos e Stats)
         const header = new TextDisplayBuilder().setContent(`# 💣 MINES HYPE\nO campo minado de <@${userId}> continua!`);
         const stats = new TextDisplayBuilder().setContent(`**Aposta:** R$ ${game.bet.toLocaleString('pt-BR')}\n**Multiplicador:** ${currentMultiplier.toFixed(2)}x\n**Lucro Atual:** R$ ${currentProfit.toLocaleString('pt-BR')}`);
 
@@ -68,7 +72,6 @@ module.exports = {
             .addSeparatorComponents(new SeparatorBuilder())
             .addTextDisplayComponents(stats);
 
-        // 2. Recria os quadrados com as cores da lanterna
         const rows = [];
         for (let r = 0; r < 4; r++) {
             const row = new ActionRowBuilder();
@@ -76,13 +79,16 @@ module.exports = {
                 const idx = r * 5 + c;
                 let style = ButtonStyle.Secondary;
                 let emoji = '🔲';
+                let isDisabled = false;
 
                 if (game.clicked.includes(idx)) {
                     style = ButtonStyle.Success;
                     emoji = '💎';
+                    isDisabled = true;
                 } else if (reveal.includes(idx)) {
-                    style = ButtonStyle.Primary;
-                    emoji = game.grid[idx] === 'bomb' ? '⚠️' : '💎'; // Avisa o que tem lá dentro
+                    style = ButtonStyle.Danger; // Fica VERMELHO para alertar o perigo máximo
+                    emoji = '⚠️'; 
+                    isDisabled = true; // Bloqueia o clique, pois é morte na certa
                 }
 
                 row.addComponents(
@@ -90,30 +96,34 @@ module.exports = {
                         .setCustomId(`eco_mines_click_${idx}_${userId}`)
                         .setStyle(style)
                         .setEmoji(emoji)
-                        .setDisabled(game.clicked.includes(idx)) // Só desativa os que já foram clicados
+                        .setDisabled(isDisabled)
                 );
             }
             rows.push(row);
         }
 
-        // 3. Recria a linha de botões de controle
         const actionRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId(`eco_mines_cashout_${userId}`)
                 .setLabel(`💰 Retirar Lucro (R$ ${currentProfit.toLocaleString('pt-BR')})`)
                 .setStyle(ButtonStyle.Success)
-                .setDisabled(game.hits === 0),
+                .setDisabled(game.hits === 0), 
             new ButtonBuilder()
                 .setCustomId(`eco_mines_lanterna_done`)
-                .setLabel('VARREDURA FEITA')
+                .setLabel('RASTREAMENTO FEITO')
                 .setEmoji('🔦')
                 .setStyle(ButtonStyle.Primary)
                 .setDisabled(true)
         );
         rows.push(actionRow);
 
-        // Atualiza a mensagem com a flag V2 para não quebrar a interface!
         await interaction.update({ components: [container, ...rows], flags: [MessageFlags.IsComponentsV2] });
-        await interaction.followUp({ content: '🔦╺╸**VARREDURA CONCLUÍDA!** Verifique os ícones em azul no campo de minas.', flags: [MessageFlags.Ephemeral] });
+        
+        // --- TEXTO DINÂMICO PARA EXPLICAR O RESULTADO ---
+        let feedbackMessage = numToReveal === 2 
+            ? '🔦╺╸**SORTE GRANDE!** A sua Lanterna rastreou **2 BOMBAS**! Elas foram marcadas em vermelho com `⚠️`. Desvie delas e clique nas seguras!'
+            : '🔦╺╸**RASTREAMENTO CONCLUÍDO!** A sua Lanterna detectou **1 BOMBA**! Ela foi marcada em vermelho com `⚠️`. Desvie dela com cuidado!';
+
+        await interaction.followUp({ content: feedbackMessage, flags: [MessageFlags.Ephemeral] });
     }
 };

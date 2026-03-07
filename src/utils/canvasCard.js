@@ -15,7 +15,6 @@ function drawRoundRect(ctx, x, y, width, height, radius) {
     ctx.closePath();
 }
 
-// Converte HEX para RGB para podermos fazer sombras mais escuras
 function hexToRgb(hex) {
     let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
     hex = hex.replace(shorthandRegex, function(m, r, g, b) {
@@ -25,7 +24,6 @@ function hexToRgb(hex) {
     return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
 }
 
-// 👇 ADICIONAMOS customColor1 E customColor2 NOS PARÂMETROS 👇
 async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip, txtValidade, customColor1, customColor2) {
     const width = 800;
     const height = 480; 
@@ -33,35 +31,32 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
     const ctx = canvas.getContext('2d');
 
     // =========================================================
-    // 1. MOTOR DE TEMAS (OS 5 NÍVEIS VIP + CORES CUSTOMIZADAS)
+    // 1. MOTOR DE TEMAS (TEXTOS BRANCOS E CHIP DOURADO FIXOS)
     // =========================================================
     let isColorful = false;
     let theme = {
         bgDark: '#090a0c', bgLight: '#1a1d24', 
-        accent: '#5865F2', text: '#ffffff', subtext: 'rgba(255, 255, 255, 0.5)',
-        chipBg: '#D4AF37', chipLines: '#997a00' 
+        subtext: 'rgba(255, 255, 255, 0.7)'
     };
 
     if (vipRealLevel >= 5) {
-        theme = { bgDark: '#050505', bgLight: '#240000', accent: '#ED4245', text: '#ffffff', subtext: 'rgba(255, 255, 255, 0.6)', chipBg: '#ED4245', chipLines: '#8a0606' };
+        theme.bgDark = '#050505'; theme.bgLight = '#240000';
     } else if (vipRealLevel === 4) {
-        theme = { bgDark: '#050505', bgLight: '#1f1905', accent: '#FEE75C', text: '#ffffff', subtext: 'rgba(255, 255, 255, 0.6)', chipBg: '#D4AF37', chipLines: '#997a00' };
+        theme.bgDark = '#050505'; theme.bgLight = '#1f1905';
     } else if (vipRealLevel === 3) {
         isColorful = true;
-        theme = { bgDark: '#000000', bgLight: '#ffffff', accent: '#ffffff', text: '#ffffff', subtext: 'rgba(255, 255, 255, 0.8)', chipBg: '#ffffff', chipLines: '#333333' };
+        theme.bgDark = '#000000'; theme.bgLight = '#ffffff';
     } else if (vipRealLevel === 2) {
-        theme = { bgDark: '#050505', bgLight: '#b0b0b0', accent: '#ffffff', text: '#ffffff', subtext: 'rgba(255, 255, 255, 0.8)', chipBg: '#ffffff', chipLines: '#000000' };
+        theme.bgDark = '#050505'; theme.bgLight = '#b0b0b0';
     } else if (vipRealLevel === 1) {
-        theme = { bgDark: '#b81267', bgLight: '#ff85cd', accent: '#ffffff', text: '#ffffff', subtext: 'rgba(255, 255, 255, 0.8)', chipBg: '#ffffff', chipLines: '#d44297' };
+        theme.bgDark = '#b81267'; theme.bgLight = '#ff85cd';
     }
 
-    // 🔥 A MAGIA ACONTECE AQUI: SE TIVER COR CUSTOMIZADA, SOBRESCREVE O PADRÃO! 🔥
+    // 🔥 ISOLAMENTO DA COR: O botão muda APENAS o fundo agora 🔥
     if (customColor1) {
-        isColorful = false; // Desliga o holográfico do VIP 3 se o cara escolheu uma cor
-        theme.accent = customColor1; // A cor principal que ele escolheu
-        theme.bgLight = customColor2 || customColor1; // A cor de fundo secundária
+        isColorful = false; 
+        theme.bgLight = customColor2 || customColor1; 
         
-        // Se ele escolheu uma cor, criamos uma versão mais escura para o bgDark
         let rgb = hexToRgb(customColor1);
         if (rgb) {
             theme.bgDark = `rgb(${Math.max(0, rgb.r - 80)}, ${Math.max(0, rgb.g - 80)}, ${Math.max(0, rgb.b - 80)})`;
@@ -88,23 +83,24 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
     }
     
     ctx.fillStyle = bgGradient;
-    ctx.fillRect(0,0,width,height); // Corrigido para garantir que o fundo é preenchido
+    ctx.fillRect(0,0,width,height); 
 
+    // Polígono de Luxo
     ctx.beginPath();
     ctx.moveTo(-100, height * 0.3); ctx.lineTo(width, height * 0.8);
     ctx.lineTo(width, height + 100); ctx.lineTo(-100, height + 100);
-    ctx.fillStyle = (vipRealLevel === 2 && !customColor1) ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
     ctx.fill();
 
     // =========================================================
-    // 3. CHIP EMV E CONTACTLESS
+    // 3. CHIP EMV E CONTACTLESS (FIXADO NO AMARELO)
     // =========================================================
     const chipX = 50; const chipY = 70;
     
-    ctx.fillStyle = theme.chipBg;
+    ctx.fillStyle = '#D4AF37'; // Ouro fixo
     drawRoundRect(ctx, chipX, chipY, 75, 55, 8);
     ctx.fill();
-    ctx.strokeStyle = theme.chipLines;
+    ctx.strokeStyle = '#997a00'; // Linhas do Ouro
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(chipX, chipY + 20); ctx.lineTo(chipX + 25, chipY + 20);
@@ -115,7 +111,7 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
     ctx.moveTo(chipX + 50, chipY); ctx.lineTo(chipX + 50, chipY + 55);
     ctx.stroke();
 
-    ctx.strokeStyle = theme.text;
+    ctx.strokeStyle = '#ffffff';
     ctx.globalAlpha = 0.6; ctx.lineWidth = 4; ctx.lineCap = 'round';
     for (let i = 1; i <= 3; i++) {
         ctx.beginPath(); ctx.arc(chipX + 115, chipY + 27, i * 10, -0.7, 0.7); ctx.stroke();
@@ -123,16 +119,17 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
     ctx.globalAlpha = 1.0;
 
     // =========================================================
-    // 4. STATUS VIP (Topo Direito)
+    // 4. STATUS VIP (Topo Direito) - BRANCO COM NEON CLEAN
     // =========================================================
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 4; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
+    // Efeito Neon Fino
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+    ctx.shadowBlur = 6; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
     ctx.textAlign = 'right'; ctx.fillStyle = theme.subtext;
     ctx.font = 'bold 15px Arial, sans-serif';
     ctx.fillText('STATUS HYPE', width - 40, 50);
 
-    ctx.fillStyle = theme.accent;
+    ctx.fillStyle = '#ffffff'; // Letra sempre Branca
     let vipFont = 28;
     ctx.font = `900 ${vipFont}px Arial, sans-serif`;
     const cleanVipName = txtVip.replace(/[⭐🥇🥈🥉⚠️]/g, '').trim().toUpperCase();
@@ -147,24 +144,24 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
         const cleanValidade = txtValidade.replace(/[\(\)*]/g, '').trim();
         ctx.fillText(cleanValidade, width - 40, 110);
     }
-    ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    ctx.shadowBlur = 0;
 
     // =========================================================
-    // 5. NÚMERO DO CARTÃO (Alto Relevo)
+    // 5. NÚMERO DO CARTÃO - ALTO RELEVO E NEON
     // =========================================================
-    ctx.textAlign = 'left'; ctx.fillStyle = theme.text;
+    ctx.textAlign = 'left'; ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 50px "Courier New", monospace';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; ctx.shadowBlur = 4; ctx.shadowOffsetX = 3; ctx.shadowOffsetY = 3;
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.4)'; ctx.shadowBlur = 8; 
     const displayCardNumber = cardNumber.replace(/-/g, '  '); 
     ctx.fillText(displayCardNumber, 50, height / 2 + 30);
-    ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0; 
+    ctx.shadowBlur = 0; 
 
     // =========================================================
-    // 6. RÓTULOS INFERIORES E ÍCONE HC
+    // 6. RÓTULOS INFERIORES E SALDO 
     // =========================================================
     const bottomLabelY = height - 105; const bottomTextY = height - 55; const startX = 50;
 
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 1; ctx.shadowOffsetX = 1;
+    ctx.shadowColor = 'rgba(255, 255, 255, 0.3)'; ctx.shadowBlur = 4;
 
     ctx.fillStyle = theme.subtext; ctx.font = 'bold 15px Arial, sans-serif';
     ctx.fillText('SALDO DISPONÍVEL', startX, bottomLabelY);
@@ -178,12 +175,12 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
         iconWidth = iconHeight * (hcIcon.width / hcIcon.height);
         ctx.drawImage(hcIcon, startX, bottomTextY - iconHeight + 4, iconWidth, iconHeight);
     } catch (e) {
-        ctx.fillStyle = theme.accent; ctx.font = `900 40px Arial, sans-serif`;
+        ctx.fillStyle = '#ffffff'; ctx.font = `900 40px Arial, sans-serif`;
         ctx.fillText('HC', startX, bottomTextY);
         iconWidth = ctx.measureText('HC').width;
     }
 
-    ctx.fillStyle = theme.accent;
+    ctx.fillStyle = '#ffffff'; // Saldo Branco Neon
     let balanceFont = 40; ctx.font = `900 ${balanceFont}px Arial, sans-serif`;
     let balanceText = `${balance}`;
     while (ctx.measureText(balanceText).width > (260 - iconWidth - padding) && balanceFont > 20) {
@@ -191,7 +188,7 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
     }
     ctx.fillText(balanceText, startX + iconWidth + padding, bottomTextY);
 
-    ctx.fillStyle = theme.text;
+    ctx.fillStyle = '#ffffff'; // Nome Branco Neon
     let nameFont = 28; ctx.font = `bold ${nameFont}px Arial, sans-serif`;
     let nameText = user.username.toUpperCase();
     while (ctx.measureText(nameText).width > 200 && nameFont > 16) {
@@ -199,7 +196,7 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
     }
     ctx.fillText(nameText, 330, bottomTextY);
 
-    ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    ctx.shadowBlur = 0;
 
     // =========================================================
     // 7. A BANDEIRA DO CARTÃO
@@ -211,10 +208,10 @@ async function generateHypeCard(user, cardNumber, balance, vipRealLevel, txtVip,
         const logoX = width - logoWidth - 40; const logoY = height - logoHeight - 35;
 
         ctx.fillStyle = theme.subtext; ctx.font = 'bold 11px Arial, sans-serif'; ctx.textAlign = 'right';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; ctx.shadowBlur = 2;
         ctx.fillText('NETWORK', width - 40, logoY - 10);
 
-        ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 10; ctx.shadowOffsetY = 5;
+        // Neon atrás da logo
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.4)'; ctx.shadowBlur = 10;
         ctx.drawImage(logo, logoX, logoY, logoWidth, logoHeight);
     } catch (e) {}
 

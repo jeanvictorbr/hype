@@ -43,7 +43,7 @@ async function generateShopCatalog() {
     await drawItem('COLETE BALÍSTICO', 150000, 'Proteção total contra assaltos (15min).', 120, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/armor.png');
     await drawItem('PÉ DE CABRA', 50000, 'Aumenta em 15% chance de roubo (15min).', 260, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/weapon_crowbar.png');
     await drawItem('KIT DISFARCE', 30000, 'Corta 50% do valor de 3 multas.', 400, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/id_card.png');
-    await drawItem('LANTERNA TÁTICA', 1000000, 'Revela 3 casas no Mines antes de clicar.', 540, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/weapon_flashlight.png');
+    await drawItem('LANTERNA TÁTICA', 100000, 'Revela Bombas no Mines.', 540, 'https://raw.githubusercontent.com/qbcore-framework/qb-inventory/main/html/images/weapon_flashlight.png');
 
     // 👇 AVISO POSICIONADO MAIS ABAIXO (y: 740) PARA NÃO COBRIR O ÚLTIMO ITEM 👇
     ctx.fillStyle = 'rgba(239, 68, 68, 0.1)'; ctx.fillRect(10, 740, canvas.width - 20, 140);

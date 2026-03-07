@@ -167,7 +167,7 @@ if (command === 'mines') {
             .setDisabled(true),
         new ButtonBuilder()
             .setCustomId(`eco_mines_lanterna_${userId}`)
-            .setLabel('REVELAR (3)')
+            .setLabel('REVELAR')
             .setEmoji('🔦')
             .setStyle(ButtonStyle.Primary)
             .setDisabled(userProfile.invLanternas <= 0) // Só habilita se ele tiver o item
@@ -306,7 +306,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYngwbjU1ODdrcGl3bzBnaDc5NzBoZHdpeTAzaXY3M2o2ODFub3MxcyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/arbHBoiUWUgmc/giphy.gif'
             ],
             cafune: [
-                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExeGpvdmVlNnJ0amp1d2o5eG44ZmoxOTVuZ2dvYnU3bmUwdDJyeDM4MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/SPCwSrGf9kVt6/giphy.gif',
+                'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOGphMXE4OGVjZWJmaTdkczNjODRyMzUzOXZzYTcxd2Jsaml2cXFxdSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/C93VmkaYCdRUGie1uG/giphy.gif',
                 'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3OWRrb2t6M2F0NjJpZjNxNDkweWxjMGs5eDFsdnlrdTJqYmFqNWswNyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/NB0MtUxFyMmRi/giphy.gif'
             ]
         };
@@ -402,10 +402,10 @@ await trackContract(dono.id, 'play_roleta', 1);
 
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
             const attachment = new AttachmentBuilder(randomGif, { name: 'animacao.gif' });
-            let extraMsg = vipLevel > 0 ? `\n💎╺╸**Bónus VIP** Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
+            let extraMsg = vipLevel > 0 ? `\n💎╺╸**Bónus VIP** Nível ${vipLevel}: \`x${vipMultiplier}\` Aplicado!` : '';
 
             return message.reply({ 
-                content: `${action.emoji} | <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:** R$ ${rewardAmount.toLocaleString('pt-BR')} (Caiu na tua Carteira!)${extraMsg}`, 
+                content: `${action.emoji} ╺╸ <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:** R$ ${rewardAmount.toLocaleString('pt-BR')} (Caiu na tua Carteira!)${extraMsg}`, 
                 files: [attachment] 
             });
         }
@@ -492,7 +492,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                             .setValue('disfarce'),
                             new StringSelectMenuOptionBuilder() // 👇 NOVA OPÇÃO AQUI
             .setLabel('Lanterna Tática')
-            .setDescription('R$ 1.000.000 - Revela casas no Mines.')
+            .setDescription('R$ 100.000 - Revela Bombas no Mines.')
             .setEmoji('🔦')
             .setValue('lanterna')
     
@@ -1334,10 +1334,14 @@ await trackContract(dono.id, 'play_roleta', 1);
             return;
         }
         
-        // ==========================================
+// ==========================================
         // 💰 COMANDOS: hdiario / hsemanal / hmensal
         // ==========================================
         if (command === 'diario' || command === 'semanal' || command === 'mensal') {
+            const { AttachmentBuilder } = require('discord.js');
+            const { generateRewardImage } = require('../../../utils/canvasDaily');
+
+
             const userId = message.author.id;
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             
@@ -1352,19 +1356,19 @@ await trackContract(dono.id, 'play_roleta', 1);
                 columnString = 'lastDaily';
                 nomePremio = 'Salário Diário';
                 baseAmount = Math.floor(Math.random() * (25000 - 10000 + 1)) + 10000; 
-                embedColor = '#3498db';
+                embedColor = '#3b82f6'; // Azul Neon
             } else if (command === 'semanal') {
                 cooldownTime = 7 * 24 * 60 * 60 * 1000;
                 columnString = 'lastSemanal';
                 nomePremio = 'Salário Semanal';
                 baseAmount = Math.floor(Math.random() * (100000 - 50000 + 1)) + 50000; 
-                embedColor = '#57F287';
+                embedColor = '#10b981'; // Verde Neon
             } else if (command === 'mensal') {
                 cooldownTime = 30 * 24 * 60 * 60 * 1000;
                 columnString = 'lastMensal';
                 nomePremio = 'Salário Mensal';
                 baseAmount = Math.floor(Math.random() * (350000 - 200000 + 1)) + 200000; 
-                embedColor = '#FEE75C';
+                embedColor = '#f59e0b'; // Dourado Neon
             }
 
             if (userProfile && userProfile[columnString]) {
@@ -1373,7 +1377,7 @@ await trackContract(dono.id, 'play_roleta', 1);
 
                 if (now - lastTime < cooldownTime) {
                     const expireUnix = Math.floor((lastTime + cooldownTime) / 1000);
-                    return message.reply(`⏳╺╸**Calma lá, magnata!** Já recolheste o teu ${nomePremio}.\nPodes recolher de novo <t:${expireUnix}:R>.`);
+                    return message.reply(`⏳╺╸**Calma lá, magnata!** Já recolheu o seu ${nomePremio}.\nPode voltar a receber <t:${expireUnix}:R>.`);
                 }
             }
 
@@ -1383,8 +1387,8 @@ await trackContract(dono.id, 'play_roleta', 1);
             if (vipLevel === 1) vipMultiplier = 1.5;
             else if (vipLevel === 2) vipMultiplier = 2.0;
             else if (vipLevel === 3) vipMultiplier = 3.0;
-            else if (vipLevel >= 4) vipMultiplier = 5.0;
-             else if (vipLevel >= 5) vipMultiplier = 6.0;
+            else if (vipLevel === 4) vipMultiplier = 5.0;
+            else if (vipLevel >= 5) vipMultiplier = 6.0;
 
             const rewardAmount = Math.floor(baseAmount * vipMultiplier);
 
@@ -1399,15 +1403,17 @@ await trackContract(dono.id, 'play_roleta', 1);
                 create: createData
             });
 
-            let extraMsg = vipLevel > 0 ? `\n\n💎╺╸**Bónus VIP** Nível ${vipLevel}:** \`x${vipMultiplier}\` Aplicado!` : '';
+            // Regista a entrada de dinheiro no Extrato Bancário dele
+            //await addTransaction(userId, 'IN', rewardAmount, `Depósito de ${nomePremio}`);
 
-            const embed = new EmbedBuilder()
-                .setColor(embedColor)
-                .setTitle(`💰 ${nomePremio} Recolhido!`)
-                .setDescription(`Foi ao banco e levou a tua grana!\n\n💸 **Valor recebido:** R$ ${rewardAmount.toLocaleString('pt-BR')}${extraMsg}\n\n*(O dinheiro foi adicionado à tua carteira na mão. Cuidado com os roubos!)*`)
-                .setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
+            // Gera a imagem e envia!
+            const buffer = await generateRewardImage(message.author, nomePremio, rewardAmount, vipMultiplier, embedColor);
+            const attachment = new AttachmentBuilder(buffer, { name: 'pagamento.png' });
 
-            return message.reply({ embeds: [embed] });
+            return message.reply({ 
+                content: `💸╺╸**Mala forte!** O teu dinheiro acabou de cair na carteira. Cuidado com as ruas!`, 
+                files: [attachment] 
+            });
         }
         
         // ==========================================
@@ -1482,8 +1488,8 @@ await trackContract(dono.id, 'play_roleta', 1);
             }
         }
 
-        // ==========================================
-        // 🔫 COMANDO: hroubar (Assalto com Mercado Negro)
+ // ==========================================
+        // 🔫 COMANDO: hroubar (Assalto com Mercado Negro e Canvas)
         // ==========================================
         if (command === 'roubar' || command === 'assaltar') {
             const authorId = message.author.id;
@@ -1500,7 +1506,7 @@ await trackContract(dono.id, 'play_roleta', 1);
 
             if (!ladrao) ladrao = await prisma.hypeUser.create({ data: { id: authorId } });
             if (!vitima || vitima.carteira <= 0) {
-                return message.reply(`💨╺╸**Vácuo!** <@${targetUser.id}> não tem nem um centavo na carteira. Não vale o esforço!`);
+                return message.reply(`💨╺╸**Vácuo!** <@${targetUser.id}> não tem nem um centavo na carteira de risco. Não vale o esforço!`);
             }
 
             const cooldownRoubo = 10 * 60 * 1000;
@@ -1508,7 +1514,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                 const diff = Date.now() - new Date(ladrao.lastRob).getTime();
                 if (diff < cooldownRoubo) {
                     const expireUnix = Math.floor((new Date(ladrao.lastRob).getTime() + cooldownRoubo) / 1000);
-                    return message.reply(`⏳╺╸A polícia está de olho em ti! Espera até <t:${expireUnix}:R> para tentares outro assalto.`);
+                    return message.reply(`⏳╺╸A polícia está de olho em vc! Espera até <t:${expireUnix}:R> para tentar outro assalto.`);
                 }
             }
 
@@ -1523,15 +1529,20 @@ await trackContract(dono.id, 'play_roleta', 1);
 
             // 🪓 VERIFICAÇÃO DO PÉ DE CABRA
             let chanceSucesso = 0.45; // 45% Padrão
-            let msgPeCabra = '';
+            let msgItemCanvas = '';
             
             if (ladrao.peDeCabraExp && new Date(ladrao.peDeCabraExp).getTime() > Date.now()) {
                 chanceSucesso += 0.15; // Sobe para 60%
-                msgPeCabra = '\n🪓╺╸*(Usou o teu Pé de Cabra para facilitar o roubo!)*';
+                msgItemCanvas = 'PÉ DE CABRA UTILIZADO: CHANCE DE SUCESSO AUMENTADA';
             }
 
             const sorteio = Math.random();
             const sucesso = sorteio <= chanceSucesso;
+
+            // Importamos o Canvas e o Extrato aqui
+            const { AttachmentBuilder } = require('discord.js');
+            const { generateRouboImage } = require('../../../utils/canvasRoubo');
+           // const { addTransaction } = require('../../../utils/extratoManager');
 
             if (sucesso) {
                 // RASTREADOR: Sucesso no Roubo
@@ -1545,13 +1556,15 @@ await trackContract(dono.id, 'play_roleta', 1);
                     prisma.hypeUser.update({ where: { id: targetUser.id }, data: { carteira: { decrement: valorFinal } } })
                 ]);
 
-                const embed = new EmbedBuilder()
-                    .setColor('#57F287')
-                    .setTitle('🥷 ASSALTO BEM SUCEDIDO!')
-                    .setDescription(`Passou a mão na carteira de <@${targetUser.id}> e fugiu num carro de fuga!${msgPeCabra}\n\n💸 **Levou:** R$ ${valorFinal.toLocaleString('pt-BR')}\n*(Dinheiro adicionado à tua carteira)*`)
-                    .setThumbnail('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nndm9pZ3Nn/3o7TKMGpxS5O7E6pW0/giphy.gif');
+                // Regista no extrato dos dois
+               // await addTransaction(authorId, 'IN', valorFinal, `Assalto a @${targetUser.username}`);
+                //await addTransaction(targetUser.id, 'OUT', valorFinal, `Furtado por @${message.author.username}`);
 
-                return message.reply({ embeds: [embed] });
+                // Gera a imagem de Sucesso
+                const buffer = await generateRouboImage(message.author, targetUser, true, valorFinal, msgItemCanvas);
+                const attachment = new AttachmentBuilder(buffer, { name: 'roubo_sucesso.png' });
+
+                return message.reply({ files: [attachment] });
 
             } else {
                 // ==========================================
@@ -1560,7 +1573,6 @@ await trackContract(dono.id, 'play_roleta', 1);
                 const multaBase = 50000;
                 const multaPorcentagem = Math.floor(ladrao.carteira * 0.10);
                 let multaFinal = Math.max(multaBase, multaPorcentagem);
-                let msgDisfarce = '';
 
                 if (ladrao.disfarceUses > 0) {
                     multaFinal = Math.floor(multaFinal * 0.50); 
@@ -1571,7 +1583,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                         data: { disfarceUses: novosUsos }
                     });
 
-                    msgDisfarce = `\n\n🎭╺╸**DISFARCE UTILIZADO:** Graças ao teu Kit de Disfarce, a polícia não te reconheceu totalmente! A multa foi reduzida em **50%**. (Usos restantes: **${novosUsos}**)`;
+                    msgItemCanvas = `DISFARCE UTILIZADO: MULTA REDUZIDA PELA METADE (${novosUsos} USOS RESTANTES)`;
                 }
 
                 await prisma.hypeUser.update({ 
@@ -1582,14 +1594,21 @@ await trackContract(dono.id, 'play_roleta', 1);
                     } 
                 });
 
-                return message.reply(`🚨╺╸**TE PEGARAM!** O alarme disparou e a polícia cercou o local. <@${targetUser.id}> fugiu e tiveste de pagar **R$ ${multaFinal.toLocaleString('pt-BR')}** de fiança para não seres preso!${msgDisfarce}`);
+                // Regista no extrato do Ladrão
+               // await addTransaction(authorId, 'OUT', multaFinal, `Fiança Policial (Assalto Falho)`);
+
+                // Gera a imagem de Prisão
+                const buffer = await generateRouboImage(message.author, targetUser, false, multaFinal, msgItemCanvas);
+                const attachment = new AttachmentBuilder(buffer, { name: 'roubo_falho.png' });
+
+                return message.reply({ files: [attachment] });
             }
         }
 
-        // ==========================================
+// ==========================================
         // 🃏 GAME: Blackjack (hbj)
         // ==========================================
-        if (command === 'blackjack' || command === 'black' || command === 'bj') {
+        if (command === 'blackjack' || command === 'black' || command === 'jack') {
             const betInput = args[0];
 
             if (!betInput) return message.reply('❌╺╸**Uso correto:** `hbj <valor>` ou `hbj all`.');
@@ -1601,6 +1620,7 @@ await trackContract(dono.id, 'play_roleta', 1);
             let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌╺╸Valor de aposta inválido.');
             
+            // Limite da mesa do Agiota
             if (betAmount > 1000000) betAmount = 1000000;
 
             if (userProfile.carteira < betAmount) return message.reply(`❌╺╸Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira! (Vai ao banco sacar)`);
@@ -1609,6 +1629,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                 return message.reply('⏳╺╸Calma! O Agiota ainda está a baralhar as cartas. Aguarda 5 segundos.');
             }
 
+            // Desconta o valor da aposta na hora
             await prisma.hypeUser.update({
                 where: { id: userId },
                 data: { carteira: { decrement: betAmount }, lastGame: new Date() }
@@ -1626,17 +1647,6 @@ await trackContract(dono.id, 'play_roleta', 1);
                 return deck;
             }
 
-            function calculateScore(hand) {
-                let score = 0; let aces = 0;
-                for (let card of hand) {
-                    if (['J', 'Q', 'K'].includes(card.value)) score += 10;
-                    else if (card.value === 'A') { score += 11; aces += 1; }
-                    else score += parseInt(card.value);
-                }
-                while (score > 21 && aces > 0) { score -= 10; aces -= 1; }
-                return score;
-            }
-
             let deck = createDeck();
             let playerHand = [deck.pop(), deck.pop()];
             let dealerHand = [deck.pop(), deck.pop()];
@@ -1644,23 +1654,24 @@ await trackContract(dono.id, 'play_roleta', 1);
             if (!client.activeBlackjack) client.activeBlackjack = new Map();
             client.activeBlackjack.set(userId, { bet: betAmount, deck, playerHand, dealerHand });
 
-            const playerScore = calculateScore(playerHand);
+            // Importa as ferramentas do Canvas e do Discord
+            const { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+            const { generateBlackjackTable, getHandScore } = require('../../../utils/canvasBlackjack');
 
-            const imageBuffer = await generateBlackjackTable(playerHand, dealerHand, false);
-            const attachment = new AttachmentBuilder(imageBuffer, { name: 'table.png' });
+            // 🎨 GERA A IMAGEM TOTALMENTE FORA DA EMBED
+            const imageBuffer = await generateBlackjackTable(message.author, betAmount, playerHand, dealerHand, 'playing');
+            const attachment = new AttachmentBuilder(imageBuffer, { name: 'blackjack.png' });
 
-            const embed = new EmbedBuilder()
-                .setColor('#2b2d31')
-                .setTitle('🃏 BLACKJACK HYPE')
-                .setDescription(`**Jogador:** <@${userId}>\n**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Seus Pontos:** ${playerScore}`)
-                .setImage('attachment://table.png');
+            const playerScore = getHandScore(playerHand, false);
+            const is21 = playerScore === 21;
 
             const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId(`eco_bj_hit_${userId}`).setLabel('Pedir Carta').setStyle(ButtonStyle.Primary).setEmoji('🃏'),
+                new ButtonBuilder().setCustomId(`eco_bj_hit_${userId}`).setLabel('Pedir Carta').setStyle(ButtonStyle.Primary).setEmoji('🃏').setDisabled(is21),
                 new ButtonBuilder().setCustomId(`eco_bj_stand_${userId}`).setLabel('Parar Mão').setStyle(ButtonStyle.Success).setEmoji('✋')
             );
 
-            return message.reply({ embeds: [embed], components: [row], files: [attachment] });
+            // Envia apenas pingando o jogador e com a imagem de luxo
+            return message.reply({ content: `<@${userId}>`, components: [row], files: [attachment] });
         }
 
         // ==========================================
@@ -2518,7 +2529,7 @@ if (item === 'lanterna') {
                 if (userProfile.invLanternas <= 0) return message.reply('❌╺╸Você não tem Lanternas na mochila. Compre na `hloja`.');
                 
                 // Em vez de alterar o banco, apenas ensina o jogador a usar do jeito novo e correto!
-                return message.reply('🔦╺╸A **Lanterna Tática** não precisa ser equipada aqui! Inicie um jogo de `hmines` e clique no botão azul **[ 🔦 REVELAR (3) ]** para gastar o item e rastrear os explosivos na hora.');
+                return message.reply('🔦╺╸A **Lanterna Tática** não precisa ser equipada aqui! Inicie um jogo de `hmines` e clique no botão azul **[ 🔦 REVELAR  ]** para gastar o item e rastrear os explosivos na hora.');
             
     // Define um status temporário no banco para o próximo jogo de mines
     await prisma.hypeUser.update({

@@ -39,7 +39,7 @@ module.exports = {
 
             
             } else if (item === 'lanterna') {
-    preco = 1000000;
+    preco = 100000;
     nomeItem = 'Lanterna Tática';
     iconUrl = 'https://cdn-icons-png.flaticon.com/512/2165/2165511.png';
     updateData = { invLanternas: { increment: 1 } };
