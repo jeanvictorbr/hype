@@ -32,7 +32,7 @@ async function generateWalletImage(userDiscord, userData) {
     ctx.fillStyle = topGlow; ctx.fillRect(0, 0, width, height);
 
     const bottomGlow = ctx.createRadialGradient(0, height, 0, 0, height, 500);
-    bottomGlow.addColorStop(0, 'rgba(87, 242, 135, 0.10)'); // Verde
+    bottomGlow.addColorStop(0, 'rgba(0, 38, 255, 0.1)'); // Verde
     bottomGlow.addColorStop(1, 'transparent');
     ctx.fillStyle = bottomGlow; ctx.fillRect(0, 0, width, height);
     ctx.globalCompositeOperation = 'source-over';
