@@ -5,9 +5,36 @@ const { generateBlackjackTable } = require('../../../utils/canvasBlackjack');
 const { generateRoletaImage } = require('../../../utils/canvasRoletaRussa');
 const { generateCrashImage } = require('../../../utils/canvasCrash');
 
-
 // Mapa global para guardar as mesas ativas por canal da Roleta Russa
 const ActiveTables = new Map();
+
+// ==========================================
+// 🧠 MOTOR DE LEITURA DE APOSTAS HYPE
+// ==========================================
+function lerAposta(input, saldoCarteira) {
+    if (!input) return 0;
+    let str = input.toString().toLowerCase().trim();
+    
+    // Se ele quiser apostar tudo
+    if (str === 'all' || str === 'tudo') return saldoCarteira;
+
+    // Se o cara digitar "1,5k", trocamos a vírgula por ponto para o sistema entender
+    str = str.replace(',', '.');
+
+    let multiplicador = 1;
+    // Identifica o sufixo e define o peso
+    if (str.includes('kkk') || str.includes('b')) multiplicador = 1000000000; // Bilhões
+    else if (str.includes('kk') || str.includes('m')) multiplicador = 1000000; // Milhões
+    else if (str.includes('k')) multiplicador = 1000; // Milhares
+
+    // Tira todas as letras, deixando só o número limpo
+    let numeroLimpo = str.replace(/[a-z]/g, '');
+
+    // Converte pra número decimal, multiplica e arredonda
+    let valorFinal = Math.floor(parseFloat(numeroLimpo) * multiplicador);
+    
+    return isNaN(valorFinal) ? 0 : valorFinal;
+}
 
 module.exports = {
     name: 'messageCreate',
@@ -58,11 +85,11 @@ module.exports = {
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             if (!userProfile) return message.reply('❌╺╸**Ainda não tens um perfil registado.**');
 
-            let aposta = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            let aposta = lerAposta(betInput, userProfile.carteira);
             if (isNaN(aposta) || aposta <= 0) return message.reply('❌ **Valor de aposta inválido.**');
             
-            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 1 MILHÃO (1KK)
-            if (aposta > 1000000) aposta = 1000000;
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
+            if (aposta > 10000000) aposta = 10000000;
 
             if (userProfile.carteira < aposta) return message.reply(`❌ Não tens **R$ ${aposta.toLocaleString('pt-BR')}** na carteira!`);
 
@@ -92,90 +119,92 @@ module.exports = {
             }
         }
         
-// ==========================================
-// 💣 GAME: Mines (hmines)
-// ==========================================
-if (command === 'mines') {
-    const betInput = args[0];
-    if (!betInput) return message.reply('❌╺╸**Uso correto:** `hmines <valor>` ou `hmines all`.');
+        // ==========================================
+        // 💣 GAME: Mines (hmines)
+        // ==========================================
+        if (command === 'mines') {
+            const betInput = args[0];
+            if (!betInput) return message.reply('❌╺╸**Uso correto:** `hmines <valor>` ou `hmines all`.');
 
-    const userId = message.author.id;
-    let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
-    if (!userProfile) return message.reply('❌╺╸**Ainda não tens um perfil registado.**');
+            const userId = message.author.id;
+            let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
+            if (!userProfile) return message.reply('❌╺╸**Ainda não tens um perfil registado.**');
 
-    let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
-    if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌╺╸**Valor de aposta inválido.**');
-    
-    if (betAmount > 1000000) betAmount = 1000000;
-    if (userProfile.carteira < betAmount) return message.reply(`❌╺╸Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
+            let betAmount = lerAposta(betInput, userProfile.carteira);
+            if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌╺╸**Valor de aposta inválido.**');
+            
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
+            if (betAmount > 10000000) betAmount = 10000000;
+            if (userProfile.carteira < betAmount) return message.reply(`❌╺╸Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
 
-    if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
-        return message.reply('⏳╺╸**Estão a plantar as bombas! Aguarda 5 segundos.**');
-    }
+            if (userProfile.lastGame && (Date.now() - new Date(userProfile.lastGame).getTime() < 5000)) {
+                return message.reply('⏳╺╸**Estão a plantar as bombas! Aguarda 5 segundos.**');
+            }
 
-    await prisma.hypeUser.update({
-        where: { id: userId },
-        data: { carteira: { decrement: betAmount }, lastGame: new Date() }
-    });
+            await prisma.hypeUser.update({
+                where: { id: userId },
+                data: { carteira: { decrement: betAmount }, lastGame: new Date() }
+            });
 
-    const { trackContract } = require('../../../utils/contratosTracker');
-    await trackContract(userId, 'play_mines', 1);
+            const { trackContract } = require('../../../utils/contratosTracker');
+            await trackContract(userId, 'play_mines', 1);
 
-    // Grid de 20 espaços (4x5) conforme o seu padrão
-    const totalTiles = 20;
-    const bombCount = 3;
-    let grid = Array(totalTiles).fill('gem');
-    for (let i = 0; i < bombCount; i++) { grid[i] = 'bomb'; }
-    for (let i = grid.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [grid[i], grid[j]] = [grid[j], grid[i]];
-    }
+            // Grid de 20 espaços (4x5) conforme o seu padrão
+            const totalTiles = 20;
+            const bombCount = 3;
+            let grid = Array(totalTiles).fill('gem');
+            for (let i = 0; i < bombCount; i++) { grid[i] = 'bomb'; }
+            for (let i = grid.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [grid[i], grid[j]] = [grid[j], grid[i]];
+            }
 
-    if (!client.activeMines) client.activeMines = new Map();
-    // Adicionamos 'scanned: []' para guardar o que a lanterna achar
-    client.activeMines.set(userId, { bet: betAmount, bombs: bombCount, grid: grid, clicked: [], hits: 0, scanned: [] });
+            if (!client.activeMines) client.activeMines = new Map();
+            // Adicionamos 'scanned: []' para guardar o que a lanterna achar
+            client.activeMines.set(userId, { bet: betAmount, bombs: bombCount, grid: grid, clicked: [], hits: 0, scanned: [] });
 
-    const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
+            const { ContainerBuilder, TextDisplayBuilder, SeparatorBuilder, MessageFlags } = require('discord.js');
 
-    const header = new TextDisplayBuilder().setContent(`# 💣 MINES HYPE\nO campo minado de <@${userId}> começou!`);
-    const stats = new TextDisplayBuilder().setContent(`**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Multiplicador:** 1.00x\n**Lucro Atual:** R$ 0`);
+            const header = new TextDisplayBuilder().setContent(`# 💣 MINES HYPE\nO campo minado de <@${userId}> começou!`);
+            const stats = new TextDisplayBuilder().setContent(`**Aposta:** R$ ${betAmount.toLocaleString('pt-BR')}\n**Multiplicador:** 1.00x\n**Lucro Atual:** R$ 0`);
 
-    const container = new ContainerBuilder()
-        .setAccentColor(0x2b2d31)
-        .addTextDisplayComponents(header)
-        .addSeparatorComponents(new SeparatorBuilder())
-        .addTextDisplayComponents(stats);
+            const container = new ContainerBuilder()
+                .setAccentColor(0x2b2d31)
+                .addTextDisplayComponents(header)
+                .addSeparatorComponents(new SeparatorBuilder())
+                .addTextDisplayComponents(stats);
 
-    const rows = [];
-    for (let r = 0; r < 4; r++) {
-        const row = new ActionRowBuilder();
-        for (let c = 0; c < 5; c++) {
-            const index = r * 5 + c;
-            row.addComponents(
-                new ButtonBuilder().setCustomId(`eco_mines_click_${index}_${userId}`).setStyle(ButtonStyle.Secondary).setEmoji('🔲')
+            const rows = [];
+            for (let r = 0; r < 4; r++) {
+                const row = new ActionRowBuilder();
+                for (let c = 0; c < 5; c++) {
+                    const index = r * 5 + c;
+                    row.addComponents(
+                        new ButtonBuilder().setCustomId(`eco_mines_click_${index}_${userId}`).setStyle(ButtonStyle.Secondary).setEmoji('🔲')
+                    );
+                }
+                rows.push(row);
+            }
+
+            // BOTÕES DE CONTROLE
+            const actionRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`eco_mines_cashout_${userId}`)
+                    .setLabel('💰 Retirar Lucro (R$ 0)')
+                    .setStyle(ButtonStyle.Success)
+                    .setDisabled(true),
+                new ButtonBuilder()
+                    .setCustomId(`eco_mines_lanterna_${userId}`)
+                    .setLabel('REVELAR')
+                    .setEmoji('🔦')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(userProfile.invLanternas <= 0) // Só habilita se ele tiver o item
             );
+            rows.push(actionRow);
+
+            return message.reply({ components: [container, ...rows], flags: [MessageFlags.IsComponentsV2] });
         }
-        rows.push(row);
-    }
 
-    // BOTÕES DE CONTROLE
-    const actionRow = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId(`eco_mines_cashout_${userId}`)
-            .setLabel('💰 Retirar Lucro (R$ 0)')
-            .setStyle(ButtonStyle.Success)
-            .setDisabled(true),
-        new ButtonBuilder()
-            .setCustomId(`eco_mines_lanterna_${userId}`)
-            .setLabel('REVELAR')
-            .setEmoji('🔦')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(userProfile.invLanternas <= 0) // Só habilita se ele tiver o item
-    );
-    rows.push(actionRow);
-
-    return message.reply({ components: [container, ...rows], flags: [MessageFlags.IsComponentsV2] });
-}
         // ==========================================
         // 🔫 GAME: Roleta Russa (hroleta)
         // ==========================================
@@ -189,14 +218,15 @@ if (command === 'mines') {
                 return message.reply('❌╺╸Já existe uma mesa de Roleta Russa aberta neste canal! Esperem o jogo acabar.');
             }
 
-            let valorAposta = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            const dono = message.author;
+            const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
+            
+            let valorAposta = lerAposta(betInput, userProfile?.carteira || 0);
             if (isNaN(valorAposta) || valorAposta < 100) return message.reply('❌ A aposta mínima para abrir a mesa é de **R$ 100**.');
 
-            if (valorAposta > 1000000) valorAposta = 1000000;
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
+            if (valorAposta > 10000000) valorAposta = 10000000;
 
-            const dono = message.author;
-            
-            const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
             if (!userProfile || userProfile.carteira < valorAposta) {
                 return message.reply(`❌╺╸Você não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira para garantires a tua cadeira.`);
             }
@@ -223,7 +253,7 @@ if (command === 'mines') {
             client.activeRoleta.set(canalId, mesa);
 
             const loadingMsg = await message.reply('🔫╺╸**A montar a mesa do submundo...**');
-await trackContract(dono.id, 'play_roleta', 1);
+            await trackContract(dono.id, 'play_roleta', 1);
             try {
                 const imgBuffer = await generateRoletaImage('lobby', mesa.players, -1, mesa.pot);
                 const attachment = new AttachmentBuilder(imgBuffer, { name: 'roleta.png' });
@@ -490,7 +520,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                             .setDescription('R$ 30.000 - 50% de desconto em multas (Vai p/ Mochila)')
                             .setEmoji('🎭')
                             .setValue('disfarce'),
-                            new StringSelectMenuOptionBuilder() // 👇 NOVA OPÇÃO AQUI
+                        new StringSelectMenuOptionBuilder() 
             .setLabel('Lanterna Tática')
             .setDescription('R$ 100.000 - Revela Bombas no Mines.')
             .setEmoji('🔦')
@@ -556,13 +586,15 @@ await trackContract(dono.id, 'play_roleta', 1);
                 return message.reply('❌╺╸Os carros já estão na pista neste canal! Esperem a corrida acabar.');
             }
 
-            let valorAposta = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
-            if (isNaN(valorAposta) || valorAposta < 100) return message.reply('❌ A aposta mínima para o ingresso é de **R$ 100**.');
-
-            if (valorAposta > 1000000) valorAposta = 1000000;
-
             const dono = message.author;
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
+            
+            let valorAposta = lerAposta(betInput, userProfile?.carteira || 0);
+            if (isNaN(valorAposta) || valorAposta < 100) return message.reply('❌ A aposta mínima para o ingresso é de **R$ 100**.');
+
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
+            if (valorAposta > 10000000) valorAposta = 10000000;
+
             if (!userProfile || userProfile.carteira < valorAposta) {
                 return message.reply(`❌╺╸Você não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira para criar a corrida.`);
             }
@@ -717,12 +749,15 @@ await trackContract(dono.id, 'play_roleta', 1);
                 return message.reply('❌╺╸Os bota tão patrulhando esse canal. Pera a poeira baixar pra organizar outro assalto.');
             }
 
-            let valorAposta = parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
-            if (isNaN(valorAposta) || valorAposta < 500) return message.reply('❌ O caixinha pros esquipamento é no mínimo **R$ 500**.');
-            if (valorAposta > 1000000) valorAposta = 1000000;
-
             const dono = message.author;
             const userProfile = await prisma.hypeUser.findUnique({ where: { id: dono.id } });
+            
+            let valorAposta = lerAposta(betInput, userProfile?.carteira || 0);
+            if (isNaN(valorAposta) || valorAposta < 500) return message.reply('❌ O caixinha pros esquipamento é no mínimo **R$ 500**.');
+            
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
+            if (valorAposta > 10000000) valorAposta = 10000000;
+
             if (!userProfile || userProfile.carteira < valorAposta) {
                 return message.reply(`❌╺╸Tu tá liso, mano! Não tem **R$ ${valorAposta.toLocaleString('pt-BR')}** na carteira pra bancar a operação.`);
             }
@@ -1179,9 +1214,9 @@ await trackContract(dono.id, 'play_roleta', 1);
         }
 
         // ==========================================
-        // 🎲 COMANDO: hap / hapostar (Sistema de Apostas)
+        // 🎲 COMANDO: hap / hapostar / hbet / hcoinflip
         // ==========================================
-        if (command === 'ap' || command === 'apostar' || command === 'coinflip') {
+        if (command === 'ap' || command === 'apostar' || command === 'coinflip' || command === 'bet') {
             const betValueStr = args.find(a => !a.startsWith('<@'))?.toLowerCase();
             
             let targetUser = message.mentions.users.first();
@@ -1202,15 +1237,13 @@ await trackContract(dono.id, 'play_roleta', 1);
                 return message.reply('❌╺╸**Você não tem dinheiro na carteira para apostar!**');
             }
 
-            let amount = 0;
-            if (betValueStr === 'all' || betValueStr === 'tudo') {
-                amount = userProfile.carteira;
-            } else {
-                amount = parseInt(betValueStr.replace(/k/g, '000').replace(/[^\d]/g, ''));
-            }
+            let amount = lerAposta(betValueStr, userProfile.carteira);
 
             if (isNaN(amount) || amount <= 0) return message.reply('❌╺╸**Valor de aposta inválido!**');
-            if (amount > 1000000) amount = 1000000;
+            
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
+            if (amount > 10000000) amount = 10000000;
+            
             if (amount > userProfile.carteira) return message.reply(`❌╺╸Você só tem **R$ ${userProfile.carteira.toLocaleString('pt-BR')}** na mão! Vá ao banco sacar mais se quiser apostar isso.`);
 
             // ==========================================
@@ -1257,12 +1290,15 @@ await trackContract(dono.id, 'play_roleta', 1);
 
                     if (i.customId === 'hap_accept') {
                         collector.stop('accepted');
-                        await i.deferUpdate();
+                        await i.update({ content: `🪙 **A MOEDA ESTÁ NO AR!**\nApostas travadas. Aguardem o resultado...`, components: [] });
 
                         await prisma.$transaction([
                             prisma.hypeUser.update({ where: { id: message.author.id }, data: { carteira: { decrement: amount } } }),
                             prisma.hypeUser.update({ where: { id: targetUser.id }, data: { carteira: { decrement: amount } } })
                         ]);
+
+                        // Delay dramático de 3 segundos
+                        await new Promise(r => setTimeout(r, 3000));
 
                         const pot = amount * 2;
                         const winnerId = Math.random() < 0.5 ? message.author.id : targetUser.id;
@@ -1344,6 +1380,12 @@ await trackContract(dono.id, 'play_roleta', 1);
                     return msg.edit({ content: '😔╺╸**A mesa fechou. Ninguém quis apostar e o seu dinheiro foi devolvido para a carteira.**', embeds: [], components: [] }).catch(()=>{});
                 }
 
+                // Efeito visual de giro
+                await msg.edit({ content: '🪙 **A MOEDA ESTÁ NO AR...**\nCalculando vencedor e dividindo o pote!', embeds: [], components: [] }).catch(()=>{});
+                
+                // Delay de suspense
+                await new Promise(r => setTimeout(r, 3500));
+
                 const winnerId = participants[Math.floor(Math.random() * participants.length)];
                 const losers = participants.filter(id => id !== winnerId);
                 
@@ -1363,7 +1405,7 @@ await trackContract(dono.id, 'play_roleta', 1);
             return;
         }
         
-// ==========================================
+        // ==========================================
         // 💰 COMANDOS: hdiario / hsemanal / hmensal
         // ==========================================
         if (command === 'diario' || command === 'semanal' || command === 'mensal') {
@@ -1432,9 +1474,6 @@ await trackContract(dono.id, 'play_roleta', 1);
                 create: createData
             });
 
-            // Regista a entrada de dinheiro no Extrato Bancário dele
-            //await addTransaction(userId, 'IN', rewardAmount, `Depósito de ${nomePremio}`);
-
             // Gera a imagem e envia!
             const buffer = await generateRewardImage(message.author, nomePremio, rewardAmount, vipMultiplier, embedColor);
             const attachment = new AttachmentBuilder(buffer, { name: 'pagamento.png' });
@@ -1469,10 +1508,7 @@ await trackContract(dono.id, 'play_roleta', 1);
 
             let senderProfile = await prisma.hypeUser.findUnique({ where: { id: senderId } });
             
-            let amount = parseInt(amountStr.replace(/k/g, '000').replace(/\./g, ''));
-            if (amountStr.toLowerCase() === 'tudo' || amountStr.toLowerCase() === 'all') {
-                amount = senderProfile?.hypeCash || 0;
-            }
+            let amount = lerAposta(amountStr, senderProfile?.hypeCash || 0);
 
             if (isNaN(amount) || amount <= 0) {
                 return message.reply('❌╺╸**Valor inválido para transferência.**');
@@ -1517,7 +1553,7 @@ await trackContract(dono.id, 'play_roleta', 1);
             }
         }
 
- // ==========================================
+        // ==========================================
         // 🔫 COMANDO: hroubar (Assalto com Mercado Negro e Canvas)
         // ==========================================
         if (command === 'roubar' || command === 'assaltar') {
@@ -1568,10 +1604,8 @@ await trackContract(dono.id, 'play_roleta', 1);
             const sorteio = Math.random();
             const sucesso = sorteio <= chanceSucesso;
 
-            // Importamos o Canvas e o Extrato aqui
             const { AttachmentBuilder } = require('discord.js');
             const { generateRouboImage } = require('../../../utils/canvasRoubo');
-           // const { addTransaction } = require('../../../utils/extratoManager');
 
             if (sucesso) {
                 // RASTREADOR: Sucesso no Roubo
@@ -1584,10 +1618,6 @@ await trackContract(dono.id, 'play_roleta', 1);
                     prisma.hypeUser.update({ where: { id: authorId }, data: { carteira: { increment: valorFinal }, lastRob: new Date() } }),
                     prisma.hypeUser.update({ where: { id: targetUser.id }, data: { carteira: { decrement: valorFinal } } })
                 ]);
-
-                // Regista no extrato dos dois
-               // await addTransaction(authorId, 'IN', valorFinal, `Assalto a @${targetUser.username}`);
-                //await addTransaction(targetUser.id, 'OUT', valorFinal, `Furtado por @${message.author.username}`);
 
                 // Gera a imagem de Sucesso
                 const buffer = await generateRouboImage(message.author, targetUser, true, valorFinal, msgItemCanvas);
@@ -1623,9 +1653,6 @@ await trackContract(dono.id, 'play_roleta', 1);
                     } 
                 });
 
-                // Regista no extrato do Ladrão
-               // await addTransaction(authorId, 'OUT', multaFinal, `Fiança Policial (Assalto Falho)`);
-
                 // Gera a imagem de Prisão
                 const buffer = await generateRouboImage(message.author, targetUser, false, multaFinal, msgItemCanvas);
                 const attachment = new AttachmentBuilder(buffer, { name: 'roubo_falho.png' });
@@ -1634,10 +1661,10 @@ await trackContract(dono.id, 'play_roleta', 1);
             }
         }
 
-// ==========================================
+        // ==========================================
         // 🃏 GAME: Blackjack (hbj)
         // ==========================================
-        if (command === 'blackjack' || command === 'black' || command === 'jack') {
+        if (command === 'blackjack' || command === 'black' || command === 'jack' || command === 'bj') {
             const betInput = args[0];
 
             if (!betInput) return message.reply('❌╺╸**Uso correto:** `hbj <valor>` ou `hbj all`.');
@@ -1646,11 +1673,11 @@ await trackContract(dono.id, 'play_roleta', 1);
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             if (!userProfile) return message.reply('❌╺╸Ainda não tens um perfil registado. Usa o `hdiario` para começar!');
 
-            let betAmount = betInput.toLowerCase() === 'all' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            let betAmount = lerAposta(betInput, userProfile.carteira);
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌╺╸Valor de aposta inválido.');
             
-            // Limite da mesa do Agiota
-            if (betAmount > 1000000) betAmount = 1000000;
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
+            if (betAmount > 10000000) betAmount = 10000000;
 
             if (userProfile.carteira < betAmount) return message.reply(`❌╺╸Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira! (Vai ao banco sacar)`);
 
@@ -1715,10 +1742,11 @@ await trackContract(dono.id, 'play_roleta', 1);
             let userProfile = await prisma.hypeUser.findUnique({ where: { id: userId } });
             if (!userProfile) return message.reply('❌╺╸Ainda não tens um perfil registado.');
 
-            let betAmount = betInput.toLowerCase() === 'all' || betInput.toLowerCase() === 'tudo' ? userProfile.carteira : parseInt(betInput.replace(/k/g, '000').replace(/\./g, ''));
+            let betAmount = lerAposta(betInput, userProfile.carteira);
             if (isNaN(betAmount) || betAmount <= 0) return message.reply('❌ Valor de aposta inválido.');
             
-            if (betAmount > 1000000) betAmount = 1000000;
+            // 👇 LIMITADOR DE APOSTAS: MÁXIMO 10 MILHÕES (10M)
+            if (betAmount > 10000000) betAmount = 10000000;
 
             if (userProfile.carteira < betAmount) return message.reply(`❌ Não tens **R$ ${betAmount.toLocaleString('pt-BR')}** na carteira!`);
 
@@ -1829,6 +1857,7 @@ await trackContract(dono.id, 'play_roleta', 1);
             
             const msg = await message.reply({ content: '⏳╺╸`**Lendo a lista de habitantes e desenhando a galeria de Magnatas...**`' });
 
+            // Se for global, busca top 30 geral. Se for local, busca os 500 mais ricos (depois a gente filtra quem tá no server)
             const allUsersRaw = await prisma.hypeUser.findMany({ 
                 where: { hypeCash: { gt: 0 } },
                 orderBy: { hypeCash: 'desc' }, 
@@ -1842,6 +1871,7 @@ await trackContract(dono.id, 'play_roleta', 1);
 
             if (!isGlobal) {
                 try { await message.guild.members.fetch(); } catch (e) { console.log('Aviso ao puxar membros no Rank.'); }
+                // Filtra para mostrar apenas as pessoas que estão neste servidor
                 sortedUsers = sortedUsers.filter(u => message.guild.members.cache.has(u.id)).slice(0, 30);
             } else {
                 sortedUsers = sortedUsers.slice(0, 30);
@@ -1855,7 +1885,7 @@ await trackContract(dono.id, 'play_roleta', 1);
             }
 
             let currentPage = 0;
-            const rankTitle = isGlobal ? 'GLOBAL' : message.guild.name;
+            const rankTitle = isGlobal ? 'GLOBAL (Mundo)' : message.guild.name.toUpperCase();
 
             const renderPage = async (pageIndex) => {
                 const pageData = chunks[pageIndex];
@@ -1926,8 +1956,8 @@ await trackContract(dono.id, 'play_roleta', 1);
                 return message.reply('❌╺╸Apenas a **Alta Cúpula (Admins)** pode iniciar o evento da Mala Criptografada!');
             }
 
-            const prize = parseInt(args[0]?.replace(/k/g, '000'));
-            const cost = parseInt(args[1]?.replace(/k/g, '000'));
+            const prize = lerAposta(args[0], 0);
+            const cost = lerAposta(args[1], 0);
 
             if (!prize || !cost || isNaN(prize) || isNaN(cost)) {
                 return message.reply('📝╺╸**Uso correto:** `hmala <premio> <custo_por_tentativa>`\nExemplo: `hmala 50k 1k`');
@@ -2064,7 +2094,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                 new EmbedBuilder()
                     .setColor('#FEE75C')
                     .setTitle('🎰 CASSINO HYPE - JOGOS SOLO')
-                    .setDescription('Quer multiplicar a grana rápido? O Cassino cobra o valor direto da sua **CARTEIRA**. Limite de aposta: **R$ 1.000.000**.')
+                    .setDescription('Quer multiplicar a grana rápido? O Cassino cobra o valor direto da sua **CARTEIRA**. Limite de aposta: **R$ 10.000.000**.')
                     .addFields(
                         { name: '🐯 Máquina do Tigrinho', value: '> `htigrinho <valor>`\n> Gira a máquina. Se a sorte bater e os bônus alinharem, o Tigre paga pesadíssimo!' },
                         { name: '💣 Campo Minado (Mines)', value: '> `hmines <valor>`\n> Clica nos quadrados para achar os diamantes. \n> *Dica: Use a Lanterna Tática para escanear e ver as bombas antes de clicar!*' },
@@ -2140,7 +2170,7 @@ await trackContract(dono.id, 'play_roleta', 1);
                 cassino: new EmbedBuilder()
                     .setColor('#FEE75C')
                     .setTitle('🎰 Cassino Hype - Jogos Solo')
-                    .setDescription('Apostas arriscadas! Todos os jogos cobram o valor diretamente da tua **CARTEIRA** (dinheiro na mão). Limite de aposta: 1 Milhão.')
+                    .setDescription('Apostas arriscadas! Todos os jogos cobram o valor diretamente da tua **CARTEIRA** (dinheiro na mão). Limite de aposta: 10 Milhões.')
                     .addFields(
                         { name: '🐯 O Famoso Tigrinho', value: '`htigrinho <valor>` (ou `all`) - Gira a máquina do tigre. Pode pagar até 10x se vier a cartinha de bônus!' },
                         { name: '💣 Campo Minado', value: '`hmines <valor>` (ou `all`) - Tenta achar os diamantes. \n*(Dica: Compre uma Lanterna Tática no Mercado Negro para escanear bombas antes de clicar!)*' },
@@ -2298,8 +2328,7 @@ await trackContract(dono.id, 'play_roleta', 1);
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
             if (!user || user.carteira <= 0) return message.reply('❌╺╸Não tens dinheiro na carteira para depositar.');
 
-            let valor = parseInt(valorStr);
-            if (valorStr.toLowerCase() === 'tudo' || valorStr.toLowerCase() === 'all') valor = user.carteira;
+            let valor = lerAposta(valorStr, user.carteira);
 
             if (isNaN(valor) || valor <= 0) return message.reply('❌╺╸Valor inválido!');
             if (user.carteira < valor) return message.reply(`❌╺╸Só tem **R$ ${user.carteira.toLocaleString('pt-BR')}** na carteira.`);
@@ -2330,8 +2359,8 @@ await trackContract(dono.id, 'play_roleta', 1);
             if (!valorStr) return message.reply('❌╺╸Você precisa dizer o valor! Exemplo: `hsacar 100`');
 
             const user = await prisma.hypeUser.findUnique({ where: { id: message.author.id } });
-            let valor = parseInt(valorStr);
-            if (valorStr.toLowerCase() === 'tudo') valor = user?.hypeCash || 0;
+            
+            let valor = lerAposta(valorStr, user?.hypeCash || 0);
 
             if (!user || isNaN(valor) || valor <= 0 || user.hypeCash < valor) {
                 return message.reply(`❌╺╸Saldo insuficiente no banco. Tem apenas **R$ ${(user?.hypeCash || 0).toLocaleString('pt-BR')}**.`);
