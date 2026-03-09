@@ -512,17 +512,13 @@ module.exports = {
 
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
             
-// AGORA MANDA O GIF DENTRO DE UM EMBED (ESCONDE O LINK E MOSTRA SÓ A IMAGEM)
+            // AGORA MANDA O GIF COMO LINK DIRETO (MUITO MAIS LEVE, NÃO REBENTA A API DO DISCORD)
             let extraMsg = vipLevel > 0 ? `\n💎╺╸**Bónus VIP** Nível ${vipLevel}: \`x${vipMultiplier}\` Aplicado!` : '';
 
-            const embedGif = new EmbedBuilder()
-                .setColor('#ff69b4') // Cor de destaque suave
-                .setImage(randomGif);
-
             return message.reply({ 
-                content: `${action.emoji} ╺╸ <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:** R$ ${rewardAmount.toLocaleString('pt-BR')} (Caiu na tua Carteira!)${extraMsg}`,
-                embeds: [embedGif]
+                content: `${action.emoji} ╺╸ <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:** R$ ${rewardAmount.toLocaleString('pt-BR')} (Caiu na tua Carteira!)${extraMsg}\n${randomGif}`
             });
+        }
 
  // ==========================================
         // 📋 COMANDO: htempo / hcd (Painel Completo)
