@@ -374,7 +374,7 @@ module.exports = {
             }
         }
 
-        // ==========================================
+ // ==========================================
         // 🎭 MÓDULO SOCIAL (Cooldown 20m por Comando)
         // ==========================================
         const gifs = {
@@ -511,13 +511,21 @@ module.exports = {
             await addTransaction(authorId, 'IN', rewardAmount, `Recompensa Social: ${action.type}`);
 
             const randomGif = gifs[action.type][Math.floor(Math.random() * gifs[action.type].length)];
-            
-            // AGORA MANDA O GIF COMO LINK DIRETO (MUITO MAIS LEVE, NÃO REBENTA A API DO DISCORD)
+            const attachment = new AttachmentBuilder(randomGif, { name: 'animacao.gif' });
             let extraMsg = vipLevel > 0 ? `\n💎╺╸**Bónus VIP** Nível ${vipLevel}: \`x${vipMultiplier}\` Aplicado!` : '';
 
-            return message.reply({ 
-                content: `${action.emoji} ╺╸ <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:** R$ ${rewardAmount.toLocaleString('pt-BR')} (Caiu na tua Carteira!)${extraMsg}\n${randomGif}`
-            });
+            try {
+                // Tenta enviar a imagem FORA da embed (como anexo)
+                return await message.reply({ 
+                    content: `${action.emoji} ╺╸ <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:** R$ ${rewardAmount.toLocaleString('pt-BR')} (Caiu na tua Carteira!)${extraMsg}`,
+                    files: [attachment]
+                });
+            } catch (err) {
+                // Se a imagem for pesada demais (Erro 40005), envia só o texto para não crashar o bot!
+                return await message.reply({ 
+                    content: `${action.emoji} ╺╸ <@${authorId}> **${action.verb}** <@${targetUser.id}>!\n\n💸╺╸**VOCÊ GANHOU:** R$ ${rewardAmount.toLocaleString('pt-BR')} (Caiu na tua Carteira!)${extraMsg}`
+                });
+            }
         }
 
  // ==========================================
