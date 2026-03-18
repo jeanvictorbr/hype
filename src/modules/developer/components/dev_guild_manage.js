@@ -51,6 +51,12 @@ module.exports = {
 
         const featuresList = dbGuild.features.length > 0 ? dbGuild.features.join(', ') : 'Nenhuma';
 
+        // 👇 ADIÇÃO: Verifica se está banido para alterar o status e a cor
+        if (dbGuild.features.includes('BANNED')) {
+            statusText = `💀 SERVIDOR BANIDO DO SISTEMA`;
+            color = 0x000000;
+        }
+
         // ==========================================
         // 🎨 PÁGINA 1: GESTÃO DO SERVIDOR E MÓDULOS
         // ==========================================
@@ -60,12 +66,20 @@ module.exports = {
         const stats = new TextDisplayBuilder()
             .setContent(`**Status:** ${statusText}\n**Vencimento:** ${expireDateString} (${daysRemaining} dias)\n**Módulos Ativos:** \`[${featuresList}]\``);
 
+        // 👇 ADIÇÃO: Constante para saber se tá banido e alterar o botão
+        const isBanned = dbGuild.features.includes('BANNED');
+
         // Botões de Licença SaaS do Servidor
         const rowTime = new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId(`dev_vip_add_7_${guildId}`).setLabel('+7 Dias').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`dev_vip_add_30_${guildId}`).setLabel('+30 Dias').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`dev_vip_set_lifetime_${guildId}`).setLabel('👑 Lifetime').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId(`dev_vip_remove_${guildId}`).setLabel('🛑 Remover VIP (Servidor)').setStyle(ButtonStyle.Danger)
+            new ButtonBuilder().setCustomId(`dev_vip_remove_${guildId}`).setLabel('🛑 Remover VIP (Servidor)').setStyle(ButtonStyle.Danger),
+            // 👇 ADIÇÃO: Botão de Banir/Desbanir adicionado aqui no final da ActionRow
+            new ButtonBuilder()
+                .setCustomId(`dev_guild_toggleban_${guildId}`)
+                .setLabel(isBanned ? '✅ Desbanir Servidor' : '💀 Banir Servidor')
+                .setStyle(isBanned ? ButtonStyle.Success : ButtonStyle.Danger)
         );
 
         // Botões de Ativação de Sistemas

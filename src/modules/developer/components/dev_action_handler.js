@@ -130,7 +130,36 @@ module.exports = {
                 data: { features: feats }
             });
         }
+// --- 🔴 LÓGICA DE GUILDA (Banimentos) ---
+        else if (category === 'guild' && action === 'toggleban') {
+            let feats = guildData.features || [];
+            
+            if (feats.includes('BANNED')) {
+                feats = feats.filter(f => f !== 'BANNED'); // Remove o ban
+                feedbackMsg = `✅ **Servidor Desbanido:** Eles podem convidar o bot novamente.`;
+            } else {
+                feats.push('BANNED'); // Adiciona o ban
+                feats = feats.filter(f => f !== 'premium' && f !== 'all'); // Remove o VIP por segurança
+                newExpireDate = null; // Zera o VIP
+                
+                feedbackMsg = `💀 **Servidor Banido:** O bot vai sair imediatamente.`;
 
+                // Tenta expulsar o bot do servidor se ele ainda estiver lá
+                try {
+                    const targetGuild = client.guilds.cache.get(guildId);
+                    if (targetGuild) {
+                        await targetGuild.leave();
+                    }
+                } catch (e) {
+                    console.log(`[DevPanel] Não foi possível sair do servidor banido: ${e.message}`);
+                }
+            }
+
+            await prisma.guild.update({
+                where: { id: guildId },
+                data: { features: feats, vipExpiresAt: newExpireDate }
+            });
+        }
         // ==========================================
         // 🔄 6. RE-RENDERIZAÇÃO (UI Update)
         // ==========================================
@@ -145,5 +174,7 @@ module.exports = {
             content: feedbackMsg, 
             flags: [MessageFlags.Ephemeral] 
         });
+        
     }
+    
 };

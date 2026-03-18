@@ -25,6 +25,7 @@ try {
 // 👇 IMPORTANTE: Os imports que usam a BD vêm DEPOIS do bloco acima!
 const { loadModules } = require('./core/loader');
 const vipChecker = require('./utils/vipChecker');
+const { prisma } = require('./core/database'); // 👈 PRISMA IMPORTADO AQUI!
 
 // ==========================================
 // 🤖 INICIALIZAÇÃO DA NAVE
@@ -37,6 +38,16 @@ const client = new Client({
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.MessageContent
     ]
+});
+
+// 👇 O EVENTO FOI MOVIDO PARA CÁ, AGORA O CLIENT EXISTE!
+client.on('guildCreate', async (guild) => {
+    const dbGuild = await prisma.guild.findUnique({ where: { id: guild.id } });
+    
+    if (dbGuild && dbGuild.features.includes('BANNED')) {
+        console.log(`[Segurança] Bot convidado para um servidor banido (${guild.name}). Saindo...`);
+        return guild.leave();
+    }
 });
 
 // Coleções para acesso rápido via RAM
