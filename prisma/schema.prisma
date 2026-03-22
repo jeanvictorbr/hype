@@ -42,12 +42,12 @@ model VipConfig {
 // Perfil global do utilizador (Saldo e VIP)
 model HypeUser {
   id            String   @id // ID do Discord do Jogador
-  hypeCash      Int      @default(0) // Saldo da moeda virtual
+  hypeCash      Float      @default(0) // Saldo da moeda virtual
   vipLevel      Int      @default(0) // 0 = Normal, 1 = Nível 1, 2 = Nível 2, 3 = Nível 3
   vipExpiresAt  DateTime?
   lastTimeout   DateTime? // 👇 NOVA LINHA AQUI (Controle do Ditador)
   lastDaily     DateTime?  // 👇 ADICIONA ESTA LINHA AQUI!
-  carteira   Int      @default(0) // 👈 ADICIONA ISTO: Dinheiro na mão
+  carteira   Float      @default(0) // 👈 ADICIONA ISTO: Dinheiro na mão
   createdAt     DateTime @default(now())
   // Cooldowns Sociais (Independentes)
   // Cooldowns de Jogos
