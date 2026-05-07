@@ -107,7 +107,7 @@ module.exports = {
             const internalPanel = new ContainerBuilder()
                 .setAccentColor(0x5865F2)
                 .addTextDisplayComponents(
-                    new TextDisplayBuilder().setContent(`# ${deptName}\nOlá <@${memberId}>! Descreva seu problema abaixo.\n\n*Aguarde um membro da equipe.*`)
+                    new TextDisplayBuilder().setContent(`# ${deptName}\nOlá <@${memberId}>! Descreva sua solicitação abaixo.\n\n*Aguarde um membro da equipe.*`)
                 )
                 .addActionRowComponents(
                     new ActionRowBuilder().addComponents(
